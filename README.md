@@ -31,6 +31,8 @@ npm run android
 # OR using Yarn
 yarn android
 ```
+、、、运行Android项目命令
+npx react-native run-android
 
 ### iOS
 

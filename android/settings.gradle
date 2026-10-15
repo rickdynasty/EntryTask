@@ -4,3 +4,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'EntryTask'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+include ':lib_base'
+include ':lib_net'
+include ':lib_storage'
+include ':biz_user'

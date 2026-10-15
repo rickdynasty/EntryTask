@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- APP的主色，actionBar、Toolbar导航栏的底色 -->
+    <color name="colorPrimary">#EA5F00</color>
+    <color name="colorPressed">#C84300</color>
+    <!-- APP的主要暗色调，statusBarColor默认使用这种 -->
+    <color name="colorPrimaryDark">#00000000</color>
+    <!-- CheckBox，RadioButton，SwitchCompat等一般控件的选中效果默认采用该颜色 -->
+    <color name="colorAccent">#4DD865</color>
+
+    <color name="transparent">#00000000</color>
+    <color name="white">#ffffffff</color>
+    <color name="light_gray">#F6F7F8</color>
+    <color name="black">#FF000000</color>
+    <color name="normal_black">#000000</color>
+
+    <!-- ======== Brand Recognition ======== -->
+    <!--主色调，按钮的可用态背景、等-->
+    <color name="orange">#EA5F00</color>
+    <color name="orange_alpha_medium">#80EA5F00</color>
+    <color name="orange_dark">#C84300</color>
+    <!--蓝色，可点击的文本颜色、头像字母等高亮文本色-->
+    <color name="blue">#2673DD</color>
+    <color name="blue_dark">#214D7E</color>
+    <color name="yellow">#DB944B</color>
+    <color name="green">#4095A5</color>
+    <color name="red">#FF0000</color>
+    <color name="green_accept_call">#00FF00</color>
+
+    <!-- 橙红色，活体页面顶上的错误提示 -->
+    <color name="orange_red">#EE4D2D</color>
+
+    <!-- ======== Function ======== -->
+    <!--错误-->
+    <color name="error">#EE2C4A</color>
+    <!--警告-->
+    <color name="caution">#F69113</color>
+    <!--成功-->
+    <color name="success">#30B566</color>
+    <!--  功能界面背景  -->
+    <color name="bg_error">#FFF4F4</color>
+    <color name="bg_caution">#FFF8E4</color>
+    <color name="bg_success">#F7FFFE</color>
+    <color name="bg_orange">#FFF6F5</color>
+
+    <color name="bg_gray">#F5F6F7</color>
+
+    <!-- ======== Type [text] color ======== -->
+    <!-- 文本主色调-->
+    <color name="type_primary">#DE000000</color>
+    <!--描述文本颜色-->
+    <color name="type_secondary">#A6000000</color>
+    <!--【辅助】描述文本的颜色-->
+    <color name="type_tertiary">#8A000000</color>
+    <!--不可用的按钮、输入框hint、等文本颜色-->
+    <color name="type_disabled">#42000000</color>
+
+    <!-- ======== Utility ======== -->
+    <color name="background">#F6F7F8</color>
+    <!--  遮罩  -->
+    <color name="mask">#66000000</color>
+    <!--  线条、背景  -->
+    <color name="line">#17000000</color>
+    <!--  区域填充、分割区域  -->
+    <color name="placeholder">#FAFAFA</color>
+
+    <!-- 100% alpha white -->
+    <color name="white_alpha_superbig">#ffffffff</color>
+    <!-- 90% alpha white -->
+    <color name="white_alpha_super">#E6FFFFFF</color>
+    <!-- 80% alpha white -->
+    <color name="white_alpha_huge">#CCFFFFFF</color>
+    <!-- 70% alpha white -->
+    <color name="white_alpha_large">#B3FFFFFF</color>
+    <!-- 60% alpha white 大-->
+    <color name="white_alpha_big">#99FFFFFF</color>
+    <!-- 50% alpha white 中-->
+    <color name="white_alpha_medium">#80FFFFFF</color>
+    <!-- 40% alpha white 小-->
+    <color name="white_alpha_small">#66FFFFFF</color>
+    <!-- 30% alpha white 迷你-->
+    <color name="white_alpha_mini">#4DFFFFFF</color>
+    <!-- 20% alpha white 细小-->
+    <color name="white_alpha_tiny">#33FFFFFF</color>
+    <!-- 10% alpha white 微小-->
+    <color name="white_alpha_micro">#1AFFFFFF</color>
+    <!-- 100% alpha black -->
+    <color name="black_alpha_superbig">#FF000000</color>
+    <!-- 90% alpha black -->
+    <color name="black_alpha_super">#E6000000</color>
+    <!-- 80% alpha black -->
+    <color name="black_alpha_huge">#CC000000</color>
+    <!-- 70% alpha black -->
+    <color name="black_alpha_large">#B3000000</color>
+    <!-- 65% alpha black 大-->
+    <color name="black_alpha_big_well">#A6000000</color>
+    <!-- 60% alpha black 大-->
+    <color name="black_alpha_big">#99000000</color>
+    <!-- 50% alpha black 中-->
+    <color name="black_alpha_medium">#80000000</color>
+    <!-- 40% alpha black 小-->
+    <color name="black_alpha_small">#66000000</color>
+    <!-- 30% alpha black 迷你-->
+    <color name="black_alpha_mini">#4D000000</color>
+    <!-- 20% alpha black 细小-->
+    <color name="black_alpha_tiny">#33000000</color>
+    <!-- 10% alpha black 微小-->
+    <color name="black_alpha_micro">#1A000000</color>
+
+
+    <color name="tab_select">#FF6200EE</color>
+    <color name="tab_unselect">#FF888888</color>
+</resources>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 文本大小-->
+    <dimen name="text_size_slightly_large">32sp</dimen>
+    <dimen name="text_size_superbig">36sp</dimen>
+    <dimen name="text_size_super">24sp</dimen>
+    <dimen name="text_size_huge">22sp</dimen>
+    <dimen name="text_size_large">20sp</dimen>
+    <dimen name="text_size_big">18sp</dimen>
+    <dimen name="text_size_medium">16sp</dimen>
+    <dimen name="text_size_small">14sp</dimen>
+    <dimen name="text_size_little">13sp</dimen>
+    <dimen name="text_size_mini">12sp</dimen>
+    <dimen name="text_size_tiny">10sp</dimen>
+    <dimen name="text_size_micro">8sp</dimen>
+
+    <!--Dimensions padding、margin的距离-->
+    <dimen name="spacing_a_4">4dp</dimen>
+    <dimen name="spacing_b_8">8dp</dimen>
+    <dimen name="spacing_c_12">12dp</dimen>
+    <dimen name="spacing_d_16">16dp</dimen>
+    <dimen name="spacing_e_20">20dp</dimen>
+    <dimen name="spacing_f_24">24dp</dimen>
+    <dimen name="spacing_g_32">32dp</dimen>
+
+    <!-- radius -->
+    <dimen name="radius_acerb">2dp</dimen>
+    <dimen name="radius_sharp">4dp</dimen>
+    <dimen name="radius_medium">8dp</dimen>
+    <dimen name="radius_large">12dp</dimen>
+
+    <!-- stroke-->
+    <dimen name="stroke_width_small">0.5dp</dimen>
+    <dimen name="stroke_width_medium">1dp</dimen>
+</resources>
