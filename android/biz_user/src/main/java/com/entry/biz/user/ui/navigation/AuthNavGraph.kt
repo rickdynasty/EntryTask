@@ -1,10 +1,6 @@
 package com.entry.biz.user.ui.navigation
 
-import android.app.Activity
-import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -18,47 +14,41 @@ sealed class Screen(val route: String) {
     object Register : Screen("register")
 }
 
+/**
+ * 认证模块导航宿主
+ * 管理登录与注册两个 Compose 界面之间的切换
+ */
 @Composable
-fun AuthNavHost() {
+fun AuthNavHost(viewModel: UserViewModel, onLoginSuccess: () -> Unit) {
     val navController = rememberNavController()
-    val viewModel: UserViewModel = viewModel(factory = UserViewModel.Factory)
-    val context = LocalContext.current
 
     NavHost(navController = navController, startDestination = Screen.Login.route) {
-        // 登录页
+        // 登录页面
         composable(Screen.Login.route) {
             LoginScreen(
                 viewModel = viewModel,
                 onNavigateToRegister = {
+                    MLog.d("AuthNavGraph", "用户点击跳转到注册页面")
                     navController.navigate(Screen.Register.route)
                 },
                 onLoginSuccess = {
-                    MLog.d("登录成功")
-                    // 登录成功：关闭 AuthActivity，返回/拉起 HomeActivity
-                    val activity = context as? Activity
-                    val intent = Intent().setClassName(
-                        context,
-                        "com.entrytask.HomeActivity"
-                    ) // 或直接 HomeActivity::class.java
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    MLog.d("call startActivity "+ intent.component?.className)
-                    context.startActivity(intent)
-                    MLog.d("call activity?.finish() ")
-                    activity?.finish()
+                    MLog.d("AuthNavGraph", "登录成功回调触发，通知宿主进入主界面")
+                    onLoginSuccess()
                 }
             )
         }
 
-        // 注册页
+        // 注册页面
         composable(Screen.Register.route) {
             RegisterScreen(
                 viewModel = viewModel,
                 onBackToLogin = {
+                    MLog.d("AuthNavGraph", "用户点击返回登录页面")
                     navController.popBackStack()
                 },
                 onRegisterSuccess = {
-                    // 注册成功自动回到登录页或直接登录
-                    navController.popBackStack()
+                    MLog.d("AuthNavGraph", "注册成功默认登陆成功，安全弹栈切回登录界面")
+                    onLoginSuccess()
                 }
             )
         }

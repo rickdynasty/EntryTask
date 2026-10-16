@@ -3,38 +3,42 @@ package com.entry.biz.user.manager
 import android.content.Context
 import android.content.Intent
 import com.entry.biz.user.ui.AuthActivity
-import com.entry.lib.base.mvvm.cache.CacheManager
 import com.entry.lib.log.MLog
 
+/**
+ * 用户认证状态管理单例
+ * 负责在内存中维护冷启动的登录状态，退出应用或进程杀死后自动重置
+ */
 object UserAuthManager {
-    private const val TAG = "UserAuthManager"
+    private const val TAG = "Rick_tan:UserAuthManager"
 
-    // 使用内存属性记录登录状态（应用重启后自动重置为 false）
+    // 内存属性记录登录状态，默认未登录
     private var isUserLoggedIn: Boolean = false
 
     /**
-     * 判断当前是否已登录
+     * 检查当前是否已登录
      */
     fun isLogin(): Boolean {
-        MLog.d(TAG, "检查当前登录状态: $isUserLoggedIn")
+        MLog.d(TAG, "检查当前内存登录状态: $isUserLoggedIn")
         return isUserLoggedIn
     }
 
     /**
-     * 登录成功后调用，更新内存状态
+     * 更新登录成功状态
      */
     fun setLoginSuccess(isLoggedIn: Boolean) {
         isUserLoggedIn = isLoggedIn
-        MLog.d(TAG, "更新登录状态: $isUserLoggedIn")
+        MLog.d(TAG, "更新内存登录状态成功: $isUserLoggedIn")
     }
 
     /**
-     * 退出登录或清空状态
+     * 登出，清空内存状态
      */
     fun logout() {
         isUserLoggedIn = false
         MLog.d(TAG, "用户已登出，重置登录状态")
     }
+
 
     /**
      * 拉起登录/注册界面
@@ -46,5 +50,3 @@ object UserAuthManager {
         context.startActivity(intent)
     }
 }
-
-private fun String?.isNullOrEmpty(): Boolean = this == null || this.trim().isEmpty()

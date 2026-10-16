@@ -1,24 +1,24 @@
 package com.entrytask
 
+//import com.entrytask.databinding.ActivityHomeBinding // 如果启用 ViewBinding
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import com.entry.biz.user.manager.UserAuthManager
 import com.entry.lib.base.data.TabItem
 import com.entry.lib.base.mvvm.BaseActivity
+import com.entry.lib.log.MLog
+import com.entry.lib.ui.BackPressHelper
 import com.entry.lib.ui.BottomTabBar
 import com.entrytask.home.MainFragment
 import com.entrytask.home.MeFragment
 import com.entrytask.home.MessageFragment
 import com.entrytask.home.TradeFragment
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
-//import com.entrytask.databinding.ActivityHomeBinding // 如果启用 ViewBinding
-import kotlin.collections.first
 
 // 若未启用 ViewBinding，可直接使用 findViewById
 
 class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
-
     private lateinit var bottomTabBar: BottomTabBar
     private lateinit var tabItems: List<TabItem>
 
@@ -27,6 +27,7 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private var currentTabId: Int = -1
 
     companion object {
+        private const val TAG = "Rick_tan:HomeActivity"
         const val EXTRA_TAB_ITEMS = "extra_tab_items"
 
         // 定义 4 个固定的 Tab ID
@@ -38,6 +39,14 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                BackPressHelper.handleBackPress(this@HomeActivity) {
+                    finishAffinity() // 连续双击两次，退出应用
+                }
+            }
+        })
+
         setContentView(R.layout.activity_home)
 
         bottomTabBar = findViewById(R.id.bottomTabBar)
@@ -54,10 +63,19 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         switchFragment(defaultId)
         bottomTabBar.selectTab(defaultId)
 
-        // 1. 登录拦截逻辑
+        // 启动时检查内存登录态
+        checkLoginStatus()
+    }
+
+    /**
+     * 校验登录状态，若未登录则拦截跳转到 AuthActivity
+     */
+    private fun checkLoginStatus(needLog: Boolean = true) {
         if (!UserAuthManager.isLogin()) {
+            MLog.w(TAG, "检测到用户未登录，正在拦截并跳转至 AuthActivity")
             UserAuthManager.startAuthActivity(this)
-            return
+        } else if (needLog) {
+            MLog.d(TAG, "用户已登录，放行进入首页")
         }
     }
 
@@ -130,6 +148,13 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         if (!UserAuthManager.isLogin()) {
             UserAuthManager.startAuthActivity(this)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        MLog.d(TAG, "HomeActivity onResume 恢复，进行二次登录态校验")
+
+        checkLoginStatus(false)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

@@ -16,7 +16,7 @@ object RetrofitClient {
         if (retrofit == null) {
             val okHttpClient = OkHttpClient.Builder()
                 // 植入我们的本地 Mock 拦截器，拦截请求读取 assets 中的 json
-                .addInterceptor(MockInterceptor(context))
+                .addInterceptor(MockInterceptor())
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .build()
