@@ -1,0 +1,11 @@
+{
+  "code": 200,
+  "message": "登录成功",
+  "data": {
+    "id": 1001,
+    "username": "admin",
+    "nickname": "高级Android架构师",
+    "avatar": "https://example.com/avatar.png",
+    "token": "mock_token_xyz123456"
+  }
+}

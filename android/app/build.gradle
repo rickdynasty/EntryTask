@@ -117,7 +117,5 @@ dependencies {
         implementation jscFlavor
     }
 
-    implementation(project(":lib_net"))
-    implementation(project(":lib_storage"))
-    implementation(project(":lib_base"))
+    implementation(project(":biz_user"))
 }

@@ -3,7 +3,9 @@ package com.entrytask
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.entry.biz.user.manager.UserAuthManager
 import com.entry.lib.base.data.TabItem
+import com.entry.lib.base.mvvm.BaseActivity
 import com.entry.lib.ui.BottomTabBar
 import com.entrytask.home.MainFragment
 import com.entrytask.home.MeFragment
@@ -15,7 +17,7 @@ import kotlin.collections.first
 
 // 若未启用 ViewBinding，可直接使用 findViewById
 
-class HomeActivity : AppCompatActivity(), DefaultHardwareBackBtnHandler {
+class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
 
     private lateinit var bottomTabBar: BottomTabBar
     private lateinit var tabItems: List<TabItem>
@@ -51,6 +53,12 @@ class HomeActivity : AppCompatActivity(), DefaultHardwareBackBtnHandler {
             savedInstanceState?.getInt("current_tab_id", tabItems.first().id) ?: tabItems.first().id
         switchFragment(defaultId)
         bottomTabBar.selectTab(defaultId)
+
+        // 1. 登录拦截逻辑
+        if (!UserAuthManager.isLogin()) {
+            UserAuthManager.startAuthActivity(this)
+            return
+        }
     }
 
     private fun initTabItems() {
@@ -112,6 +120,15 @@ class HomeActivity : AppCompatActivity(), DefaultHardwareBackBtnHandler {
             TAB_ID_MESSAGE -> MessageFragment()
             TAB_ID_ME -> MeFragment()
             else -> MainFragment() // 默认兜底
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // 登录成功后重载检测
+        if (!UserAuthManager.isLogin()) {
+            UserAuthManager.startAuthActivity(this)
         }
     }
 

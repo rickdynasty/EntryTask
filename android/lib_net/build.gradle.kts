@@ -32,4 +32,14 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
 
     implementation(project(":lib_base"))
+    api("com.squareup.okhttp3:okhttp:4.12.0")
+    // 可选：日志拦截器
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Retrofit 核心库
+    api("com.squareup.retrofit2:retrofit:2.9.0")
+    // Gson 转换器支持（解决 converter 报错的关键）
+    api("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Gson 序列化库
+    api("com.google.code.gson:gson:2.10.1")
 }
