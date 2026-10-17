@@ -1,0 +1,6 @@
+{
+  "code": "VALIDATION_ERROR",
+  "message": "请求参数无效",
+  "data": null,
+  "traceId": "mock-template"
+}

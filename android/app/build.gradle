@@ -7,6 +7,7 @@ apply plugin: "com.facebook.react"
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
+    entryFile = file("../../src/index.js")
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
     // root = file("../../")
@@ -118,4 +119,25 @@ dependencies {
     }
 
     implementation(project(":biz_user"))
+    implementation(project(":lib_net"))
+    implementation(project(":lib_base"))
+    implementation(project(":lib_storage"))
 }
+
+// Shared JSON is runtime data. A regular CLI/Android Studio build packages it too.
+def validateRuntimeResources = tasks.register("validateRuntimeResources", Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine "node", "tools/validate-resources.cjs"
+    inputs.dir("../../mock")
+    inputs.dir("../../contracts")
+    inputs.file("../../tools/validate-resources.cjs")
+    inputs.file("../../src/infrastructure/network/generated/validators.js")
+}
+def prepareRuntimeResources = tasks.register("prepareRuntimeResources", Sync) {
+    dependsOn(validateRuntimeResources)
+    into(layout.buildDirectory.dir("generated/entrytaskAssets"))
+    from("../../mock") { into "mock" }
+    from("../../contracts") { into "contracts" }
+}
+// A task-backed source directory carries dependencies to merge AND lint consumers.
+android.sourceSets.main.assets.srcDir(prepareRuntimeResources)

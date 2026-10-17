@@ -311,7 +311,7 @@ RN CI预期命令：`npm ci`、`npx tsc --noEmit`、`npm run lint`、`npm test -
 
 ## 11. 迁移与评审清单
 
-保留index.js的EntryTask组件名，App.tsx改为组合根入口；先接Native能力和一个真实RN根Panel，再扩四域。删除NewAppScreen仅在样板可运行后进行，不改applicationId/appName制造安装身份变化。现有App.test模板随入口重构替换为有意义的bootstrap/错误态验证。
+保留AppRegistry的EntryTask组件名，注册入口移到src/index.js，src/app/App.tsx作为组合根入口；先接Native能力和一个真实RN根Panel，再扩四域。删除NewAppScreen仅在样板可运行后进行，不改applicationId/appName制造安装身份变化。现有App.test模板随入口重构替换为有意义的bootstrap/错误态验证。
 
 评审必须能回答：View是否纯渲染、VM是否可脱离React测试、个人数据是否随epoch清理、一次点击能否追到Native日志、快速切分类是否可能旧结果回写、取消/超时是否有唯一终态、共享卡片是否存在复制、RN是否遵守接口级通路/认证策略、是否绕过统一封装或Native持久化、子页返回是否恢复原列表、Android/iOS是否使用同一逻辑schema。
 
@@ -319,7 +319,7 @@ RN CI预期命令：`npm ci`、`npx tsc --noEmit`、`npm run lint`、`npm test -
 
 ## 12. V1.1 开发前工程整理门禁 RN-P0
 
-当前App.tsx/index.js仍是CLI模板，设计目录并不等于已整理。**本次只优化方案；真正迁移属于RN-P0，必须在四域业务开发前完成。** 保留根package.json、index.js、app.json、metro.config.js、babel.config.js、tsconfig.json、android/ios/及specs/contracts/mock位置；根App.tsx仅重导出src/app/App.tsx或保持薄组合入口，AppRegistry组件名EntryTask不变。
+当前App.tsx/index.js仍是CLI模板，设计目录并不等于已整理。**本次只优化方案；真正迁移属于RN-P0，必须在四域业务开发前完成。** 保留根package.json、app.json、metro.config.js、babel.config.js、tsconfig.json、android/ios/及specs/contracts/mock位置；按2026-10-18实施要求，将根index.js/App.tsx移至src/index.js与src/app/App.tsx，同步Metro及Native入口，AppRegistry组件名EntryTask不变。
 
 目标目录在本文件§2基础上补齐：
 
@@ -440,3 +440,5 @@ LoggerPort定义`debug/info/warn/error/span`及child context，独立于NetworkP
 同一事件仅创建一次eventId；console和Native落盘是sink分发，不生成不同事件假装新动作。每层span独立终态，core/bridge事件进入Native sink，普通verbose不跨bridge。队列/背压/重试/脱敏预算遵总体§13.3；无日志服务或bridge失败不阻断业务，诊断无法落盘时保留有界内存并反馈droppedCount。
 
 新增测试：两个真实Transport与策略无回退；公共RN HTTP 401不触发银行退出；RTK query key隔离/标签失效/共享取消；Logger脱敏和bridge未就绪输出；RN-P0别名/架构规则；单instance/Store/ApiService初始化计数；APK assets和优化包离线运行。全部是待实施/待验证目标，本次未安装依赖或移动源代码。
+
+实施记录（2026-10-18）：RN-P0基础和首页纵向样板见[运行说明](../development/rn-foundation.md)。此记录不代表四域全部页面、37API或全部宿主协议完成。

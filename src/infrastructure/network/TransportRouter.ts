@@ -1,0 +1,79 @@
+import { AppError, normalizeError } from '@shared/domain/AppError';
+import type {
+  ApiRequest,
+  NetworkPort,
+  Transport,
+  TransportKind,
+} from '@platform/ports/NetworkPort';
+import type { LoggerPort } from '@platform/ports/LoggerPort';
+import { createId } from '@infra/logging/Logger';
+import { EndpointRegistry } from './EndpointRegistry';
+
+export class TransportRouter implements NetworkPort {
+  constructor(
+    private readonly registry: EndpointRegistry,
+    private readonly transports: Readonly<Record<TransportKind, Transport>>,
+    private readonly logger: LoggerPort,
+  ) {}
+  async execute(request: ApiRequest, signal: AbortSignal): Promise<unknown> {
+    const endpoint = this.registry.resolve(request.apiId);
+    const context = {
+      requestId: createId(),
+      flowId: createId(),
+      spanId: createId(),
+    };
+    const fields = {
+      ...context,
+      apiId: request.apiId,
+      transport: endpoint.transport,
+    };
+    const start = Date.now();
+    this.logger.log('info', 'network', 'request.started', fields);
+    try {
+      const response = await this.transports[endpoint.transport].execute(
+        endpoint,
+        request,
+        context,
+        signal,
+      );
+      if (response.httpStatus < 200 || response.httpStatus >= 300) {
+        throw new AppError(
+          `HTTP_${response.httpStatus}`,
+          '请求未完成，请重试',
+          'http',
+        );
+      }
+      let body: unknown;
+      try {
+        body = JSON.parse(response.bodyText);
+      } catch {
+        throw new AppError('INVALID_JSON', '接口响应格式无效');
+      }
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        !('code' in body) ||
+        !('data' in body)
+      ) {
+        throw new AppError('INVALID_RESPONSE', '接口响应结构无效');
+      }
+      if (body.code !== 200) {
+        throw new AppError(String(body.code), '操作未完成，请重试', 'business');
+      }
+      this.logger.log('info', 'network', 'request.completed', {
+        ...fields,
+        durationMs: Date.now() - start,
+      });
+      return body.data;
+    } catch (error) {
+      const safe = normalizeError(error);
+      this.logger.log(
+        safe.kind === 'cancelled' ? 'info' : 'warn',
+        'network',
+        safe.kind === 'cancelled' ? 'request.cancelled' : 'request.failed',
+        { ...fields, code: safe.code, durationMs: Date.now() - start },
+      );
+      throw safe;
+    }
+  }
+}

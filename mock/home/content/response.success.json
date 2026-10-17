@@ -1,0 +1,28 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "title": "欢迎来到 EntryTask",
+    "subtitle": "首页 · RN MVVM 工程样板",
+    "services": [
+      {
+        "id": "assets",
+        "title": "资产总览"
+      },
+      {
+        "id": "accounts",
+        "title": "账户"
+      },
+      {
+        "id": "transfer",
+        "title": "转账"
+      },
+      {
+        "id": "credit",
+        "title": "信用卡"
+      }
+    ],
+    "isDemo": true
+  },
+  "traceId": "mock-template"
+}

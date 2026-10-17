@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import com.facebook.react.ReactFragment
+import com.entrytask.R
 
 abstract class BaseFragment(@LayoutRes private val contentLayoutId: Int = 0) : Fragment() {
 
@@ -22,7 +23,7 @@ abstract class BaseFragment(@LayoutRes private val contentLayoutId: Int = 0) : F
         // 如果子类指定了 RN 的组件名，则动态创建一个 FrameLayout 作为容器来承载 ReactFragment
         val componentName = getComponentName()
         if (!componentName.isNullOrEmpty()) {
-            val childViewId = View.generateViewId()
+            val childViewId = R.id.rn_content
             return FrameLayout(requireContext()).apply {
                 id = childViewId
                 layoutParams = ViewGroup.LayoutParams(
@@ -71,13 +72,14 @@ abstract class BaseFragment(@LayoutRes private val contentLayoutId: Int = 0) : F
      * 内部私有方法：负责统一挂载 ReactFragment
      */
     private fun mountReactFragment(componentName: String, bundle: Bundle?) {
+        if (childFragmentManager.findFragmentByTag("entrytask-rn-root") != null) return
         val reactFragment = ReactFragment.Builder()
             .setComponentName(componentName)
             .setLaunchOptions(bundle ?: Bundle()) // 如果 bundle 为空，则传入一个新的空 Bundle
             .build()
 
         childFragmentManager.beginTransaction()
-            .replace(view?.id ?: android.R.id.content, reactFragment)
+            .replace(R.id.rn_content, reactFragment, "entrytask-rn-root")
             .commit()
     }
 

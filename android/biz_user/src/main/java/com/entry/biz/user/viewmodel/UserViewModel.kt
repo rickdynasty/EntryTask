@@ -3,7 +3,6 @@ package com.entry.biz.user.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.repository.UserRepository
 import com.entry.lib.log.MLog
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +41,7 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
 
         viewModelScope.launch {
             _isLoading.value = true
-            MLog.d(TAG, "开始执行登录网络请求: username = $username")
+            MLog.d(TAG, "开始执行登录网络请求: api=user")
             try {
                 // 调用仓库层进行登录（内部会通过拦截器、写入缓存并更新内存登录态）
                 repository.login(username, password)
@@ -71,13 +70,13 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
 
         viewModelScope.launch {
             _isLoading.value = true
-            MLog.d(TAG, "开始执行注册请求: username = $username")
+            MLog.d(TAG, "开始执行注册请求: api=user")
             try {
-                // 1. 调用仓库层注册（将账号密码写入本地 Mock 的 SP 文件）
+                // 1. 调用仓库层注册（Native Mock保存带salt的密码验证值）
                 repository.register(username, password)
 
-                // 2. 注册成功后，直接设置内存登录态为成功（视为注册即登录）
-                UserAuthManager.setLoginSuccess(true)
+                // 2. 注册成功后由Repository建立完整会话（注册即登录）
+                // Repository establishes the same complete session as login.
 
                 MLog.d(TAG, "注册成功，已自动更新内存登录态，触发成功回调")
                 onSuccess()

@@ -1,5 +1,9 @@
 package com.entry.lib.net
 
+import android.content.Context
+import okhttp3.Call
+import okhttp3.Request
+import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -15,6 +19,15 @@ import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 object NetManager {
+    private lateinit var mockContext: Context
+
+    fun initMock(context: Context) {
+        mockContext = context.applicationContext
+        baseUrl = "https://entrytask.invalid/"
+    }
+
+    fun newCall(request: Request): Call = okHttpClient.newCall(request)
+
     private var baseUrl: String = "https://api.example.com/" // 默认兜底地址
     private val interceptors = mutableListOf<Interceptor>()
 
@@ -66,7 +79,11 @@ object NetManager {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
-            .addInterceptor(MockInterceptor()) // 统一挂载 Mock 拦截器
+            // Native auth includes CPU-bound password verification; RN requests override to 10s.
+            .callTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(false)
+            .dispatcher(Dispatcher().apply { maxRequests = 8; maxRequestsPerHost = 8 })
+            .addInterceptor(MockInterceptor(checkNotNull(if (::mockContext.isInitialized) mockContext else null) { "Call initMock first" })) // 统一挂载 Mock 拦截器
 
         // 1. 动态挂载所有已注册的拦截器
         interceptors.forEach { builder.addInterceptor(it) }

@@ -1,0 +1,18 @@
+{
+  "protocolVersion": "1.0",
+  "componentName": "EntryTask",
+  "entryFile": "src/index.js",
+  "moduleNames": [
+    "NativeHost",
+    "NativeNetwork",
+    "NativeStorage",
+    "NativeSession",
+    "NativeTelemetry"
+  ],
+  "limits": {
+    "requestBytes": 65536,
+    "responseBytes": 262144,
+    "eventBytes": 8192,
+    "logBatchBytes": 32768
+  }
+}

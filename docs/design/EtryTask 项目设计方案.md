@@ -385,7 +385,7 @@ RN有独立LoggerPort/Logger实现，支持level、module、event、safeError、
 
 RTK Query可接自定义baseQuery并在React Hook之外订阅调用，适合把双Transport放入data层、保持VM可测试；这是本项目选型，不是React Native官方强制架构。[自定义查询](https://redux-toolkit.js.org/rtk-query/usage/customizing-queries)、[不使用React Hooks调用](https://redux-toolkit.js.org/rtk-query/usage/usage-without-react-hooks)
 
-开发前先完成`index.js → App.tsx薄入口 → src/app/App.tsx`、feature域目录、shared组件、platform/native、infrastructure/network/state/logging、别名及ESLint边界、库包装/生命周期清理、测试样板；根保留RN CLI期望的android/ios/Metro/Babel/入口配置，不为“中大型”改成不必要的深层多包工程。结构门禁完成后才展开四域业务页面，任务明确为T00-F/RN-P0，不再把目录整理留到页面完成后。
+开发前先完成`src/index.js → src/app/App.tsx`、feature域目录、shared组件、platform/native、infrastructure/network/state/logging、别名及ESLint边界、库包装/生命周期清理、测试样板；根保留android/ios/Metro/Babel配置，JS注册入口移至src/index.js并同步Native/打包入口，不为“中大型”改成不必要的深层多包工程。结构门禁完成后才展开四域业务页面，任务明确为T00-F/RN-P0，不再把目录整理留到页面完成后。
 
 ### 13.5 新增验收与任务
 

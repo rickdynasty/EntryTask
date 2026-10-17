@@ -1,0 +1,14 @@
+[
+  {
+    "username": "demo_a",
+    "salt": "18DVHG78m4gJC0LnUKu2WQ==",
+    "verifier": "YZCj0J3WvFnsdHjYM7Bt6zowek+oS2s0ObO2RWlijBQ=",
+    "iterations": 600000
+  },
+  {
+    "username": "demo_b",
+    "salt": "zWhE+wJKDGRw1Wn/AFHX2w==",
+    "verifier": "P7piyF8SSSY2D+4EbU2D7ffpFMFA7iZb/Ydu68EpuGI=",
+    "iterations": 600000
+  }
+]

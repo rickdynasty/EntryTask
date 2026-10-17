@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "apiId": "auth.login",
+      "method": "POST",
+      "path": "/api/user/login",
+      "handler": "login",
+      "exposure": "nativeOnly",
+      "response": "auth/login/response.success.json"
+    },
+    {
+      "apiId": "auth.register",
+      "method": "POST",
+      "path": "/api/user/register",
+      "handler": "register",
+      "exposure": "nativeOnly",
+      "response": "auth/register/response.success.json"
+    },
+    {
+      "apiId": "home.content",
+      "method": "GET",
+      "path": "/api/home/content",
+      "handler": "fixture",
+      "exposure": "jsAllowed",
+      "response": "home/content/response.success.json"
+    },
+    {
+      "apiId": "product.list",
+      "method": "GET",
+      "path": "/api/wealth/products",
+      "handler": "products",
+      "exposure": "jsAllowed",
+      "response": "wealth/products/response.success.json"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "environment": "demo",
+  "endpoints": [
+    {
+      "apiId": "home.content",
+      "method": "GET",
+      "path": "/api/home/content",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 1,
+      "responseSchema": "home.content.schema.json"
+    },
+    {
+      "apiId": "product.list",
+      "method": "GET",
+      "path": "/api/wealth/products",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 1,
+      "responseSchema": "product.list.schema.json"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "$id": "product.list",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items",
+    "page",
+    "pageSize",
+    "total",
+    "hasMore"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category",
+          "riskText"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "riskText": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pageSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hasMore": {
+      "type": "boolean"
+    }
+  }
+}

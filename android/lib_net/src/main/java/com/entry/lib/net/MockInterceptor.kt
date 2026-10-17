@@ -1,153 +1,130 @@
 package com.entry.lib.net
 
+import android.content.Context
+import android.os.Build
+import android.os.SystemClock
+import android.util.Base64
 import com.entry.lib.stroage.StorageManager
 import com.entry.lib.log.MLog
 import okhttp3.Interceptor
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URLDecoder
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.UUID
+import javax.crypto.Mac
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 
-/**
- * 本地 Mock 网络拦截器
- * 1. 拦截注册：将前端传过来的账号密码存入 SP
- * 2. 拦截登录：读取 SP 中的账号密码与前端传入的进行对比校验
- * 3. 模拟 1~3 秒随机网络延迟，触发 UI 的 Loading 动画
- */
-class MockInterceptor : Interceptor {
+/** Dedicated app client only. Every route terminates locally; no socket fallback. */
+class MockInterceptor(context: Context) : Interceptor {
+    private val app = context.applicationContext
+    private val routes by lazy { JSONObject(asset("manifest.json")).getJSONArray("routes") }
+    private fun asset(path: String) = app.assets.open("mock/$path").bufferedReader().use { it.readText() }
 
-    companion object {
-        private const val TAG = "Rick_tan:MockInterceptor"
-        private const val KEY_REG_USERNAME = "mock_db_username"
-        private const val KEY_REG_PASSWORD = "mock_db_password"
-    }
-
-    @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val path = request.url.encodedPath
-
-        // 1. 模拟随机 1 ~ 3 秒网络延迟（此时 UI 侧通过 isLoading 展示 Loading 弹框）
-        val delayTime = (1000..3000).random().toLong()
-        MLog.d(TAG, "Mock 拦截到请求: $path，模拟网络延迟: ${delayTime}ms")
-        try {
-            Thread.sleep(delayTime)
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
+        val delayMs = (1000L..3000L).random()
+        val deadline = SystemClock.elapsedRealtime() + delayMs
+        // OkHttp worker, not main/JS. Observe cancellation even during simulated delay.
+        while (SystemClock.elapsedRealtime() < deadline) {
+            if (chain.call().isCanceled()) throw IOException("CANCELLED")
+            try { Thread.sleep(minOf(25L, deadline - SystemClock.elapsedRealtime()).coerceAtLeast(1L)) }
+            catch (e: InterruptedException) { Thread.currentThread().interrupt(); throw IOException("CANCELLED", e) }
         }
-
-        // 获取请求体中的参数（兼容 表单格式 与 JSON 格式）
-        val requestBodyString = getRequestBodyString(request)
-        val paramMap = parseParams(requestBodyString)
-        val inputUsername = paramMap["username"] ?: ""
-        val inputPassword = paramMap["password"] ?: ""
-
-
-        // 2. 拦截注册请求：将账号密码写入 SP
-        if (path.contains("register")) {
-            if (inputUsername.isBlank() || inputPassword.isBlank()) {
-                val failJson =
-                    "{\"code\":400, \"message\":\"注册账号或密码不能为空\", \"data\":null}"
-                return buildResponse(request, failJson)
-            }
-
-            // 写入本地 SharedPreferences (CacheManager)
-            StorageManager.encode(KEY_REG_USERNAME, inputUsername)
-            StorageManager.encode(KEY_REG_PASSWORD, inputPassword)
-            MLog.d(TAG, "注册成功，账号密码已写入本地 SP: username = $inputUsername")
-
-            val successJson =
-                "{\"code\":200, \"message\":\"注册成功\", \"data\":{\"username\":\"$inputUsername\", \"token\":\"mock_token_xyz\"}}"
-            return buildResponse(request, successJson)
-        }
-
-        // 3. 拦截登录请求：读取本地 SP 内容进行校验
-        if (path.contains("login")) {
-            val savedUsername = StorageManager.decodeString(KEY_REG_USERNAME, "")
-            val savedPassword = StorageManager.decodeString(KEY_REG_PASSWORD, "")
-
-            MLog.d(TAG, "正在校验登录：输入账号=$inputUsername, 本地SP账号=$savedUsername")
-
-            // 比对校验逻辑
-            val isMatch = inputUsername == savedUsername && inputPassword == savedPassword
-
-            val jsonResponse = if (isMatch) {
-                "{\"code\":200, \"message\":\"登录成功\", \"data\":{\"username\":\"$inputUsername\", \"token\":\"mock_token_xyz\"}}"
-            } else {
-                "{\"code\":400, \"message\":\"账号或密码错误，请检查或先注册\", \"data\":null}"
-            }
-            return buildResponse(request, jsonResponse)
-        }
-
-        // 其他请求直接放行
-        return chain.proceed(request)
-    }
-
-    /**
-     * 辅助方法：读取 OkHttp RequestBody 的字符串内容
-     */
-    private fun getRequestBodyString(request: Request): String {
+        if (chain.call().isCanceled()) throw IOException("CANCELLED")
+        val trace = request.header("X-Request-Id") ?: UUID.randomUUID().toString()
         return try {
-            val copy = request.newBuilder().build()
-            val buffer = Buffer()
-            copy.body?.writeTo(buffer)
-            buffer.readUtf8()
-        } catch (e: Exception) {
-            ""
-        }
-    }
-
-    /**
-     * 兼容解析：支持表单形式 (username=xxx&password=xxx) 与 JSON 形式
-     */
-    private fun parseParams(bodyString: String): Map<String, String> {
-        val map = mutableMapOf<String, String>()
-        if (bodyString.isBlank()) return map
-
-        // 1. 尝试当做 JSON 解析
-        if (bodyString.trim().startsWith("{")) {
-            try {
-                val jsonObj = JSONObject(bodyString)
-                val keys = jsonObj.keys()
-                while (keys.hasNext()) {
-                    val key = keys.next()
-                    map[key] = jsonObj.optString(key, "")
+            val route = (0 until routes.length()).map { routes.getJSONObject(it) }
+                .firstOrNull { it.getString("method") == request.method && it.getString("path") == request.url.encodedPath }
+            if (route == null) return response(request, error("MOCK_NOT_FOUND"), trace, 404)
+            MLog.i("EntryTask:Mock", "apiId=${route.getString("apiId")} requestId=$trace configuredDelayMs=$delayMs")
+            val template = JSONObject(asset(route.getString("response")))
+            when (route.getString("handler")) {
+                "login", "register" -> response(request, auth(route.getString("handler"), request, template), trace)
+                "products" -> {
+                    val page = request.url.queryParameter("page")?.toIntOrNull() ?: 1
+                    val size = request.url.queryParameter("pageSize")?.toIntOrNull() ?: 10
+                    if (page < 1 || size !in 1..50) return response(request, error("VALIDATION_ERROR"), trace, 400)
+                    val data = template.getJSONObject("data")
+                    val all = data.getJSONArray("items")
+                    val category = request.url.queryParameter("category")
+                    val filtered = (0 until all.length()).map { all.getJSONObject(it) }.filter { category == null || it.getString("category") == category }
+                    val offset = (page.toLong() - 1) * size
+                    val items = JSONArray()
+                    if (offset < filtered.size) filtered.drop(offset.toInt()).take(size).forEach { items.put(it) }
+                    data.put("items", items).put("page", page).put("pageSize", size).put("total", filtered.size).put("hasMore", offset + size < filtered.size)
+                    response(request, template, trace)
                 }
-                return map
-            } catch (_: Exception) {
+                else -> response(request, template, trace)
             }
+        } catch (e: Exception) {
+            // Missing/bad packaged resources must fail, never escape to the Internet.
+            MLog.e("EntryTask:Mock", "MOCK_DATA_INVALID requestId=$trace")
+            response(request, JSONObject().put("code", "MOCK_DATA_INVALID").put("message", "本地 Mock 数据无效").put("data", JSONObject.NULL), trace, 500)
         }
-
-        // 2. 当做 Form-UrlEncoded 解析 (username=user&password=123456)
-        val pairs = bodyString.split("&")
-        for (pair in pairs) {
-            val idx = pair.indexOf("=")
-            if (idx > 0) {
-                val key = URLDecoder.decode(pair.substring(0, idx), "UTF-8")
-                val value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8")
-                map[key] = value
-            }
-        }
-        return map
     }
 
-    /**
-     * 构建 OkHttp Mock 响应体
-     */
-    private fun buildResponse(request: Request, json: String): Response {
-        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
-        val body = json.toResponseBody(mediaType)
-        return Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_1_1)
-            .code(200)
-            .message("OK")
-            .body(body)
-            .build()
+    private fun error(code: String) = JSONObject(asset("errors/$code.json"))
+    private fun response(request: Request, body: JSONObject, trace: String, status: Int = 200): Response = Response.Builder()
+        .request(request).protocol(Protocol.HTTP_1_1).code(status).message("Local Mock")
+        .body(body.put("traceId", trace).toString().toResponseBody("application/json; charset=utf-8".toMediaType())).build()
+
+    private fun params(request: Request): Map<String, String> {
+        val buffer = Buffer(); request.body?.writeTo(buffer); val body = buffer.readUtf8()
+        if (body.trim().startsWith("{")) {
+            val obj = JSONObject(body)
+            return obj.keys().asSequence().associateWith { obj.optString(it) }
+        }
+        return body.split('&').filter { it.contains('=') }.associate {
+            val pair = it.split('=', limit = 2)
+            URLDecoder.decode(pair[0], "UTF-8") to URLDecoder.decode(pair[1], "UTF-8")
+        }
+    }
+
+    @Synchronized private fun auth(operation: String, request: Request, template: JSONObject): JSONObject {
+        val values = params(request)
+        val username = values["username"]?.trim().orEmpty()
+        val password = values["password"].orEmpty()
+        fun failure(code: String): JSONObject = error(code).put("errorCode", code).put("code", 400)
+        if (username.isBlank() || username.length > 32 || password.isBlank() || password.length > 64) return failure("VALIDATION_ERROR")
+        val users = JSONArray(StorageManager.decodeString("mock_users_v1", null) ?: asset("seeds/users.json"))
+        val found = (0 until users.length()).map { users.getJSONObject(it) }.firstOrNull { it.getString("username") == username }
+        if (operation == "register") {
+            if (found != null) return failure("ACCOUNT_EXISTS")
+            val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+            users.put(JSONObject().put("username", username).put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
+                .put("verifier", Base64.encodeToString(derive(password, salt, 600000), Base64.NO_WRAP)).put("iterations", 600000))
+            // Use confirmed persistence for registration; don't report success before disk write.
+            val prefs = app.getSharedPreferences("app_default_pref", Context.MODE_PRIVATE)
+            check(prefs.edit().putString("mock_users_v1", users.toString()).remove("mock_db_password").remove("mock_db_username").commit())
+        } else {
+            if (found == null) return failure("INVALID_CREDENTIALS")
+            val actual = derive(password, Base64.decode(found.getString("salt"), Base64.NO_WRAP), found.getInt("iterations"))
+            if (!MessageDigest.isEqual(actual, Base64.decode(found.getString("verifier"), Base64.NO_WRAP))) return failure("INVALID_CREDENTIALS")
+        }
+        template.getJSONObject("data").put("username", username).put("id", (username.hashCode().toLong() and 0x7fffffffL) + 1)
+        return template
+    }
+
+    private fun derive(password: String, salt: ByteArray, iterations: Int): ByteArray {
+        if (Build.VERSION.SDK_INT >= 26) {
+            val spec = PBEKeySpec(password.toCharArray(), salt, iterations, 256)
+            return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded } finally { spec.clearPassword() }
+        }
+        // SHA256 PBKDF2 provider is not guaranteed on API 24/25. Same RFC 8018 output.
+        val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(password.toByteArray(Charsets.UTF_8), "HmacSHA256")) }
+        var u = mac.doFinal(salt + byteArrayOf(0, 0, 0, 1)); val result = u.clone()
+        repeat(iterations - 1) { u = mac.doFinal(u); for (i in result.indices) result[i] = (result[i].toInt() xor u[i].toInt()).toByte() }
+        return result
     }
 }

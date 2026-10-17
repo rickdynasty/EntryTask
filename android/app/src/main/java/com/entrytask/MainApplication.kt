@@ -15,10 +15,11 @@ class MainApplication : Application(), ReactApplication {
     override val reactHost: ReactHost by lazy {
         getDefaultReactHost(
             context = applicationContext,
+            jsMainModulePath = "src/index",
             packageList =
                 PackageList(this).packages.apply {
                     // Packages that cannot be autolinked yet can be added manually here, for example:
-                    // add(MyReactNativePackage())
+                    add(com.entrytask.bridge.EntryTaskPackage())
                 },
         )
     }
@@ -27,7 +28,9 @@ class MainApplication : Application(), ReactApplication {
         super.onCreate()
         // 初始化 MMKV
         StorageManager.init(this)
-        NetManager.init("https://api.example.com/", false)
+        getSharedPreferences("app_default_pref", MODE_PRIVATE).edit()
+            .remove("key_token").remove("mock_db_password").remove("mock_db_username").apply()
+        NetManager.initMock(this)
         // 根据 BuildConfig.DEBUG 自动配置：
         // Debug 模式下输出所有等级日志 (VERBOSE)
         // Release 模式下仅输出 WARN 和 ERROR 等级日志，甚至可以全部关闭 (NONE)

@@ -1,0 +1,6 @@
+{
+  "code": "ACCOUNT_EXISTS",
+  "message": "账号已存在",
+  "data": null,
+  "traceId": "mock-template"
+}

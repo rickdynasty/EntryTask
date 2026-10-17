@@ -1,0 +1,85 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "fund-001",
+        "name": "演示基金 01",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-002",
+        "name": "演示基金 02",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-003",
+        "name": "演示基金 03",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-004",
+        "name": "演示基金 04",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-005",
+        "name": "演示基金 05",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-006",
+        "name": "演示基金 06",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-007",
+        "name": "演示基金 07",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-008",
+        "name": "演示基金 08",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-009",
+        "name": "演示基金 09",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-010",
+        "name": "演示基金 10",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-011",
+        "name": "演示基金 11",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      },
+      {
+        "id": "fund-012",
+        "name": "演示基金 12",
+        "category": "fund",
+        "riskText": "模拟产品，历史表现不代表未来收益"
+      }
+    ],
+    "page": 1,
+    "pageSize": 10,
+    "total": 12,
+    "hasMore": true
+  },
+  "traceId": "mock-template"
+}

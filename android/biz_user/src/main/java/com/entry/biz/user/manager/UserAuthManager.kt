@@ -13,7 +13,20 @@ object UserAuthManager {
     private const val TAG = "Rick_tan:UserAuthManager"
 
     // 内存属性记录登录状态，默认未登录
-    private var isUserLoggedIn: Boolean = false
+    @Volatile private var isUserLoggedIn: Boolean = false
+    @Volatile var sessionEpoch: Long = 0
+        private set
+    private var userScope: String? = null
+    private var credential: String? = null
+
+    @Synchronized fun establishSession(username: String, token: String) {
+        require(username.isNotBlank() && token.isNotBlank())
+        userScope = java.security.MessageDigest.getInstance("SHA-256").digest(username.toByteArray()).joinToString("") { "%02x".format(it) }
+        credential = token
+        isUserLoggedIn = true
+        sessionEpoch++
+    }
+    @Synchronized fun storageScope(): String? = if (isUserLoggedIn) userScope else null
 
     /**
      * 检查当前是否已登录
@@ -24,17 +37,12 @@ object UserAuthManager {
     }
 
     /**
-     * 更新登录成功状态
-     */
-    fun setLoginSuccess(isLoggedIn: Boolean) {
-        isUserLoggedIn = isLoggedIn
-        MLog.d(TAG, "更新内存登录状态成功: $isUserLoggedIn")
-    }
-
-    /**
      * 登出，清空内存状态
      */
-    fun logout() {
+    @Synchronized fun logout() {
+        credential = null
+        userScope = null
+        sessionEpoch++
         isUserLoggedIn = false
         MLog.d(TAG, "用户已登出，重置登录状态")
     }

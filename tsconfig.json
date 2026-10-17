@@ -1,8 +1,28 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@app/*": ["src/app/*"],
+      "@features/*": ["src/features/*"],
+      "@infra/*": ["src/infrastructure/*"],
+      "@platform/*": ["src/platform/*"],
+      "@shared/*": ["src/shared/*"],
+      "@contracts/*": ["contracts/*"],
+      "@specs/*": ["specs/*"]
+    },
     "types": ["jest"]
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "specs/**/*.ts",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "ios/Pods", "android/**/build"]
 }

@@ -5,8 +5,7 @@ sealed interface Result<out T> {
     data class Success<T>(val data: T) : Result<T>
 
     // Error 不需要泛型 T，直接继承 Result<Nothing> 或不传泛型
-    data class Error(val exception: Throwable, val message: String? = exception.localizedMessage) :
-        Result<Nothing>
+    data class Error(val exception: Throwable, val message: String? = exception.localizedMessage) : Result<Nothing>
 
     // 单例 Loading 继承 Result<Nothing>
     object Loading : Result<Nothing>

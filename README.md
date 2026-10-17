@@ -1,5 +1,7 @@
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
+当前RN入口已迁至 `src/index.js`，启动仍使用根目录 `npx react-native run-android`。运行方式、Native首页切换、Codegen、Mock随包及工程边界见 [RN工程整理与运行说明](docs/development/rn-foundation.md)。
+
 # Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.

@@ -6,25 +6,11 @@ import android.widget.TextView
 import com.entrytask.R
 import com.entrytask.base.BaseFragment
 
+/** Set USE_REACT_NATIVE=false for the existing Native-only Home content. */
 class HomeFragment : BaseFragment(R.layout.fragment_main) {
+    companion object { private const val USE_REACT_NATIVE = true }
+    override fun getComponentName(): String? = if (USE_REACT_NATIVE) "EntryTask" else null
     override fun initView(view: View, savedInstanceState: Bundle?) {
-        view.findViewById<TextView>(R.id.tvTitle).text = "Home页面"
+        view.findViewById<TextView>(R.id.tvTitle).text = "Home页面（Native）"
     }
-//class HomeFragment : BaseFragment() {
-//    /**
-//     * 指定当前 Fragment 要加载的 React Native 组件名称
-//     * 该名称必须与你在 index.js / AppRegistry.registerComponent 中注册的一致
-//     */
-//    override fun getComponentName(): String {
-//        return "EntryTask"
-//    }
-//
-//    /**
-//     * （可选）如果需要向 React Native 页面传递初始化参数，可以在这里配置 Bundle
-//     */
-//    override fun getBundle(): Bundle? {
-//        return Bundle().apply {
-//            putString("from_native", "Hello from MainFragment!")
-//        }
-//    }
 }

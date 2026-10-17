@@ -1,0 +1,6 @@
+{
+  "code": "MOCK_NOT_FOUND",
+  "message": "未配置对应 Mock API",
+  "data": null,
+  "traceId": "mock-template"
+}

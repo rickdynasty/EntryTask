@@ -25,6 +25,7 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     // 缓存 Fragment 映射：ID -> Fragment 实例
     private val fragments = mutableMapOf<Int, Fragment>()
     private var currentTabId: Int = -1
+    private var authRequested = false
 
     companion object {
         private const val TAG = "Rick_tan:HomeActivity"
@@ -64,17 +65,17 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         bottomTabBar.selectTab(defaultId)
 
         // 启动时检查内存登录态
-        checkLoginStatus()
     }
 
     /**
      * 校验登录状态，若未登录则拦截跳转到 AuthActivity
      */
     private fun checkLoginStatus(needLog: Boolean = true) {
-        if (!UserAuthManager.isLogin()) {
+        if (!UserAuthManager.isLogin() && !authRequested) {
+            authRequested = true
             MLog.w(TAG, "检测到用户未登录，正在拦截并跳转至 AuthActivity")
             UserAuthManager.startAuthActivity(this)
-        } else if (needLog) {
+        } else if (UserAuthManager.isLogin() && needLog) {
             MLog.d(TAG, "用户已登录，放行进入首页")
         }
     }
@@ -107,7 +108,7 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     }
 
     private fun switchFragment(targetId: Int) {
-        if (currentTabId == targetId) return
+        if (currentTabId == targetId || supportFragmentManager.isStateSaved) return
 
         val transaction = supportFragmentManager.beginTransaction()
 
@@ -117,16 +118,17 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         }
 
         // 查找或创建目标 Fragment
-        var targetFragment = fragments[targetId]
+        var targetFragment = fragments[targetId] ?: supportFragmentManager.findFragmentByTag(targetId.toString())
         if (targetFragment == null) {
             targetFragment = createFragmentForId(targetId)
             fragments[targetId] = targetFragment
             transaction.add(R.id.fragmentContainer, targetFragment, targetId.toString())
         } else {
+            fragments[targetId] = targetFragment
             transaction.show(targetFragment)
         }
 
-        transaction.commitAllowingStateLoss()
+        transaction.commit()
         currentTabId = targetId
     }
 
@@ -145,15 +147,14 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         super.onNewIntent(intent)
         setIntent(intent)
         // 登录成功后重载检测
-        if (!UserAuthManager.isLogin()) {
-            UserAuthManager.startAuthActivity(this)
-        }
+        checkLoginStatus(false)
     }
 
     override fun onResume() {
         super.onResume()
         MLog.d(TAG, "HomeActivity onResume 恢复，进行二次登录态校验")
 
+        if (UserAuthManager.isLogin()) authRequested = false
         checkLoginStatus(false)
     }
 

@@ -1,0 +1,6 @@
+{
+  "code": "MOCK_DATA_INVALID",
+  "message": "本地 Mock 数据无效",
+  "data": null,
+  "traceId": "mock-template"
+}
