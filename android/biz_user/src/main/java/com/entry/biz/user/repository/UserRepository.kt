@@ -3,7 +3,7 @@ package com.entry.biz.user.repository
 import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.model.User
 import com.entry.biz.user.network.UserService
-import com.entry.lib.base.mvvm.cache.CacheManager
+import com.entry.lib.stroage.StorageManager
 import com.entry.lib.base.mvvm.model.BaseRepository
 import com.entry.lib.log.MLog
 
@@ -28,8 +28,8 @@ class UserRepository(private val userService: UserService) : BaseRepository() {
             val user = response.data
 
             // 1. 缓存 Token 和用户名到本地（SharedPreferences）
-            user.token?.let { CacheManager.encode("key_token", it) }
-            CacheManager.encode("key_username", user.username)
+            user.token?.let { StorageManager.encode("key_token", it) }
+            StorageManager.encode("key_username", user.username)
             MLog.d(TAG, "登录成功，Token 与用户名已写入本地缓存")
 
             // 2. 同步更新内存登录态

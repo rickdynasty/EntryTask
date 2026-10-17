@@ -10,15 +10,15 @@ import com.entry.lib.base.mvvm.BaseActivity
 import com.entry.lib.log.MLog
 import com.entry.lib.ui.BackPressHelper
 import com.entry.lib.ui.BottomTabBar
-import com.entrytask.home.MainFragment
+import com.entrytask.home.HomeFragment
 import com.entrytask.home.MeFragment
-import com.entrytask.home.MessageFragment
-import com.entrytask.home.TradeFragment
+import com.entrytask.home.MemberFragment
+import com.entrytask.home.WealthFragment
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 
 // 若未启用 ViewBinding，可直接使用 findViewById
 
-class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
+class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private lateinit var bottomTabBar: BottomTabBar
     private lateinit var tabItems: List<TabItem>
 
@@ -31,9 +31,9 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         const val EXTRA_TAB_ITEMS = "extra_tab_items"
 
         // 定义 4 个固定的 Tab ID
-        const val TAB_ID_MAIN = 1
-        const val TAB_ID_TRADE = 2
-        const val TAB_ID_MESSAGE = 3
+        const val TAB_ID_HOME = 1
+        const val TAB_ID_WEALTH = 2
+        const val TAB_ID_MEMBER = 3
         const val TAB_ID_ME = 4
     }
 
@@ -41,7 +41,7 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                BackPressHelper.handleBackPress(this@HomeActivity) {
+                BackPressHelper.handleBackPress(this@MainActivity) {
                     finishAffinity() // 连续双击两次，退出应用
                 }
             }
@@ -92,9 +92,9 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         } else {
             // 严格设定默认的 4 个 Tab：首页、交易、信息、我的
             listOf(
-                TabItem(TAB_ID_MAIN, "首页", R.drawable.ic_tab_home),
-                TabItem(TAB_ID_TRADE, "交易", R.drawable.ic_tab_trade),
-                TabItem(TAB_ID_MESSAGE, "信息", R.drawable.ic_tab_message),
+                TabItem(TAB_ID_HOME, "首页", R.drawable.ic_tab_home),
+                TabItem(TAB_ID_WEALTH, "财富", R.drawable.ic_tab_trade),
+                TabItem(TAB_ID_MEMBER, "会员", R.drawable.ic_tab_message),
                 TabItem(TAB_ID_ME, "我的", R.drawable.ic_tab_profile)
             )
         }
@@ -133,11 +133,11 @@ class HomeActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private fun createFragmentForId(id: Int): Fragment {
         // 根据 4 个 Tab ID 返回对应的子 Fragment 实例
         return when (id) {
-            TAB_ID_MAIN -> MainFragment()
-            TAB_ID_TRADE -> TradeFragment()
-            TAB_ID_MESSAGE -> MessageFragment()
+            TAB_ID_HOME-> HomeFragment()
+            TAB_ID_WEALTH -> WealthFragment()
+            TAB_ID_MEMBER -> MemberFragment()
             TAB_ID_ME -> MeFragment()
-            else -> MainFragment() // 默认兜底
+            else -> HomeFragment() // 默认兜底
         }
     }
 

@@ -31,7 +31,7 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
     /**
      * 登录逻辑
      */
-    fun login(onSuccess: () -> Unit) {
+    fun login(onSuccess: () -> Unit, onError: (String?) -> Unit) {
         val username = usernameState.value
         val password = passwordState.value
 
@@ -50,6 +50,7 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
                 onSuccess()
             } catch (e: Exception) {
                 MLog.e(TAG, "登录失败: ${e.message}", e)
+                onError(e.message ?: "登录失败，请检查账号密码")
             } finally {
                 _isLoading.value = false
             }
@@ -59,7 +60,7 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
     /**
      * 注册逻辑
      */
-    fun register(onSuccess: () -> Unit) {
+    fun register(onSuccess: () -> Unit, onError: (String?) -> Unit) {
         val username = usernameState.value
         val password = passwordState.value
 
@@ -82,6 +83,7 @@ class UserViewModel(private val repository: UserRepository) : ViewModel() {
                 onSuccess()
             } catch (e: Exception) {
                 MLog.e(TAG, "注册失败: ${e.message}", e)
+                onError(e.message ?: "注册失败，请稍后重试")
             } finally {
                 _isLoading.value = false
             }

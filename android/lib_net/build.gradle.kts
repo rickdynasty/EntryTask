@@ -42,4 +42,7 @@ dependencies {
     api("com.squareup.retrofit2:converter-gson:2.9.0")
     // Gson 序列化库
     api("com.google.code.gson:gson:2.10.1")
+
+
+    implementation(project(":lib_storage"))
 }

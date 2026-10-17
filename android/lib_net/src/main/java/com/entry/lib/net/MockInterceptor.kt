@@ -1,6 +1,6 @@
-package com.entry.biz.user.network
+package com.entry.lib.net
 
-import com.entry.lib.base.mvvm.cache.CacheManager
+import com.entry.lib.stroage.StorageManager
 import com.entry.lib.log.MLog
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -11,6 +11,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
 import org.json.JSONObject
 import java.io.IOException
+import java.net.URLDecoder
 
 /**
  * 本地 Mock 网络拦截器
@@ -56,8 +57,8 @@ class MockInterceptor : Interceptor {
             }
 
             // 写入本地 SharedPreferences (CacheManager)
-            CacheManager.encode(KEY_REG_USERNAME, inputUsername)
-            CacheManager.encode(KEY_REG_PASSWORD, inputPassword)
+            StorageManager.encode(KEY_REG_USERNAME, inputUsername)
+            StorageManager.encode(KEY_REG_PASSWORD, inputPassword)
             MLog.d(TAG, "注册成功，账号密码已写入本地 SP: username = $inputUsername")
 
             val successJson =
@@ -67,8 +68,8 @@ class MockInterceptor : Interceptor {
 
         // 3. 拦截登录请求：读取本地 SP 内容进行校验
         if (path.contains("login")) {
-            val savedUsername = CacheManager.decodeString(KEY_REG_USERNAME, "")
-            val savedPassword = CacheManager.decodeString(KEY_REG_PASSWORD, "")
+            val savedUsername = StorageManager.decodeString(KEY_REG_USERNAME, "")
+            val savedPassword = StorageManager.decodeString(KEY_REG_PASSWORD, "")
 
             MLog.d(TAG, "正在校验登录：输入账号=$inputUsername, 本地SP账号=$savedUsername")
 
@@ -127,14 +128,14 @@ class MockInterceptor : Interceptor {
         for (pair in pairs) {
             val idx = pair.indexOf("=")
             if (idx > 0) {
-                val key = java.net.URLDecoder.decode(pair.substring(0, idx), "UTF-8")
-                val value = java.net.URLDecoder.decode(pair.substring(idx + 1), "UTF-8")
+                val key = URLDecoder.decode(pair.substring(0, idx), "UTF-8")
+                val value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8")
                 map[key] = value
             }
         }
         return map
     }
-    
+
     /**
      * 构建 OkHttp Mock 响应体
      */

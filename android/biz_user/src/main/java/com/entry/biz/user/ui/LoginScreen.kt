@@ -1,5 +1,6 @@
 package com.entry.biz.user.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -36,7 +38,7 @@ import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.lib.log.MLog
 
 /**
- * 账号登录界面（完善全局 Loading 遮罩）
+ * 账号登录界面（支持全屏 Loading 遮罩与登录失败 Toast 提示）
  */
 @Composable
 fun LoginScreen(
@@ -44,6 +46,7 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
+    val context = LocalContext.current // 用于弹出 Toast 提示
     val username by viewModel.usernameState.collectAsState()
     val password by viewModel.passwordState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -56,7 +59,7 @@ fun LoginScreen(
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 1. 正常的表单卡片内容
+        // 1. 登录表单卡片
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -104,10 +107,20 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         MLog.d("LoginScreen", "用户点击登录按钮，准备发起登录")
-                        viewModel.login {
-                            MLog.d("LoginScreen", "登录成功回调触发，跳转至主界面")
-                            onLoginSuccess()
-                        }
+                        viewModel.login(
+                            onSuccess = {
+                                MLog.d("LoginScreen", "登录成功回调触发，跳转至主界面")
+                                onLoginSuccess()
+                            },
+                            onError = { errorMsg ->
+                                MLog.w("LoginScreen", "登录失败提示: $errorMsg")
+                                Toast.makeText(
+                                    context,
+                                    errorMsg ?: "登录失败，请检查账号密码",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -137,19 +150,19 @@ fun LoginScreen(
             }
         }
 
-        // 2. 全屏透明遮罩与 Loading 弹框
+        // 2. 全屏半透明遮罩与 Loading 弹窗
         if (isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)) // 半透明遮罩，阻止底层点击
-                    .clickable(enabled = false) {}, // 拦截点击事件
+                    .background(Color.Black.copy(alpha = 0.3f)) // 半透明遮罩
+                    .clickable(enabled = false) {}, // 拦截底部点击事件
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color.White,
-                    shadowElevation = 8.dp // 【已修正】Material3 中 Surface 使用 shadowElevation 设置阴影
+                    shadowElevation = 8.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(20.dp),

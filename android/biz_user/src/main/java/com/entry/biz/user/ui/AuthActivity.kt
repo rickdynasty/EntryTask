@@ -4,7 +4,8 @@ import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.lifecycle.ViewModelProvider
-import com.entry.biz.user.net.RetrofitClient
+import com.entry.biz.user.network.userService
+import com.entry.lib.net.NetManager
 import com.entry.biz.user.repository.UserRepository
 import com.entry.biz.user.ui.navigation.AuthNavHost
 import com.entry.biz.user.viewmodel.UserViewModel
@@ -36,7 +37,7 @@ class AuthActivity : BaseActivity() {
         MLog.d(TAG, "AuthActivity 创建，初始化 ViewModel 与 Compose 布局")
 
         // 1. 构建依赖链：UserService -> UserRepository -> UserViewModel.Factory
-        val userService = RetrofitClient.userService
+//        val userService = NetManager.userService
         val userRepository = UserRepository(userService)
         val viewModelFactory = UserViewModel.Factory(userRepository)
 

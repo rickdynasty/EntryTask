@@ -53,7 +53,7 @@ dependencies {
 
     implementation("androidx.activity:activity-compose:1.8.2")
 
-    implementation(project(":lib_storage"))
-    implementation(project(":lib_net"))
+    api(project(":lib_storage"))
+    api(project(":lib_net"))
     api(project(":lib_base"))
 }

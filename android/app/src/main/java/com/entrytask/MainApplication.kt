@@ -1,9 +1,9 @@
 package com.entrytask
 
 import android.app.Application
-import com.entry.biz.user.net.RetrofitClient
-import com.entry.lib.base.mvvm.cache.CacheManager
 import com.entry.lib.log.MLog
+import com.entry.lib.net.NetManager
+import com.entry.lib.stroage.StorageManager
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -26,8 +26,8 @@ class MainApplication : Application(), ReactApplication {
     override fun onCreate() {
         super.onCreate()
         // 初始化 MMKV
-        CacheManager.init(this)
-        RetrofitClient.init(this)
+        StorageManager.init(this)
+        NetManager.init("https://api.example.com/", false)
         // 根据 BuildConfig.DEBUG 自动配置：
         // Debug 模式下输出所有等级日志 (VERBOSE)
         // Release 模式下仅输出 WARN 和 ERROR 等级日志，甚至可以全部关闭 (NONE)

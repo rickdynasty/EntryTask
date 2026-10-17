@@ -1,5 +1,6 @@
 package com.entry.biz.user.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,16 +38,15 @@ import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.lib.log.MLog
 
 /**
- * 账号注册界面
- * 负责收集新用户信息，成功后写入 Mock 文件并引导切回登录页，带全屏 Loading 遮罩
+ * 账号注册界面（支持全屏 Loading 遮罩与注册失败 Toast 提示）
  */
 @Composable
 fun RegisterScreen(
-    viewModel: UserViewModel, onBackToLogin: () -> Unit, onRegisterSuccess: () -> Unit
+    viewModel: UserViewModel,
+    onBackToLogin: () -> Unit,
+    onRegisterSuccess: () -> Unit
 ) {
-    // LocalContext.current 是 Compose 的内置属性，它会自动获取当前组件所处的宿主 Activity 或 Context 上下文，非常安全且便捷。
-    val context = LocalContext.current
-
+    val context = LocalContext.current // 用于弹出 Toast 提示
     val username by viewModel.usernameState.collectAsState()
     val password by viewModel.passwordState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -59,7 +59,7 @@ fun RegisterScreen(
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 1. 正常的表单卡片内容
+        // 1. 注册表单卡片
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -81,7 +81,6 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 用户名输入框
                 OutlinedTextField(
                     value = username,
                     onValueChange = { viewModel.usernameState.value = it },
@@ -93,7 +92,6 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 密码输入框
                 OutlinedTextField(
                     value = password,
                     onValueChange = { viewModel.passwordState.value = it },
@@ -106,22 +104,24 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 注册提交按钮
                 Button(
                     onClick = {
-                        MLog.d("RegisterScreen", "用户点击注册按钮，准备写入 Mock 数据并提交")
-                        viewModel.register {
-                            MLog.d("RegisterScreen", "注册成功回调触发")
-                            // 1. 弹出成功 Toast 提示
-                            android.widget.Toast.makeText(
-                                context,
-                                "注册成功，已自动为您登录",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-
-                            // 2. 执行成功回调（关闭 AuthActivity，回到首页）
-                            onRegisterSuccess()
-                        }
+                        MLog.d("RegisterScreen", "用户点击注册按钮，准备发起注册")
+                        viewModel.register(
+                            onSuccess = {
+                                MLog.d("RegisterScreen", "注册成功回调触发，返回登录或进入主页")
+                                Toast.makeText(context, "注册成功", Toast.LENGTH_SHORT).show()
+                                onRegisterSuccess()
+                            },
+                            onError = { errorMsg ->
+                                MLog.w("RegisterScreen", "注册失败提示: $errorMsg")
+                                Toast.makeText(
+                                    context,
+                                    errorMsg ?: "注册失败，请检查输入",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -134,7 +134,6 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 底部返回登录提示
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "已有账号？", color = Color.Gray, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
@@ -146,24 +145,25 @@ fun RegisterScreen(
                         modifier = Modifier.clickable(enabled = !isLoading) {
                             MLog.d("RegisterScreen", "用户点击返回登录页面")
                             onBackToLogin()
-                        })
+                        }
+                    )
                 }
             }
         }
 
-        // 2. 全屏透明遮罩与 Loading 弹框
+        // 2. 全屏半透明遮罩与 Loading 弹窗
         if (isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)) // 半透明遮罩，阻止底层点击
-                    .clickable(enabled = false) {}, // 拦截点击事件
+                    .background(Color.Black.copy(alpha = 0.3f)) // 半透明遮罩
+                    .clickable(enabled = false) {}, // 拦截底层点击事件
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color.White,
-                    shadowElevation = 8.dp // Material3 兼容的阴影高度
+                    shadowElevation = 8.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(20.dp),
@@ -177,7 +177,9 @@ fun RegisterScreen(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = "正在注册中...", fontSize = 15.sp, color = Color(0xFF333333)
+                            text = "正在注册中...",
+                            fontSize = 15.sp,
+                            color = Color(0xFF333333)
                         )
                     }
                 }
