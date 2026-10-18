@@ -3,14 +3,13 @@ package com.entry.biz.user.repository
 import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.model.User
 import com.entry.biz.user.network.UserService
-import com.entry.lib.base.mvvm.model.BaseRepository
 import com.entry.lib.log.MLog
 
 /**
  * 用户数据仓库
  * 负责协调网络请求、处理响应结果并建立Native内存会话
  */
-class UserRepository(private val userService: UserService) : BaseRepository() {
+class UserRepository(private val userService: UserService) {
 
     companion object {
         private const val TAG = "Rick_tan:UserRepository"

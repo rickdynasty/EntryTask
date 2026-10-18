@@ -4,11 +4,10 @@ import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.lifecycle.ViewModelProvider
+import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.biz.user.network.userService
-import com.entry.lib.net.NetManager
 import com.entry.biz.user.repository.UserRepository
 import com.entry.biz.user.ui.navigation.AuthNavHost
-import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.lib.base.mvvm.BaseActivity
 import com.entry.lib.log.MLog
 import com.entry.lib.ui.BackPressHelper

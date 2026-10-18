@@ -3,29 +3,10 @@ package com.entry.biz.user.ui
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,24 +15,45 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.entry.biz.user.ui.contract.AuthUiEffect
+import com.entry.biz.user.ui.contract.AuthUiIntent
+import com.entry.biz.user.ui.contract.AuthUiState
 import com.entry.biz.user.viewmodel.UserViewModel
-import com.entry.lib.log.MLog
+import com.entry.lib.base.mvvm.ui.ComposableScreen
 
 /**
- * 账号登录界面（支持全屏 Loading 遮罩与登录失败 Toast 提示）
+ * 登录智能组件（Route 容器）：通过 ComposableScreen 统一管理状态与 Side-Effect
  */
 @Composable
-fun LoginScreen(
+fun LoginRoute(
     viewModel: UserViewModel,
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
-    val context = LocalContext.current // 用于弹出 Toast 提示
-    val username by viewModel.usernameState.collectAsState()
-    val password by viewModel.passwordState.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val context = LocalContext.current
 
-    // 最外层使用 Box 承载内容与全屏 Loading 遮罩
+    ComposableScreen(
+        viewModel = viewModel,
+        onEffect = { effect ->
+            when (effect) {
+                is AuthUiEffect.ShowToast -> Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                is AuthUiEffect.NavigateToMain -> onLoginSuccess()
+            }
+        }
+    ) { state, onIntent ->
+        LoginScreenContent(state = state, onIntent = onIntent, onNavigateToRegister = onNavigateToRegister)
+    }
+}
+
+/**
+ * 登录纯 UI 组件（Dumb Component）：零业务逻辑，极易进行 @Preview 预览
+ */
+@Composable
+private fun LoginScreenContent(
+    state: AuthUiState,
+    onIntent: (AuthUiIntent) -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +61,6 @@ fun LoginScreen(
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 1. 登录表单卡片
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -67,66 +68,40 @@ fun LoginScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "账号登录",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF333333)
-                )
-
+                Text(text = "账号登录", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF333333))
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
-                    value = username,
-                    onValueChange = { viewModel.usernameState.value = it },
+                    value = state.username,
+                    onValueChange = { onIntent(AuthUiIntent.UpdateUsername(it)) },
                     label = { Text("用户名") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    enabled = !isLoading // 加载时禁用输入
+                    enabled = !state.isLoading
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
-                    value = password,
-                    onValueChange = { viewModel.passwordState.value = it },
+                    value = state.password,
+                    onValueChange = { onIntent(AuthUiIntent.UpdatePassword(it)) },
                     label = { Text("密码") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    enabled = !isLoading // 加载时禁用输入
+                    enabled = !state.isLoading
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = {
-                        MLog.d("LoginScreen", "用户点击登录按钮，准备发起登录")
-                        viewModel.login(
-                            onSuccess = {
-                                MLog.d("LoginScreen", "登录成功回调触发，跳转至主界面")
-                                onLoginSuccess()
-                            },
-                            onError = { errorMsg ->
-                                MLog.w("LoginScreen", "登录失败提示: $errorMsg")
-                                Toast.makeText(
-                                    context,
-                                    errorMsg ?: "登录失败，请检查账号密码",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
+                    onClick = { onIntent(AuthUiIntent.SubmitLogin) },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(8.dp),
-                    enabled = !isLoading
+                    enabled = !state.isLoading
                 ) {
                     Text(text = "登 录", fontSize = 16.sp)
                 }
@@ -141,45 +116,23 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable(enabled = !isLoading) {
-                            MLog.d("LoginScreen", "用户点击跳转到注册页面")
-                            onNavigateToRegister()
-                        }
+                        modifier = Modifier.clickable(enabled = !state.isLoading) { onNavigateToRegister() }
                     )
                 }
             }
         }
 
-        // 2. 全屏半透明遮罩与 Loading 弹窗
-        if (isLoading) {
+        // 全屏 Loading 遮罩
+        if (state.isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)) // 半透明遮罩
-                    .clickable(enabled = false) {}, // 拦截底部点击事件
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.White,
-                    shadowElevation = 8.dp
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(28.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 3.dp
-                        )
+                Surface(shape = RoundedCornerShape(8.dp), color = Color.White, shadowElevation = 8.dp) {
+                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "正在登录中...",
-                            fontSize = 15.sp,
-                            color = Color(0xFF333333)
-                        )
+                        Text(text = "正在登录中...", fontSize = 15.sp)
                     }
                 }
             }
