@@ -28,6 +28,7 @@ export class Logger implements LoggerPort {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private sink: LogSink | undefined;
   droppedCount = 0;
+  private sinkFailureReported = false;
 
   constructor(private readonly debug: boolean) {}
 
@@ -67,8 +68,14 @@ export class Logger implements LoggerPort {
     if (this.events.length > 200) {
       this.events.shift();
     }
-    if (this.debug) {
-      console.info('[EntryTask:RN]', JSON.stringify(entry));
+    if (this.debug || level === 'warn' || level === 'error') {
+      const output =
+        level === 'error'
+          ? console.error
+          : level === 'warn'
+          ? console.warn
+          : console.info;
+      output('[EntryTask:RN]', JSON.stringify(entry));
     }
     if (level !== 'debug') {
       if (this.queue.length < 200) {
@@ -110,8 +117,16 @@ export class Logger implements LoggerPort {
     const batch = this.queue.splice(0, 20);
     try {
       await this.sink(batch);
+      this.sinkFailureReported = false;
     } catch {
       this.droppedCount += batch.length;
+      // Never recurse through the failed bridge, or expose the raw rejection.
+      if (!this.sinkFailureReported) {
+        console.warn(
+          '[EntryTask:RN] telemetry.sink.failed: Native 日志投递失败，请查看 RN Console / ReactNativeJS',
+        );
+        this.sinkFailureReported = true;
+      }
     } finally {
       this.flushing = false;
       this.schedule();

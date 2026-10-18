@@ -19,7 +19,12 @@ export function decodeReply<T>(
   raw: string,
   guard: (value: unknown) => value is T,
 ): T {
-  const reply: unknown = JSON.parse(raw);
+  let reply: unknown;
+  try {
+    reply = JSON.parse(raw);
+  } catch {
+    throw new AppError('INVALID_BRIDGE_REPLY', '原生能力响应不是有效 JSON');
+  }
   if (!reply || typeof reply !== 'object' || !('outcome' in reply)) {
     throw new AppError('INVALID_BRIDGE_REPLY', '原生能力响应无效');
   }
@@ -31,7 +36,11 @@ export function decodeReply<T>(
     const code = 'code' in error ? String(error.code) : 'NATIVE_ERROR';
     throw new AppError(
       code,
-      '原生能力暂不可用',
+      code === 'HOST_RESOURCE_MISSING'
+        ? '应用缺少运行资源，请重新构建并安装应用'
+        : code === 'PROTOCOL_VERSION_MISMATCH'
+        ? '应用与页面版本不一致，请重新构建并安装应用'
+        : '原生能力暂不可用',
       code === 'CANCELLED'
         ? 'cancelled'
         : code === 'TIMEOUT'
@@ -60,7 +69,7 @@ export const isHost = (value: unknown): value is HostSnapshot =>
   );
 
 export const nativeGateway = {
-  async bootstrap(): Promise<HostSnapshot> {
+  async bootstrap(flowId?: string): Promise<HostSnapshot> {
     if (!hostModule) {
       throw new AppError(
         'NATIVE_HOST_UNAVAILABLE',
@@ -70,7 +79,10 @@ export const nativeGateway = {
     }
     return decodeReply(
       await hostModule.bootstrap(
-        JSON.stringify({ protocolVersion: runtimeContract.protocolVersion }),
+        JSON.stringify({
+          protocolVersion: runtimeContract.protocolVersion,
+          flowId,
+        }),
       ),
       isHost,
     );

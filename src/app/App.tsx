@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { HomeScreen } from '@features/home/public';
+import { createId } from '@infra/logging/Logger';
 import { normalizeError } from '@shared/domain/AppError';
 import { createApplication } from './CompositionRoot';
 
@@ -16,7 +17,7 @@ import { createApplication } from './CompositionRoot';
 export default function App() {
   const [application] = useState(createApplication);
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [error, setError] = useState('');
+  const [error, setError] = useState({ message: '', code: '', flowId: '' });
   const [attempt, setAttempt] = useState(0);
   const state = useSyncExternalStore(
     application.home.subscribe,
@@ -24,8 +25,9 @@ export default function App() {
   );
   useEffect(() => {
     let active = true;
+    const flowId = createId();
     void application
-      .bootstrap()
+      .bootstrap(flowId)
       .then(() => {
         if (active) {
           application.home.activate();
@@ -36,9 +38,10 @@ export default function App() {
         const safe = normalizeError(reason);
         application.logger.log('error', 'bootstrap', 'bootstrap.failed', {
           code: safe.code,
+          flowId,
         });
         if (active) {
-          setError(safe.message);
+          setError({ message: safe.message, code: safe.code, flowId });
           setPhase('error');
         }
       });
@@ -63,7 +66,18 @@ export default function App() {
               <ActivityIndicator accessibilityLabel="正在准备应用" />
             ) : (
               <>
-                <Text>{error}</Text>
+                <Text>{error.message}</Text>
+                <Text selectable style={styles.diagnostic}>
+                  错误码：{error.code}
+                </Text>
+                <Text selectable style={styles.diagnostic}>
+                  诊断编号：{error.flowId}
+                </Text>
+                {__DEV__ && (
+                  <Text style={styles.diagnostic}>
+                    查看终端 npm run logs:android 或 RN DevTools Console
+                  </Text>
+                )}
                 <Button
                   title="重试初始化"
                   onPress={() => {
@@ -81,6 +95,7 @@ export default function App() {
 }
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F6F7' },
+  diagnostic: { fontSize: 12, color: '#555', marginVertical: 4 },
   status: {
     flex: 1,
     alignItems: 'center',

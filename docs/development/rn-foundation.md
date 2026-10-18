@@ -11,7 +11,7 @@ npm ci
 npx react-native run-android
 ```
 
-官方命令启动 Metro、构建/安装 `com.entrytask`，由 `.MainApplication` 提供唯一 ReactHost；Native 登录后进入首页。公开演示账号：`demo_a` / `Entry123!`、`demo_b` / `Entry123!`。也可用现有 Native 注册页创建本地模拟账号。首次迁移移除旧明文单账号验证材料，原账号需重新注册；种子账号无需注册。密码只用于本地演示。Native认证包含600,000次PBKDF2验证，单独总超时30秒；RN查询总超时仍10秒，1～3秒仅指Mock人工等待，不含CPU验证开销。
+官方命令启动 Metro、构建/安装 `com.entrytask`，由 `.MainApplication` 提供唯一 ReactHost；Native 登录后进入首页。当前登录与注册以 Native 实现为准；最近的 Android 调整已采用本地注册账号校验，不应再依赖先前的种子演示账号。
 
 Android Studio 直接启动同一 app：HomeFragment 的 `USE_REACT_NATIVE=true` 挂载 RN，需 Metro；改为 `false` 展示原 Native 文本，不挂载 RN 内容，其余 RN 工程配置无需改回。入口、包名及注册名不随该开关改变。底部其他三 Tab 仍为现有 Native 占位页，本次不冒充已实现四域业务。
 
@@ -57,7 +57,7 @@ Metro 兼容工具请求 `/index.bundle` 时重写为 `/src/index.bundle`；已�
 2. 新建对应响应schema，运行 `npm run contracts:generate`，生成无运行时schema编译的校验函数；生成物需提交。
 3. 在 `mock/<domain>/<api>/response.*.json` 新建数据，在manifest注册精确method+path、handler与exposure；不能仅改Kotlin内联字符串。
 4. 自定义状态操作新增Native handler及校验；静态只读API可复用fixture handler。带动态详情路径的API应新增明确路径模板匹配，当前样板只实现静态路径，禁止误称已支持任意模板。
-5. 运行资源/架构/单测并构建。Gradle task-backed assets会让普通CLI/Android Studio/Release构建自动校验并打包，缺文件/坏schema阻断构建。
+5. 运行资源/架构/单测并构建。Gradle Variant API登记的generated assets会让普通CLI/Android Studio/Release构建自动校验并打包，缺文件/坏schema阻断构建。
 
 APK中可查看 `assets/mock/`、`assets/contracts/`。assets只读：新注册账号验证数据落Native模拟存储，不反写随包JSON。登录注册响应字段从对应JSON模板安全填充，非字符串拼接；本期网络库内已有账号Mock仍是过渡实现，尚未完成方案中的独立demo_engine/Room迁移。
 
@@ -97,3 +97,7 @@ Jest使用与RN0.86配套的官方preset，ESM转换覆盖Redux依赖，别名�
 | iOS | 只同步入口，未安装Pods/构建/运行；原生能力仍延期 |
 
 Release沿用既有debug签名配置、R8关闭等发布基线，当前产物仅作演示。现有Gradle弃用提示、SDK工具XML版本提示和Watchman recrawl提示未作为本次无关升级处理；均未阻断上述实际验证。
+
+## 初始化失败与日志
+
+排障入口与2026-10-18资源缺失修复见 [Android / RN 初始化与日志排障](./troubleshooting.md)。终端独立运行 `npm run logs:android`，再复现问题。此前验证记录不代表空生成目录构建已经正确；本次修复明确补上生成任务依赖并重新验证 APK。

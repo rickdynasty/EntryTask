@@ -133,11 +133,30 @@ def validateRuntimeResources = tasks.register("validateRuntimeResources", Exec) 
     inputs.file("../../tools/validate-resources.cjs")
     inputs.file("../../src/infrastructure/network/generated/validators.js")
 }
-def prepareRuntimeResources = tasks.register("prepareRuntimeResources", Sync) {
-    dependsOn(validateRuntimeResources)
-    into(layout.buildDirectory.dir("generated/entrytaskAssets"))
-    from("../../mock") { into "mock" }
-    from("../../contracts") { into "contracts" }
+// AGP must register the producer, not only its directory. A plain srcDir(TaskProvider)
+// lost the dependency in this AGP version: clean builds silently omitted all JSON.
+abstract class RuntimeAssetsTask extends DefaultTask {
+    @InputDirectory abstract DirectoryProperty getMockDirectory()
+    @InputDirectory abstract DirectoryProperty getContractDirectory()
+    @OutputDirectory abstract DirectoryProperty getOutputDirectory()
+    @javax.inject.Inject abstract org.gradle.api.file.FileSystemOperations getFileSystemOperations()
+
+    @TaskAction void prepare() {
+        fileSystemOperations.sync {
+            into(outputDirectory)
+            from(mockDirectory) { into "mock" }
+            from(contractDirectory) { into "contracts" }
+        }
+    }
 }
-// A task-backed source directory carries dependencies to merge AND lint consumers.
-android.sourceSets.main.assets.srcDir(prepareRuntimeResources)
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def prepareAssets = tasks.register("prepare${variant.name.capitalize()}RuntimeResources", RuntimeAssetsTask) {
+            dependsOn(validateRuntimeResources)
+            mockDirectory.set(layout.projectDirectory.dir("../../mock"))
+            contractDirectory.set(layout.projectDirectory.dir("../../contracts"))
+            outputDirectory.set(layout.buildDirectory.dir("generated/entrytaskAssets/${variant.name}"))
+        }
+        variant.sources.assets.addGeneratedSourceDirectory(prepareAssets) { it.outputDirectory }
+    }
+}

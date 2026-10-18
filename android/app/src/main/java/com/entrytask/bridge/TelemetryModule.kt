@@ -26,12 +26,15 @@ class TelemetryModule(context: ReactApplicationContext) : NativeTelemetrySpec(co
                 }
                 val line = safe.toString()
                 when (event.optString("level")) {
-                    "error" -> MLog.e("EntryTask:RN", line)
-                    "warn" -> MLog.w("EntryTask:RN", line)
-                    else -> if (BuildConfig.DEBUG) MLog.i("EntryTask:RN", line)
+                    "error" -> MLog.e("EntryTask.RN", line)
+                    "warn" -> MLog.w("EntryTask.RN", line)
+                    else -> if (BuildConfig.DEBUG) MLog.i("EntryTask.RN", line)
                 }
             }
             promise.resolve(BridgeReply.ok(true))
-        } catch (e: Exception) { promise.resolve(BridgeReply.error("INVALID_LOG_BATCH")) }
+        } catch (e: Exception) {
+            MLog.e("EntryTask.Bridge", "telemetry.batch.failed code=INVALID_LOG_BATCH exception=${e.javaClass.simpleName}")
+            promise.resolve(BridgeReply.error("INVALID_LOG_BATCH"))
+        }
     }
 }

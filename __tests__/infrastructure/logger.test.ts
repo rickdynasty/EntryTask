@@ -16,6 +16,7 @@ test('RN logging works without bridge and strips non-allowlisted data', () => {
 });
 
 test('bounded logging sink failures do not throw or recursively log', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   const logger = new Logger(false);
   logger.setSink(async () => {
     throw new Error('bridge missing');
@@ -26,5 +27,26 @@ test('bounded logging sink failures do not throw or recursively log', async () =
   expect(logger.snapshot()).toHaveLength(200);
   await logger.flush();
   expect(logger.droppedCount).toBeGreaterThan(0);
+  await logger.flush();
+  expect(warn).toHaveBeenCalledTimes(1);
   logger.dispose();
+  warn.mockRestore();
+});
+
+test('errors and warnings retain severity even without the native sink', () => {
+  const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const logger = new Logger(false);
+  logger.log('error', 'bootstrap', 'bootstrap.failed', {
+    code: 'HOST_RESOURCE_MISSING',
+  });
+  logger.log('warn', 'bootstrap', 'retry');
+  expect(error).toHaveBeenCalledWith(
+    '[EntryTask:RN]',
+    expect.stringContaining('HOST_RESOURCE_MISSING'),
+  );
+  expect(warn).toHaveBeenCalledTimes(1);
+  logger.dispose();
+  error.mockRestore();
+  warn.mockRestore();
 });

@@ -9,6 +9,8 @@ import { nativeGateway } from '@platform/native/NativeGateway';
 
 export function createApplication() {
   const logger = new Logger(__DEV__);
+  // Telemetry must be available even when the host handshake fails.
+  logger.setSink(events => nativeGateway.emitLogs(events));
   const nativeTransport = new NativeTransport();
   const network = new TransportRouter(
     defaultEndpointRegistry,
@@ -24,11 +26,10 @@ export function createApplication() {
   return {
     logger,
     home,
-    async bootstrap() {
-      logger.log('info', 'bootstrap', 'bootstrap.started');
-      await nativeGateway.bootstrap();
-      logger.setSink(events => nativeGateway.emitLogs(events));
-      logger.log('info', 'bootstrap', 'bootstrap.completed');
+    async bootstrap(flowId: string) {
+      logger.log('info', 'bootstrap', 'bootstrap.started', { flowId });
+      await nativeGateway.bootstrap(flowId);
+      logger.log('info', 'bootstrap', 'bootstrap.completed', { flowId });
     },
     dispose() {
       home.deactivate();

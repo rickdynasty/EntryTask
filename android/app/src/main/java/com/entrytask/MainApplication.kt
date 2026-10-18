@@ -26,11 +26,6 @@ class MainApplication : Application(), ReactApplication {
 
     override fun onCreate() {
         super.onCreate()
-        // 初始化 MMKV
-        StorageManager.init(this)
-        getSharedPreferences("app_default_pref", MODE_PRIVATE).edit()
-            .remove("key_token").remove("mock_db_password").remove("mock_db_username").apply()
-        NetManager.initMock(this)
         // 根据 BuildConfig.DEBUG 自动配置：
         // Debug 模式下输出所有等级日志 (VERBOSE)
         // Release 模式下仅输出 WARN 和 ERROR 等级日志，甚至可以全部关闭 (NONE)
@@ -40,6 +35,13 @@ class MainApplication : Application(), ReactApplication {
             level = if (isDebug) MLog.Level.VERBOSE else MLog.Level.WARN,
             tag = "EntryApp"
         )
+
+        MLog.i("EntryTask.Bridge", "application.started version=${BuildConfig.VERSION_NAME} debug=${BuildConfig.DEBUG} entry=src/index")
+        // 初始化 MMKV
+        StorageManager.init(this)
+        getSharedPreferences("app_default_pref", MODE_PRIVATE).edit()
+            .remove("key_token").remove("mock_db_password").remove("mock_db_username").apply()
+        NetManager.initMock(this)
 
         loadReactNative(this)
     }

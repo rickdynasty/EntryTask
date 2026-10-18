@@ -12,7 +12,8 @@
     "contracts:check": "node tools/validate-resources.cjs",
     "contracts:generate": "node tools/generate-validators.cjs",
     "architecture:check": "node tools/check-architecture.cjs",
-    "bundle:android": "react-native bundle --platform android --dev false --entry-file src/index.js --bundle-output /tmp/entrytask.android.bundle --assets-dest /tmp/entrytask-assets"
+    "bundle:android": "react-native bundle --platform android --dev false --entry-file src/index.js --bundle-output /tmp/entrytask.android.bundle --assets-dest /tmp/entrytask-assets",
+    "logs:android": "node tools/android-logs.cjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "2.13.0",
