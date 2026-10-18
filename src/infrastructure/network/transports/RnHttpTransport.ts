@@ -1,3 +1,4 @@
+/** EntryTask RN：网络基础设施：按 API 策略选择传输通道、验证响应并归一错误。 */
 import axios, { type AxiosInstance } from 'axios';
 import { AppError } from '@shared/domain/AppError';
 import type { Transport, TransportResponse } from '@platform/ports/NetworkPort';
@@ -20,6 +21,7 @@ export class RnHttpTransport implements Transport {
     context: Parameters<Transport['execute']>[2],
     signal: AbortSignal,
   ): Promise<TransportResponse> {
+    // 仅执行显式配置的公开 RN HTTP API，不携带银行认证凭证。
     if (!endpoint.baseUrl || endpoint.authScope !== 'none') {
       throw new AppError(
         'ENDPOINT_NOT_CONFIGURED',
@@ -27,13 +29,14 @@ export class RnHttpTransport implements Transport {
         'configuration',
       );
     }
-    // This is the standard RN HTTP path, not a NativeModule adapter or fallback.
+    // 这是显式配置的 RN HTTP 通道，不是 NativeModule 适配或失败兜底。
     try {
       const response = await this.client.request<string>({
         baseURL: endpoint.baseUrl,
         url: endpoint.path,
         method: endpoint.method,
         params: request.params,
+        data: request.body,
         timeout: endpoint.timeoutMs,
         signal,
         headers: { 'X-Request-Id': context.requestId },

@@ -11,6 +11,12 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 
 class MainApplication : Application(), ReactApplication {
+    val prototypeNetwork: okhttp3.OkHttpClient by lazy {
+        okhttp3.OkHttpClient.Builder().retryOnConnectionFailure(false)
+            .callTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor(com.entry.demo.PrototypeMockInterceptor(this)).build()
+    }
+
 
     override val reactHost: ReactHost by lazy {
         getDefaultReactHost(

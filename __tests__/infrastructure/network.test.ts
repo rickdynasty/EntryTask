@@ -1,3 +1,4 @@
+/** EntryTask RN 测试：覆盖 API 路由、Transport 选择、取消、错误归一与 Schema 校验。 */
 import { EndpointRegistry } from '@infra/network/EndpointRegistry';
 import { TransportRouter } from '@infra/network/TransportRouter';
 import type { EndpointPolicy, Transport } from '@platform/ports/NetworkPort';
@@ -22,12 +23,10 @@ const policy: EndpointPolicy = {
 afterEach(() => jest.clearAllMocks());
 
 test('explicit RN HTTP policy calls only RN transport and decodes its envelope', async () => {
-  jest
-    .mocked(http.execute)
-    .mockResolvedValue({
-      httpStatus: 200,
-      bodyText: JSON.stringify({ code: 200, data: { title: 'content' } }),
-    });
+  jest.mocked(http.execute).mockResolvedValue({
+    httpStatus: 200,
+    bodyText: JSON.stringify({ code: 200, data: { title: 'content' } }),
+  });
   const router = new TransportRouter(
     new EndpointRegistry([policy]),
     { rnHttp: http, nativeMock: native, native },

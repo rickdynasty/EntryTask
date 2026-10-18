@@ -1,3 +1,4 @@
+/** EntryTask RN：网络基础设施：按 API 策略选择传输通道、验证响应并归一错误。 */
 import { networkModule } from '@platform/native/modules';
 import { decodeReply } from '@platform/native/NativeGateway';
 import { AppError } from '@shared/domain/AppError';
@@ -30,6 +31,7 @@ export class NativeTransport implements Transport {
     if (signal.aborted) {
       throw new AppError('CANCELLED', '已取消', 'cancelled');
     }
+    // 用 requestId 关联可取消的 Native 请求，并在 Promise 终结时移除监听。
     const cancel = () => module.cancel(context.requestId);
     signal.addEventListener('abort', cancel);
     try {
@@ -38,6 +40,7 @@ export class NativeTransport implements Transport {
           ...context,
           apiId: request.apiId,
           params: request.params ?? {},
+          body: request.body ?? {},
           timeoutMs: endpoint.timeoutMs,
         }),
       );

@@ -1,0 +1,111 @@
+{
+  "$id": "entrytask/service.catalog",
+  "type": "object",
+  "required": [
+    "items",
+    "page",
+    "pageSize",
+    "total",
+    "hasMore"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title",
+              "requiresAuth"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "products",
+                  "product",
+                  "assets",
+                  "accounts",
+                  "transactions",
+                  "article",
+                  "articles",
+                  "activity",
+                  "activities",
+                  "benefit",
+                  "benefits",
+                  "claims",
+                  "energy",
+                  "checkin",
+                  "profile",
+                  "items",
+                  "services",
+                  "search",
+                  "messages",
+                  "message",
+                  "settings",
+                  "demo",
+                  "account",
+                  "transaction",
+                  "claim",
+                  "item"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "requiresAuth": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pageSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hasMore": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

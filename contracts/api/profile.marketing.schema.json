@@ -1,0 +1,140 @@
+{
+  "$id": "entrytask/profile.marketing",
+  "type": "object",
+  "required": [
+    "services",
+    "assetSlogan",
+    "assetNotice",
+    "creditTitle",
+    "creditSubtitle",
+    "loanTitle",
+    "loanLimit",
+    "loanRate",
+    "isDemo"
+  ],
+  "properties": {
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title",
+              "requiresAuth"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "products",
+                  "product",
+                  "assets",
+                  "accounts",
+                  "transactions",
+                  "article",
+                  "articles",
+                  "activity",
+                  "activities",
+                  "benefit",
+                  "benefits",
+                  "claims",
+                  "energy",
+                  "checkin",
+                  "profile",
+                  "items",
+                  "services",
+                  "search",
+                  "messages",
+                  "message",
+                  "settings",
+                  "demo",
+                  "account",
+                  "transaction",
+                  "claim",
+                  "item"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "requiresAuth": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "assetSlogan": {
+      "type": "string"
+    },
+    "assetNotice": {
+      "type": "string"
+    },
+    "creditTitle": {
+      "type": "string"
+    },
+    "creditSubtitle": {
+      "type": "string"
+    },
+    "loanTitle": {
+      "type": "string"
+    },
+    "loanLimit": {
+      "type": "object",
+      "required": [
+        "amountMinor",
+        "currency",
+        "minorUnit"
+      ],
+      "properties": {
+        "amountMinor": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minorUnit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "loanRate": {
+      "type": "string"
+    },
+    "isDemo": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

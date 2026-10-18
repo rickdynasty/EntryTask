@@ -1,3 +1,4 @@
+/** EntryTask RN：平台无关 Port 契约：描述业务层可调用的宿主或基础设施能力。 */
 export type TransportKind = 'nativeMock' | 'native' | 'rnHttp';
 export type RequestContext = {
   requestId: string;
@@ -7,6 +8,7 @@ export type RequestContext = {
 export type ApiRequest = {
   apiId: string;
   params?: Record<string, string | number>;
+  body?: Record<string, string | number | boolean>;
 };
 export type EndpointPolicy = {
   apiId: string;
@@ -17,6 +19,7 @@ export type EndpointPolicy = {
   timeoutMs: number;
   policyRevision: number;
   baseUrl?: string;
+  responseSchema?: string;
 };
 export type TransportResponse = { httpStatus: number; bodyText: string };
 export interface Transport {

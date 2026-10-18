@@ -1,0 +1,14 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "claim-demo",
+    "benefitId": "book",
+    "title": "信享好书",
+    "date": "2026-10-18",
+    "status": "已领取",
+    "paragraphs": [
+      "模拟领取，不发放实物。"
+    ]
+  }
+}

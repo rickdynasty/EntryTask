@@ -1,24 +1,9 @@
-import {
-  configureStore,
-  createSlice,
-  type PayloadAction,
-} from '@reduxjs/toolkit';
+/** EntryTask RN：客户端状态与服务端资源缓存：管理请求订阅、会话隔离和写后失效。 */
+import { configureStore } from '@reduxjs/toolkit';
 import { createApi, type BaseQueryFn } from '@reduxjs/toolkit/query';
 import type { ApiRequest, NetworkPort } from '@platform/ports/NetworkPort';
 import { normalizeError } from '@shared/domain/AppError';
 
-export type ClientState = { selectedService: string | null };
-const initialState: ClientState = { selectedService: null };
-const client = createSlice({
-  name: 'homeClient',
-  initialState,
-  reducers: {
-    selectService: (state, action: PayloadAction<string | null>) => {
-      state.selectedService = action.payload;
-    },
-  },
-});
-export const clientActions = client.actions;
 export function createAppStore(network: NetworkPort) {
   const baseQuery: BaseQueryFn<
     ApiRequest,
@@ -32,21 +17,23 @@ export function createAppStore(network: NetworkPort) {
       return { error: { code: safe.code, message: safe.message } };
     }
   };
-  // One service per runtime. Features inject endpoints without creating another store.
+  // 每个 RN runtime 只创建一个查询服务；业务域通过注入端点复用该 Store。
   const api = createApi({
     reducerPath: 'resources',
+    tagTypes: ['Resource'],
     baseQuery,
     keepUnusedDataFor: 60,
     endpoints: () => ({}),
   });
   const store = configureStore({
-    reducer: { homeClient: client.reducer, [api.reducerPath]: api.reducer },
+    reducer: { [api.reducerPath]: api.reducer },
     middleware: getDefault => getDefault().concat(api.middleware),
     devTools: __DEV__,
   });
   return {
     store,
     api,
+    network,
     dispose: () => {
       store.dispatch(api.util.resetApiState());
     },

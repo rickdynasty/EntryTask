@@ -1,0 +1,117 @@
+{
+  "$id": "entrytask/asset.summary",
+  "type": "object",
+  "required": [
+    "total",
+    "liabilities",
+    "net",
+    "income",
+    "asOf",
+    "categories"
+  ],
+  "properties": {
+    "total": {
+      "type": "object",
+      "required": [
+        "amountMinor",
+        "currency",
+        "minorUnit"
+      ],
+      "properties": {
+        "amountMinor": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minorUnit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "liabilities": {
+      "type": "object",
+      "required": [
+        "amountMinor",
+        "currency",
+        "minorUnit"
+      ],
+      "properties": {
+        "amountMinor": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minorUnit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "net": {
+      "type": "object",
+      "required": [
+        "amountMinor",
+        "currency",
+        "minorUnit"
+      ],
+      "properties": {
+        "amountMinor": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minorUnit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "income": {
+      "type": "object",
+      "required": [
+        "amountMinor",
+        "currency",
+        "minorUnit"
+      ],
+      "properties": {
+        "amountMinor": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minorUnit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "asOf": {
+      "type": "string"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "amountMinor"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

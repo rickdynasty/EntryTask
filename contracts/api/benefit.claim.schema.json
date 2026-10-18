@@ -1,0 +1,36 @@
+{
+  "$id": "entrytask/benefit.claim",
+  "type": "object",
+  "required": [
+    "id",
+    "benefitId",
+    "title",
+    "date",
+    "status",
+    "paragraphs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "benefitId": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

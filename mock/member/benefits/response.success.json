@@ -1,0 +1,66 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "level",
+        "title": "等级礼遇",
+        "subtitle": "领专属能量值",
+        "assetKey": "crown",
+        "tone": "gold",
+        "status": "available",
+        "requiredLevel": 1,
+        "stock": 120,
+        "paragraphs": [
+          "本权益为演示会员礼遇，每个账户限领一次。",
+          "权益不兑换真实商品，不扣除能量值。"
+        ]
+      },
+      {
+        "id": "book",
+        "title": "信享好书",
+        "subtitle": "免费领书",
+        "assetKey": "book",
+        "tone": "blue",
+        "status": "available",
+        "requiredLevel": 0,
+        "stock": 50,
+        "paragraphs": [
+          "登录即可模拟领取，每个账户限领一次。",
+          "仅生成本地领取记录，不发货、不生成真实兑换码。"
+        ]
+      },
+      {
+        "id": "premium",
+        "title": "尊享生活礼遇",
+        "subtitle": "高等级会员专属",
+        "assetKey": "crown",
+        "tone": "gold",
+        "status": "ineligible",
+        "requiredLevel": 5,
+        "stock": 20,
+        "paragraphs": [
+          "需要演示会员等级5。"
+        ]
+      },
+      {
+        "id": "sold-out",
+        "title": "限量阅读礼包",
+        "subtitle": "本期已领完",
+        "assetKey": "book",
+        "tone": "blue",
+        "status": "soldOut",
+        "requiredLevel": 0,
+        "stock": 0,
+        "paragraphs": [
+          "演示库存已耗尽。"
+        ]
+      }
+    ],
+    "page": 1,
+    "pageSize": 10,
+    "total": 4,
+    "hasMore": false
+  }
+}

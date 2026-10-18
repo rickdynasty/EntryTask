@@ -1,0 +1,40 @@
+{
+  "$id": "entrytask/checkin.status",
+  "type": "object",
+  "required": [
+    "businessDate",
+    "checkedToday",
+    "consecutiveDays",
+    "energy",
+    "awardedEnergy",
+    "alreadyChecked",
+    "rewardDays"
+  ],
+  "properties": {
+    "businessDate": {
+      "type": "string"
+    },
+    "checkedToday": {
+      "type": "boolean"
+    },
+    "consecutiveDays": {
+      "type": "integer"
+    },
+    "energy": {
+      "type": "integer"
+    },
+    "awardedEnergy": {
+      "type": "integer"
+    },
+    "alreadyChecked": {
+      "type": "boolean"
+    },
+    "rewardDays": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    }
+  },
+  "additionalProperties": true
+}

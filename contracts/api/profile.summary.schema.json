@@ -1,0 +1,45 @@
+{
+  "$id": "entrytask/profile.summary",
+  "type": "object",
+  "required": [
+    "nickname",
+    "phoneMasked",
+    "level",
+    "bankCards",
+    "todos",
+    "coupons",
+    "points",
+    "energy",
+    "isDemo"
+  ],
+  "properties": {
+    "nickname": {
+      "type": "string"
+    },
+    "phoneMasked": {
+      "type": "string"
+    },
+    "level": {
+      "type": "integer"
+    },
+    "bankCards": {
+      "type": "integer"
+    },
+    "todos": {
+      "type": "integer"
+    },
+    "coupons": {
+      "type": "integer"
+    },
+    "points": {
+      "type": "integer"
+    },
+    "energy": {
+      "type": "integer"
+    },
+    "isDemo": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

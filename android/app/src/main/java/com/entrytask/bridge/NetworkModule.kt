@@ -1,7 +1,10 @@
 package com.entrytask.bridge
 
 import android.os.SystemClock
-import com.entry.lib.net.NetManager
+import com.entrytask.MainApplication
+import com.entry.biz.user.manager.UserAuthManager
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
 import com.entrytask.specs.NativeNetworkSpec
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -29,16 +32,28 @@ class NetworkModule(context: ReactApplicationContext) : NativeNetworkSpec(contex
             if (!id.matches(Regex("[A-Za-z0-9-]{1,100}"))) { promise.resolve(BridgeReply.error("INVALID_REQUEST_ID")); return }
             val apiId = input.getString("apiId")
             val route = (0 until routes.length()).map { routes.getJSONObject(it) }.firstOrNull { it.getString("apiId") == apiId }
-            if (route == null || route.optString("exposure") != "jsAllowed" || route.getString("method") != "GET") {
+            if (route == null || route.optString("exposure") != "jsAllowed" || route.getString("method") !in listOf("GET", "POST")) {
                 promise.resolve(BridgeReply.error("ENDPOINT_NOT_ALLOWED")); return
             }
-            val url = "https://entrytask.invalid${route.getString("path")}".toHttpUrl().newBuilder()
+            val epoch = UserAuthManager.sessionEpoch
+            if (route.optBoolean("requiresAuth") && !UserAuthManager.isLogin()) { promise.resolve(BridgeReply.error("AUTH_REQUIRED")); return }
             val params = input.optJSONObject("params") ?: JSONObject()
+            val path = route.getString("path").let { template ->
+                if (template.contains("{id}")) {
+                    val resourceId = params.getString("id")
+                    require(resourceId.matches(Regex("[A-Za-z0-9_-]{1,100}")))
+                    template.replace("{id}", resourceId)
+                } else template
+            }
+            val url = "https://entrytask.invalid$path".toHttpUrl().newBuilder()
             params.keys().forEach { key ->
-                require(key in setOf("page", "pageSize", "category"))
+                require(key in setOf("page", "pageSize", "category", "scene", "id", "direction", "accountId", "type", "scope", "keyword"))
                 url.addQueryParameter(key, params.get(key).toString())
             }
-            val call = NetManager.newCall(Request.Builder().url(url.build()).header("X-Request-Id", id).build())
+            val builder = Request.Builder().url(url.build()).header("X-Request-Id", id).header("X-Demo-Api", apiId)
+                .header("X-Demo-Scope", UserAuthManager.storageScope() ?: "guest")
+            if (route.getString("method") == "POST") builder.post((input.optJSONObject("body") ?: JSONObject()).toString().toRequestBody("application/json".toMediaType()))
+            val call = (reactApplicationContext.applicationContext as MainApplication).prototypeNetwork.newCall(builder.build())
             call.timeout().timeout(input.optLong("timeoutMs", 10000).coerceIn(1000, 10000), TimeUnit.MILLISECONDS)
             synchronized(calls) {
                 if (calls.size >= 32 || calls.putIfAbsent(id, call) != null) { promise.resolve(BridgeReply.error("REQUEST_BUSY_OR_DUPLICATE")); return }
@@ -52,6 +67,7 @@ class NetworkModule(context: ReactApplicationContext) : NativeNetworkSpec(contex
                 override fun onResponse(call: Call, response: Response) {
                     try {
                         response.use {
+                            if (epoch != UserAuthManager.sessionEpoch) { if (valid) promise.resolve(BridgeReply.error("STALE_SESSION")); return }
                             val body = it.body
                             if (body != null && body.contentLength() > 262144) { if (valid) promise.resolve(BridgeReply.error("PAYLOAD_TOO_LARGE")); return }
                             val text = body?.string().orEmpty()

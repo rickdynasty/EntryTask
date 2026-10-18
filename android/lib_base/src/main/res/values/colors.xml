@@ -108,6 +108,6 @@
     <color name="black_alpha_micro">#1A000000</color>
 
 
-    <color name="tab_select">#FF6200EE</color>
-    <color name="tab_unselect">#FF888888</color>
+    <color name="tab_select">#FFBC8D58</color>
+    <color name="tab_unselect">#FF242321</color>
 </resources>

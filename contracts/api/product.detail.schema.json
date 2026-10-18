@@ -1,0 +1,60 @@
+{
+  "$id": "entrytask/product.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "category",
+    "riskText",
+    "ratio",
+    "indicatorLabel",
+    "period",
+    "term",
+    "minimum",
+    "riskLevel",
+    "distribution",
+    "description"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "riskText": {
+      "type": "string"
+    },
+    "ratio": {
+      "type": "string"
+    },
+    "indicatorLabel": {
+      "type": "string"
+    },
+    "period": {
+      "type": "string"
+    },
+    "term": {
+      "type": "string"
+    },
+    "minimum": {
+      "type": "string"
+    },
+    "riskLevel": {
+      "type": "string"
+    },
+    "distribution": {
+      "type": "string"
+    },
+    "description": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

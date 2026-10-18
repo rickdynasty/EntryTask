@@ -8,3 +8,5 @@ include ':lib_base'
 include ':lib_net'
 include ':lib_storage'
 include ':biz_user'
+
+include ':demo_engine'

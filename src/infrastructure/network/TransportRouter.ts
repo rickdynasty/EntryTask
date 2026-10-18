@@ -1,3 +1,5 @@
+/** EntryTask RN：网络基础设施：按 API 策略选择传输通道、验证响应并归一错误。 */
+import * as generatedValidators from './generated/validators';
 import { AppError, normalizeError } from '@shared/domain/AppError';
 import type {
   ApiRequest,
@@ -16,6 +18,7 @@ export class TransportRouter implements NetworkPort {
     private readonly logger: LoggerPort,
   ) {}
   async execute(request: ApiRequest, signal: AbortSignal): Promise<unknown> {
+    // 先解析静态 API 策略，再按指定通道执行，不在失败后切换传输方式。
     const endpoint = this.registry.resolve(request.apiId);
     const context = {
       requestId: createId(),
@@ -57,8 +60,15 @@ export class TransportRouter implements NetworkPort {
       ) {
         throw new AppError('INVALID_RESPONSE', '接口响应结构无效');
       }
+      // 统一验证 HTTP、信封结构、业务码与生成的响应 Schema。
       if (body.code !== 200) {
         throw new AppError(String(body.code), '操作未完成，请重试', 'business');
+      }
+      const validators: Record<string, (value: unknown) => boolean> =
+        generatedValidators;
+      const validate = validators[request.apiId.replaceAll('.', '_')];
+      if (endpoint.responseSchema && (!validate || !validate(body.data))) {
+        throw new AppError('INVALID_RESPONSE_SCHEMA', '接口数据格式无效');
       }
       this.logger.log('info', 'network', 'request.completed', {
         ...fields,

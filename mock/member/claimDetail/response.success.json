@@ -1,0 +1,11 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "claim-demo",
+    "title": "信享好书",
+    "paragraphs": [
+      "模拟领取记录。"
+    ]
+  }
+}

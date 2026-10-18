@@ -1,0 +1,15 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "tx-1",
+    "title": "工资收入",
+    "direction": "in",
+    "amountMinor": "20000",
+    "date": "2026-10-02",
+    "summary": "本地模拟交易流水",
+    "paragraphs": [
+      "模拟流水，不对应任何真实账户或金融交易。"
+    ]
+  }
+}

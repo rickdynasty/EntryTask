@@ -23,7 +23,17 @@
       "path": "/api/home/content",
       "handler": "fixture",
       "exposure": "jsAllowed",
+      "requiresAuth": false,
       "response": "home/content/response.success.json"
+    },
+    {
+      "apiId": "service.catalog",
+      "method": "GET",
+      "path": "/api/services",
+      "handler": "collection",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "services/catalog/response.success.json"
     },
     {
       "apiId": "product.list",
@@ -31,7 +41,287 @@
       "path": "/api/wealth/products",
       "handler": "products",
       "exposure": "jsAllowed",
+      "requiresAuth": false,
       "response": "wealth/products/response.success.json"
+    },
+    {
+      "apiId": "product.detail",
+      "method": "GET",
+      "path": "/api/wealth/products/{id}",
+      "handler": "productDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "wealth/productDetail/response.success.json"
+    },
+    {
+      "apiId": "wealth.content",
+      "method": "GET",
+      "path": "/api/wealth/content",
+      "handler": "fixture",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "wealth/content/response.success.json"
+    },
+    {
+      "apiId": "asset.summary",
+      "method": "GET",
+      "path": "/api/assets/summary",
+      "handler": "assets",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "wealth/assets/response.success.json"
+    },
+    {
+      "apiId": "account.list",
+      "method": "GET",
+      "path": "/api/accounts",
+      "handler": "collection",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "wealth/accounts/response.success.json"
+    },
+    {
+      "apiId": "account.detail",
+      "method": "GET",
+      "path": "/api/accounts/{id}",
+      "handler": "accountDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "wealth/accountDetail/response.success.json"
+    },
+    {
+      "apiId": "transaction.list",
+      "method": "GET",
+      "path": "/api/transactions",
+      "handler": "transactions",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "wealth/transactions/response.success.json"
+    },
+    {
+      "apiId": "transaction.detail",
+      "method": "GET",
+      "path": "/api/transactions/{id}",
+      "handler": "transactionDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "wealth/transactionDetail/response.success.json"
+    },
+    {
+      "apiId": "article.list",
+      "method": "GET",
+      "path": "/api/articles",
+      "handler": "collection",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "wealth/articles/response.success.json"
+    },
+    {
+      "apiId": "article.detail",
+      "method": "GET",
+      "path": "/api/articles/{id}",
+      "handler": "articleDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "wealth/articleDetail/response.success.json"
+    },
+    {
+      "apiId": "member.content",
+      "method": "GET",
+      "path": "/api/member/content",
+      "handler": "fixture",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "member/content/response.success.json"
+    },
+    {
+      "apiId": "member.summary",
+      "method": "GET",
+      "path": "/api/member/summary",
+      "handler": "summary",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/summary/response.success.json"
+    },
+    {
+      "apiId": "checkin.status",
+      "method": "GET",
+      "path": "/api/member/checkin",
+      "handler": "checkin",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/checkin/response.success.json"
+    },
+    {
+      "apiId": "checkin.submit",
+      "method": "POST",
+      "path": "/api/member/checkin",
+      "handler": "checkinSubmit",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/checkinSubmit/response.success.json"
+    },
+    {
+      "apiId": "benefit.list",
+      "method": "GET",
+      "path": "/api/member/benefits",
+      "handler": "benefits",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "member/benefits/response.success.json"
+    },
+    {
+      "apiId": "benefit.detail",
+      "method": "GET",
+      "path": "/api/member/benefits/{id}",
+      "handler": "benefitDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "member/benefitDetail/response.success.json"
+    },
+    {
+      "apiId": "benefit.claim",
+      "method": "POST",
+      "path": "/api/member/benefits/{id}/claims",
+      "handler": "claim",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/benefitClaim/response.success.json"
+    },
+    {
+      "apiId": "claim.list",
+      "method": "GET",
+      "path": "/api/member/claims",
+      "handler": "claims",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/claims/response.success.json"
+    },
+    {
+      "apiId": "claim.detail",
+      "method": "GET",
+      "path": "/api/member/claims/{id}",
+      "handler": "claimDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/claimDetail/response.success.json"
+    },
+    {
+      "apiId": "energy.records",
+      "method": "GET",
+      "path": "/api/member/energy/records",
+      "handler": "energy",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "member/energy/response.success.json"
+    },
+    {
+      "apiId": "activity.list",
+      "method": "GET",
+      "path": "/api/activities",
+      "handler": "collection",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "member/activities/response.success.json"
+    },
+    {
+      "apiId": "activity.detail",
+      "method": "GET",
+      "path": "/api/activities/{id}",
+      "handler": "activityDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "member/activityDetail/response.success.json"
+    },
+    {
+      "apiId": "profile.summary",
+      "method": "GET",
+      "path": "/api/profile/summary",
+      "handler": "summary",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "profile/summary/response.success.json"
+    },
+    {
+      "apiId": "profile.detail",
+      "method": "GET",
+      "path": "/api/profile",
+      "handler": "summary",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "profile/detail/response.success.json"
+    },
+    {
+      "apiId": "profile.marketing",
+      "method": "GET",
+      "path": "/api/profile/marketing",
+      "handler": "fixture",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "profile/marketing/response.success.json"
+    },
+    {
+      "apiId": "personal.items",
+      "method": "GET",
+      "path": "/api/profile/items",
+      "handler": "items",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "profile/items/response.success.json"
+    },
+    {
+      "apiId": "personal.itemDetail",
+      "method": "GET",
+      "path": "/api/profile/items/{id}",
+      "handler": "itemDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "profile/itemDetail/response.success.json"
+    },
+    {
+      "apiId": "message.list",
+      "method": "GET",
+      "path": "/api/messages",
+      "handler": "messages",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "messaging/list/response.success.json"
+    },
+    {
+      "apiId": "message.detail",
+      "method": "GET",
+      "path": "/api/messages/{id}",
+      "handler": "messageDetail",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "messaging/detail/response.success.json"
+    },
+    {
+      "apiId": "message.read",
+      "method": "POST",
+      "path": "/api/messages/{id}/read",
+      "handler": "messageRead",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "messaging/read/response.success.json"
+    },
+    {
+      "apiId": "message.unread",
+      "method": "GET",
+      "path": "/api/messages/unread-count",
+      "handler": "unread",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "messaging/unread/response.success.json"
+    },
+    {
+      "apiId": "search.query",
+      "method": "GET",
+      "path": "/api/search",
+      "handler": "search",
+      "exposure": "jsAllowed",
+      "requiresAuth": false,
+      "response": "services/search/response.success.json"
     }
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "balance": 0,
+    "items": [],
+    "page": 1,
+    "pageSize": 10,
+    "total": 0,
+    "hasMore": false
+  }
+}

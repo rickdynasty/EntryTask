@@ -1,0 +1,436 @@
+/** EntryTask RN：RN 导航组装：同步 Native 根 Tab、处理认证门禁并承载通用详情页。 */
+import { SafeAreaView } from 'react-native-safe-area-context';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
+import {
+  createNativeStackNavigator,
+  type NativeStackScreenProps,
+} from '@react-navigation/native-stack';
+import { HomeScreen } from '@features/home/public';
+import { WealthScreen } from '@features/wealth/public';
+import { MemberScreen } from '@features/member/public';
+import { ProfileScreen } from '@features/profile/public';
+import type { PageActions, Target } from '@features/services/public';
+import { DocumentScreen } from '@features/services/public';
+import { createId } from '@infra/logging/Logger';
+import { useResource } from '@shared/presentation/useResource';
+import { Icon } from '@shared/ui/Icon';
+import {
+  DemoFootnote,
+  PrimaryButton,
+  Surface,
+  ui,
+} from '@shared/ui/Primitives';
+import type { Application } from '../CompositionRoot';
+type StackParams = { Root: undefined; Detail: { target: Target } };
+const Stack = createNativeStackNavigator<StackParams>();
+const Context = createContext<Application | null>(null);
+function useApplication() {
+  const value = useContext(Context);
+  if (!value) throw new Error('Missing application');
+  return value;
+}
+const titles = ['首页', '财富', '会员', '我的'];
+export function AppNavigator({ application }: { application: Application }) {
+  // 导航容器只创建一次，Native Shell 负责提供根 Tab 与会话快照。
+  const navigation = useMemo(
+    () => createNavigationContainerRef<StackParams>(),
+    [],
+  );
+  const shell = useSyncExternalStore(
+    application.shell.subscribe,
+    application.shell.getSnapshot,
+  );
+  const lastEpoch = useRef(shell.sessionEpoch);
+  const previouslyAuthenticated = useRef(shell.authenticated);
+  useEffect(() => {
+    if (lastEpoch.current !== shell.sessionEpoch) {
+      // 已认证会话切换时清空私有页面，游客首次登录则保留认证前目标。
+      lastEpoch.current = shell.sessionEpoch;
+      if (
+        previouslyAuthenticated.current &&
+        navigation.isReady() &&
+        navigation.canGoBack()
+      )
+        navigation.resetRoot({ index: 0, routes: [{ name: 'Root' }] });
+    }
+    previouslyAuthenticated.current = shell.authenticated;
+  }, [shell.sessionEpoch, shell.authenticated, navigation]);
+  return (
+    <Context.Provider value={application}>
+      <NavigationContainer
+        ref={navigation}
+        onReady={() =>
+          application.shell.command({ type: 'navigation', depth: 0 })
+        }
+        onStateChange={state =>
+          application.shell.command({
+            type: 'navigation',
+            depth: Math.max(0, (state?.routes.length ?? 1) - 1),
+          })
+        }
+      >
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#F5F5F5' },
+            animation: 'slide_from_right',
+          }}
+        >
+          <Stack.Screen name="Root" component={RootHub} />
+          <Stack.Screen name="Detail" component={DetailRoute} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Context.Provider>
+  );
+}
+function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
+  const application = useApplication();
+  const shell = useSyncExternalStore(
+    application.shell.subscribe,
+    application.shell.getSnapshot,
+  );
+  const [visited, setVisited] = useState<ReadonlySet<number>>(
+    () => new Set([shell.tabId]),
+  );
+  useEffect(() => {
+    setVisited(previous =>
+      previous.has(shell.tabId)
+        ? previous
+        : new Set([...previous, shell.tabId]),
+    );
+  }, [shell.tabId]);
+  const channels = useMemo(
+    () => application.createChannels(shell.sessionEpoch),
+    [application, shell.sessionEpoch],
+  );
+  useEffect(() => () => channels.dispose(), [channels]);
+  const unread = useResource(channels.messaging.unread, shell.authenticated);
+  const pending = useRef<Target | null>(null);
+  const open = useCallback(
+    (target: Target) => {
+      application.logger.log('info', 'navigation', 'target.opened', {
+        pageId: target.kind,
+      });
+      if (target.requiresAuth && !shell.authenticated) {
+        // 只暂存待访问目标；Native 登录成功后再恢复，不缓存写操作。
+        application.logger.log(
+          'info',
+          'navigation',
+          'authentication.required',
+          {
+            pageId: target.kind,
+          },
+        );
+        pending.current = target;
+        application.shell.command({ type: 'authenticate' });
+        return;
+      }
+      const state = navigation.getState();
+      if (state.routes.at(-1)?.name === 'Detail') return;
+      navigation.navigate('Detail', { target });
+    },
+    [application, navigation, shell.authenticated],
+  );
+  useEffect(() => {
+    if (pending.current) {
+      const target = pending.current;
+      pending.current = null;
+      if (shell.authenticated) navigation.navigate('Detail', { target });
+    }
+  }, [shell.revision, shell.authenticated, navigation]);
+  const demo = (title: string): Target => ({
+    kind: 'demo',
+    title,
+    requiresAuth: false,
+  });
+  const actions: PageActions = {
+    track: (module, event, pageId) =>
+      application.logger.log('info', module, event, { pageId }),
+    open,
+    switchTab: tabId => application.shell.command({ type: 'selectTab', tabId }),
+    login: () => application.shell.command({ type: 'authenticate' }),
+    toggleVisibility: application.shell.toggleVisibility,
+    header: {
+      search: () =>
+        open({ kind: 'search', title: '搜索', requiresAuth: false }),
+      messages: () =>
+        open({ kind: 'messages', title: '消息中心', requiresAuth: true }),
+      advisor: () => open(demo('在线客服')),
+      scan: () => open(demo('扫一扫')),
+      settings: () =>
+        open({ kind: 'settings', title: '设置', requiresAuth: false }),
+      login: () => application.shell.command({ type: 'authenticate' }),
+    },
+  };
+  useEffect(() => {
+    application.logger.log('info', 'navigation', 'tab.entered', {
+      pageId: titles[shell.tabId - 1] ?? '首页',
+    });
+  }, [application, shell.tabId]);
+  const common = {
+    actions,
+    session: shell,
+    unread: unread.data?.unreadCount ?? 0,
+  };
+  return (
+    <View style={styles.fill}>
+      <View style={[styles.fill, shell.tabId !== 1 && styles.hidden]}>
+        {(visited.has(1) || shell.tabId === 1) && (
+          <HomeScreen
+            model={channels.home}
+            active={shell.tabId === 1}
+            {...common}
+          />
+        )}
+      </View>
+      <View style={[styles.fill, shell.tabId !== 2 && styles.hidden]}>
+        {(visited.has(2) || shell.tabId === 2) && (
+          <WealthScreen
+            model={channels.wealth}
+            active={shell.tabId === 2}
+            {...common}
+          />
+        )}
+      </View>
+      <View style={[styles.fill, shell.tabId !== 3 && styles.hidden]}>
+        {(visited.has(3) || shell.tabId === 3) && (
+          <MemberScreen
+            model={channels.member}
+            active={shell.tabId === 3}
+            {...common}
+          />
+        )}
+      </View>
+      <View style={[styles.fill, shell.tabId !== 4 && styles.hidden]}>
+        {(visited.has(4) || shell.tabId === 4) && (
+          <ProfileScreen
+            model={channels.profile}
+            active={shell.tabId === 4}
+            {...common}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+function PageHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <View style={styles.header}>
+      <Pressable accessibilityLabel="返回" hitSlop={12} onPress={onBack}>
+        <Icon name="back" size={23} />
+      </Pressable>
+      <Text numberOfLines={1} style={styles.headerTitle}>
+        {title}
+      </Text>
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+}
+function DetailRoute({
+  route,
+  navigation,
+}: NativeStackScreenProps<StackParams, 'Detail'>) {
+  const app = useApplication();
+  const shell = useSyncExternalStore(
+    app.shell.subscribe,
+    app.shell.getSnapshot,
+  );
+  const target = route.params.target;
+  const onOpen = (next: Target) => {
+    if (next.requiresAuth && !shell.authenticated) {
+      app.shell.command({ type: 'authenticate' });
+      return;
+    }
+    navigation.push('Detail', { target: next });
+  };
+  if (target.kind === 'demo' || target.kind === 'settings')
+    return (
+      <SafeAreaView edges={['bottom']} style={styles.fill}>
+        <PageHeader title={target.title} onBack={navigation.goBack} />
+        <LocalPage target={target} onBack={navigation.goBack} />
+      </SafeAreaView>
+    );
+  return (
+    <SafeAreaView edges={['bottom']} style={styles.fill}>
+      <RemoteDetail
+        target={target}
+        routeKey={route.key}
+        onOpen={onOpen}
+        onBack={navigation.goBack}
+      />
+    </SafeAreaView>
+  );
+}
+function RemoteDetail({
+  target,
+  routeKey,
+  onOpen,
+  onBack,
+}: {
+  target: Target;
+  routeKey: string;
+  onOpen: (target: Target) => void;
+  onBack: () => void;
+}) {
+  const app = useApplication();
+  const shell = useSyncExternalStore(
+    app.shell.subscribe,
+    app.shell.getSnapshot,
+  );
+  const model = useMemo(
+    () => app.createDocument(target, shell.sessionEpoch),
+    [app, target, shell.sessionEpoch],
+  );
+  useEffect(() => () => model.dispose(), [model]);
+  useEffect(() => {
+    app.logger.log('info', 'navigation', 'page.entered', {
+      pageId: target.kind,
+      flowId: routeKey,
+    });
+    const abort = new AbortController();
+    if (target.kind === 'message' && target.id) {
+      const messages = app.createMessaging(shell.sessionEpoch);
+      app.logger.log('info', 'messages', 'message.read.started', {
+        pageId: 'message',
+      });
+      void messages
+        .read(target.id, createId(), abort.signal)
+        .then(() =>
+          app.logger.log('info', 'messages', 'message.read.completed', {
+            pageId: 'message',
+          }),
+        )
+        .catch(() =>
+          app.logger.log('warn', 'messages', 'message.read.failed', {
+            code: 'READ_FAILED',
+            pageId: 'message',
+          }),
+        );
+    }
+    return () => abort.abort();
+  }, [app, target, routeKey, shell.sessionEpoch]);
+  return (
+    <View style={styles.fill}>
+      <PageHeader title={target.title} onBack={onBack} />
+      <DocumentScreen
+        model={model}
+        target={target}
+        onOpen={onOpen}
+        authenticated={shell.authenticated}
+        assetsVisible={shell.assetsVisible}
+        onAuthenticate={() => app.shell.command({ type: 'authenticate' })}
+        onToggleVisibility={app.shell.toggleVisibility}
+      />
+    </View>
+  );
+}
+function LocalPage({ target, onBack }: { target: Target; onBack: () => void }) {
+  const app = useApplication();
+  const shell = useSyncExternalStore(
+    app.shell.subscribe,
+    app.shell.getSnapshot,
+  );
+  return (
+    <ScrollView contentContainerStyle={styles.localContent}>
+      <Surface>
+        <Text style={ui.heading}>{target.title}</Text>
+        {target.kind === 'settings' ? (
+          <>
+            <View style={ui.between}>
+              <Text style={ui.body}>显示资产金额</Text>
+              <Switch
+                accessibilityLabel="显示资产金额"
+                value={shell.assetsVisible}
+                onValueChange={app.shell.toggleVisibility}
+              />
+            </View>
+            <Text style={ui.muted}>
+              个人偏好由 Native 按用户保存；默认隐藏资产。
+            </Text>
+            <Text style={ui.body}>关于 EntryTask</Text>
+            <Text style={ui.muted}>
+              本地银行业务原型 · 所有数据均为模拟数据
+            </Text>
+            {shell.authenticated && (
+              <PrimaryButton
+                title="退出登录"
+                onPress={() =>
+                  Alert.alert(
+                    '退出登录',
+                    '退出后将清除当前会话，保留本地模拟记录。',
+                    [
+                      { text: '取消', style: 'cancel' },
+                      {
+                        text: '退出',
+                        style: 'destructive',
+                        onPress: () => {
+                          app.shell.command({ type: 'logout' });
+                          onBack();
+                        },
+                      },
+                    ],
+                  )
+                }
+              />
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={ui.body}>此服务仅作界面与流程演示。</Text>
+            <Text style={ui.body}>
+              当前工程不连接真实银行后端，不提供真实开户、转账、支付、授信、申卡、相机扫描或人工客服，也不会收集身份核验资料。
+            </Text>
+            <PrimaryButton title="我知道了，返回" onPress={onBack} />
+          </>
+        )}
+      </Surface>
+      <DemoFootnote />
+    </ScrollView>
+  );
+}
+const styles = StyleSheet.create({
+  localContent: { padding: 16, gap: 16 },
+  headerSpacer: { width: 23 },
+  fill: { flex: 1 },
+  hidden: { display: 'none' },
+  header: {
+    height: 52,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EDE8E1',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#242321',
+    marginHorizontal: 10,
+  },
+});

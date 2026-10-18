@@ -1,0 +1,37 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "total": {
+      "amountMinor": "10000000",
+      "currency": "CNY",
+      "minorUnit": 2
+    },
+    "liabilities": {
+      "amountMinor": "2000000",
+      "currency": "CNY",
+      "minorUnit": 2
+    },
+    "net": {
+      "amountMinor": "8000000",
+      "currency": "CNY",
+      "minorUnit": 2
+    },
+    "income": {
+      "amountMinor": "1268",
+      "currency": "CNY",
+      "minorUnit": 2
+    },
+    "asOf": "2026-10-13",
+    "categories": [
+      {
+        "title": "活期存款",
+        "amountMinor": "4000000"
+      },
+      {
+        "title": "理财资产",
+        "amountMinor": "6000000"
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$id": "entrytask/message.list",
+  "type": "object",
+  "required": [
+    "items",
+    "page",
+    "pageSize",
+    "total",
+    "hasMore"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "date",
+          "isRead",
+          "paragraphs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pageSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hasMore": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

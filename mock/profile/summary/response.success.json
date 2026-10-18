@@ -1,0 +1,15 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "nickname": "演示会员",
+    "phoneMasked": "186 **** 2185",
+    "level": 1,
+    "bankCards": 1,
+    "todos": 0,
+    "coupons": 0,
+    "points": 0,
+    "energy": 0,
+    "isDemo": true
+  }
+}

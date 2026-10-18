@@ -1,0 +1,13 @@
+{
+  "$id": "entrytask/message.unread",
+  "type": "object",
+  "required": [
+    "unreadCount"
+  ],
+  "properties": {
+    "unreadCount": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

@@ -50,7 +50,7 @@
 - 入口仍为 `src/index.js`；根目录保留 package.json、app.json、Metro/Babel/TS/Jest 配置，不能创建根 `index.js`。
 - 新增别名同步核对 TS paths、Babel/Metro 实际解析和 Jest mapper。Metro 仍以仓库根解析 `src/`、`specs/`、`contracts/`；不把 JSON 改为无法 import 的二进制资源。
 - `Native*.ts` 留在根 `specs/`，Codegen `jsSrcsDir=specs`；签名变化读取 Android 子规则并构建原生生成物。当前 iOS 未实现不能以 JS 假模块伪造成功。
-- 新增原生依赖先核对 RN/React/新架构兼容和 autolinking；不同时引入 Zustand、另一套 Query 或导航库承载相同职责。设计中的 React Navigation 尚未接入，相关任务再按兼容验证引入，不假定已安装。
+- 新增原生依赖先核对 RN/React/新架构兼容和 autolinking；不同时引入 Zustand、另一套 Query 或导航库承载相同职责。当前已接入 React Navigation native-stack、react-native-screens 和 react-native-svg，版本由 lockfile 锁定；根 Tab 仍由 Native 提供。
 
 ## 验证与交付
 

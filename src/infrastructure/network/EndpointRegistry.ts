@@ -1,3 +1,4 @@
+/** EntryTask RN：网络基础设施：按 API 策略选择传输通道、验证响应并归一错误。 */
 import catalog from '@contracts/api/endpoints.json';
 import { AppError } from '@shared/domain/AppError';
 import type { EndpointPolicy } from '@platform/ports/NetworkPort';

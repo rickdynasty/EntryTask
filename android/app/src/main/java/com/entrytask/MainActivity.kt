@@ -1,171 +1,98 @@
 package com.entrytask
 
-//import com.entrytask.databinding.ActivityHomeBinding // 如果启用 ViewBinding
 import android.os.Bundle
+import android.view.View
 import androidx.activity.OnBackPressedCallback
-import androidx.fragment.app.Fragment
 import com.entry.biz.user.manager.UserAuthManager
 import com.entry.lib.base.data.TabItem
 import com.entry.lib.base.mvvm.BaseActivity
-import com.entry.lib.log.MLog
 import com.entry.lib.ui.BackPressHelper
 import com.entry.lib.ui.BottomTabBar
+import com.entrytask.bridge.ShellCoordinator
 import com.entrytask.home.HomeFragment
-import com.entrytask.home.MeFragment
-import com.entrytask.home.MemberFragment
-import com.entrytask.home.WealthFragment
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
+import org.json.JSONObject
 
-// 若未启用 ViewBinding，可直接使用 findViewById
-
+/** One stable HomeFragment/RN Surface for all root tabs. Native-only mode remains available. */
 class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private lateinit var bottomTabBar: BottomTabBar
-    private lateinit var tabItems: List<TabItem>
-
-    // 缓存 Fragment 映射：ID -> Fragment 实例
-    private val fragments = mutableMapOf<Int, Fragment>()
-    private var currentTabId: Int = -1
     private var authRequested = false
-
     companion object {
-        private const val TAG = "Rick_tan:HomeActivity"
         const val EXTRA_TAB_ITEMS = "extra_tab_items"
-
-        // 定义 4 个固定的 Tab ID
         const val TAB_ID_HOME = 1
         const val TAB_ID_WEALTH = 2
         const val TAB_ID_MEMBER = 3
         const val TAB_ID_ME = 4
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
+        supportFragmentManager.fragmentFactory = com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory()
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+        setContentView(R.layout.activity_home)
+        bottomTabBar = findViewById(R.id.bottomTabBar)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bottomTabBar) { view, insets ->
+            val bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom
+            view.layoutParams = view.layoutParams.apply { height = (56 * resources.displayMetrics.density).toInt() + bottom }
+            view.setPadding(0, 0, 0, bottom)
+            insets
+        }
+        bottomTabBar.setTabItems(listOf(
+            TabItem(1, "首页", R.drawable.ic_tab_home),
+            TabItem(2, "财富", R.drawable.ic_tab_trade),
+            TabItem(3, "会员", R.drawable.ic_tab_message),
+            TabItem(4, "我的", R.drawable.ic_tab_profile)
+        )) { _, id -> selectRoot(id) }
+        if (supportFragmentManager.findFragmentByTag("entrytask-root-hub") == null) {
+            supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, HomeFragment(), "entrytask-root-hub").commit()
+        }
+        selectRoot(savedInstanceState?.getInt("root_tab", 1) ?: 1)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                BackPressHelper.handleBackPress(this@MainActivity) {
-                    finishAffinity() // 连续双击两次，退出应用
-                }
+                if (BackPressHelper.hideKeyboardIfVisible(this@MainActivity)) return
+                // React Navigation registers the JS child stack with ReactFragment's dispatcher.
+                if (ShellCoordinator.depth > 0) {
+                    if (reactHostActivityFragment()?.onBackPressed() != true) invokeDefaultOnBackPressed()
+                } else invokeDefaultOnBackPressed()
             }
         })
-
-        setContentView(R.layout.activity_home)
-
-        bottomTabBar = findViewById(R.id.bottomTabBar)
-
-        // 1. 初始化 4 个 Tab 数据（优先从 Intent 解析，若无则使用指定的默认 4 个 Tab）
-        initTabItems()
-
-        // 2. 初始化底部导航栏并绑定点击回调
-        setupBottomTabBar()
-
-        // 3. 恢复或默认选中第一个 Tab (首页)
-        val defaultId =
-            savedInstanceState?.getInt("current_tab_id", tabItems.first().id) ?: tabItems.first().id
-        switchFragment(defaultId)
-        bottomTabBar.selectTab(defaultId)
-
-        // 启动时检查内存登录态
     }
+    private fun reactHostActivityFragment(): com.facebook.react.ReactFragment? =
+        supportFragmentManager.findFragmentByTag("entrytask-root-hub")?.childFragmentManager
+            ?.findFragmentByTag("entrytask-rn-root") as? com.facebook.react.ReactFragment
 
-    /**
-     * 校验登录状态，若未登录则拦截跳转到 AuthActivity
-     */
-    private fun checkLoginStatus(needLog: Boolean = true) {
-        if (!UserAuthManager.isLogin() && !authRequested) {
-            authRequested = true
-            MLog.w(TAG, "检测到用户未登录，正在拦截并跳转至 AuthActivity")
-            UserAuthManager.startAuthActivity(this)
-        } else if (UserAuthManager.isLogin() && needLog) {
-            MLog.d(TAG, "用户已登录，放行进入首页")
-        }
+    private fun selectRoot(id: Int) {
+        ShellCoordinator.select(id)
+        bottomTabBar.selectTab(id)
     }
-
-    private fun initTabItems() {
-        val intentItems =
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableArrayListExtra(EXTRA_TAB_ITEMS, TabItem::class.java)
-            } else {
-                @Suppress("DEPRECATION") intent.getParcelableArrayListExtra<TabItem>(EXTRA_TAB_ITEMS)
+    fun handleHostCommand(request: JSONObject) {
+        when (request.getString("type")) {
+            "selectTab" -> selectRoot(request.getInt("tabId"))
+            "navigation" -> {
+                ShellCoordinator.navigationDepth(request.getInt("depth"))
+                bottomTabBar.visibility = if (ShellCoordinator.depth > 0) View.GONE else View.VISIBLE
             }
-
-        tabItems = if (!intentItems.isNullOrEmpty()) {
-            intentItems
-        } else {
-            // 严格设定默认的 4 个 Tab：首页、交易、信息、我的
-            listOf(
-                TabItem(TAB_ID_HOME, "首页", R.drawable.ic_tab_home),
-                TabItem(TAB_ID_WEALTH, "财富", R.drawable.ic_tab_trade),
-                TabItem(TAB_ID_MEMBER, "会员", R.drawable.ic_tab_message),
-                TabItem(TAB_ID_ME, "我的", R.drawable.ic_tab_profile)
-            )
+            "authenticate" -> if (!UserAuthManager.isLogin() && !authRequested) {
+                authRequested = true
+                UserAuthManager.startAuthActivity(this)
+            }
+            "logout" -> { UserAuthManager.logout(); ShellCoordinator.publish() }
+            else -> throw IllegalArgumentException("Unknown command")
         }
     }
-
-    private fun setupBottomTabBar() {
-        bottomTabBar.setTabItems(tabItems) { _, id ->
-            switchFragment(id)
-        }
-    }
-
-    private fun switchFragment(targetId: Int) {
-        if (currentTabId == targetId || supportFragmentManager.isStateSaved) return
-
-        val transaction = supportFragmentManager.beginTransaction()
-
-        // 隐藏当前显示的 Fragment
-        if (currentTabId != -1) {
-            fragments[currentTabId]?.let { transaction.hide(it) }
-        }
-
-        // 查找或创建目标 Fragment
-        var targetFragment = fragments[targetId] ?: supportFragmentManager.findFragmentByTag(targetId.toString())
-        if (targetFragment == null) {
-            targetFragment = createFragmentForId(targetId)
-            fragments[targetId] = targetFragment
-            transaction.add(R.id.fragmentContainer, targetFragment, targetId.toString())
-        } else {
-            fragments[targetId] = targetFragment
-            transaction.show(targetFragment)
-        }
-
-        transaction.commit()
-        currentTabId = targetId
-    }
-
-    private fun createFragmentForId(id: Int): Fragment {
-        // 根据 4 个 Tab ID 返回对应的子 Fragment 实例
-        return when (id) {
-            TAB_ID_HOME-> HomeFragment()
-            TAB_ID_WEALTH -> WealthFragment()
-            TAB_ID_MEMBER -> MemberFragment()
-            TAB_ID_ME -> MeFragment()
-            else -> HomeFragment() // 默认兜底
-        }
-    }
-
-    override fun onNewIntent(intent: android.content.Intent?) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        // 登录成功后重载检测
-        checkLoginStatus(false)
-    }
-
     override fun onResume() {
         super.onResume()
-        MLog.d(TAG, "HomeActivity onResume 恢复，进行二次登录态校验")
-
-        if (UserAuthManager.isLogin()) authRequested = false
-        checkLoginStatus(false)
+        authRequested = false
+        ShellCoordinator.publish()
     }
-
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt("root_tab", ShellCoordinator.tabId)
         super.onSaveInstanceState(outState)
-        outState.putInt("current_tab_id", currentTabId)
     }
-
     override fun invokeDefaultOnBackPressed() {
-        // 如果你的 MainFragment 中有 RN 的页面，可以先让 RN 处理返回键（例如关闭 RN 的 Modal 或页面路由）
-        // 如果不需要特殊拦截，可以直接调用 super.onBackPressed() 或者交由 React Native 处理
-        super.onBackPressed()
+        if (ShellCoordinator.tabId != 1) { selectRoot(1) }
+        else BackPressHelper.handleBackPress(this) { finishAffinity() }
     }
 }

@@ -26,7 +26,7 @@
 | `tools/`、`__tests__/` | 资源与架构检查、校验器生成、JS 测试 |
 | `docs/` | 需求、设计、开发及验证说明 |
 
-当前 RN 落地为首页纵向样板，其他根 Tab 仍有 Native 占位内容；不能声称四域、全部原型 API 或完整会话协议已经实现。Android 现有模块为 `app`、`biz_user`、`lib_base`、`lib_net`、`lib_storage`，不为满足目录示意创建空模块。
+当前已落地四个 RN 根页、共用组件和通用子页模板；Native 底栏驱动单个 RN Surface。RN 暴露34个本地演示API，不能据此声称37API全部场景或完整生产会话协议已验收。Android 模块为 `app`、`biz_user`、`lib_base`、`lib_net`、`lib_storage` 和 `demo_engine`，不为满足目录示意创建空模块。
 
 ## 跨端架构不变量
 

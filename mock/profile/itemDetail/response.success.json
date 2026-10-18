@@ -1,0 +1,11 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "item-demo",
+    "title": "演示事项",
+    "paragraphs": [
+      "只读演示事项。"
+    ]
+  }
+}

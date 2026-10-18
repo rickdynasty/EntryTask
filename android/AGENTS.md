@@ -11,8 +11,9 @@
 | `lib_base` | 既有基础能力及 UI/MVVM 封装；不继续加入业务/RN 代码 |
 | `lib_net` | 现有 OkHttp / Retrofit 与过渡 Mock 实现；新增通用网络不识别业务 UI |
 | `lib_storage` | 现有 Native 存储封装；禁止向 RN 开放任意 key/path 或凭证 |
+| `demo_engine` | RN业务API专用Mock拦截器及轻量用户账本，独立于既有Native认证Mock |
 
-设计中的 `lib_contract`、`lib_ui`、`biz_user_api`、`lib_rn_host`、`lib_bridge`、`demo_engine` 等尚未全部创建。按任务需要迁移到目标职责，不能假定存在，也不能为了单个修复一次拆完所有模块。
+设计中的 `lib_contract`、`lib_ui`、`biz_user_api`、`lib_rn_host`、`lib_bridge`等尚未全部创建。按任务需要迁移到目标职责，不能假定存在，也不能为了单个修复一次拆完所有模块。
 
 - app 是组装入口，不增加银行业务规则和 DAO；四域业务页面及子页由 RN 实现。认证和 Native Shell 使用 MVVM。
 - 新代码遵循 View → VM → domain 契约 → data 实现，按业务域组织。技术库不新增对 app、biz、RN 的反向依赖；已有 `lib_net → lib_storage` 等偏差不作为新依赖范例，相关迁移通过接口注入解除。
@@ -31,7 +32,7 @@
 ## 单 RN 宿主与 Codegen
 
 - `MainApplication.reactHost` 是进程内唯一 Host，沿用 `getDefaultReactHost`、RN 新架构和 Hermes。不要在 Fragment、Tab 或认证 Activity 创建第二个 Host / runtime。
-- 当前 `app/.../base/BaseFragment` 承载 RN 集成；使用稳定 `R.id.rn_content` 和 child Fragment tag 恢复，先查找已有 Fragment，不重复 add/attach。不使用 `commitAllowingStateLoss` 掩盖生命周期错误。
+- 当前 MainActivity 通过单个 HomeFragment 承载 RootHub，ShellCoordinator 发布Native Tab/会话快照；`app/.../base/BaseFragment` 承载 RN 集成；使用稳定 `R.id.rn_content` 和 child Fragment tag 恢复，先查找已有 Fragment，不重复 add/attach。不使用 `commitAllowingStateLoss` 掩盖生命周期错误。
 - 保留 `HomeFragment.USE_REACT_NATIVE` 的两种模式。修改 RN 默认路径不得破坏 Native-only 内容；测试时临时修改开关必须恢复并说明验证范围。
 - 当前原生适配在 `app/src/main/java/com/entrytask/bridge/`，继承根 `specs/` 生成的 `com.entrytask.specs.Native*Spec`，由 `EntryTaskPackage` 注册。未来抽模块需按设计完整迁移，不能新增旧桥双实现绕过 Codegen。
 - 改签名联动 `specs/`、package.json Codegen 配置、RN adapter、Native 实现/注册及测试；生成源码留 build 目录。bootstrap 返回实际支持的能力，不宣称尚未实现的方法。

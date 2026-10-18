@@ -1,0 +1,66 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "autumn",
+        "title": "金彩秋冬",
+        "summary": "私人银行 · 精选产品",
+        "assetKey": "hero-ginkgo",
+        "status": "进行中",
+        "date": "2026-10-01 — 2026-10-31（演示活动期）",
+        "paragraphs": [
+          "活动为本地演示，不发生真实领款、开户或金融交易。",
+          "点击相关入口可了解模拟产品与会员权益。"
+        ],
+        "target": {
+          "kind": "products",
+          "title": "查看精选产品",
+          "requiresAuth": false,
+          "category": "fund"
+        }
+      },
+      {
+        "id": "certification",
+        "title": "首次认证 专享好礼",
+        "summary": "首次自证合格投资者享100元权益",
+        "assetKey": "certification-gift",
+        "status": "进行中",
+        "date": "2026-10-01 — 2026-10-31（演示活动期）",
+        "paragraphs": [
+          "活动为本地演示，不发生真实领款、开户或金融交易。",
+          "点击相关入口可了解模拟产品与会员权益。"
+        ],
+        "target": {
+          "kind": "products",
+          "title": "查看精选产品",
+          "requiresAuth": false,
+          "category": "fund"
+        }
+      },
+      {
+        "id": "sharing",
+        "title": "幸福分享礼",
+        "summary": "养老好礼一起享",
+        "assetKey": "seasonal-gifts",
+        "status": "进行中",
+        "date": "2026-10-01 — 2026-10-31（演示活动期）",
+        "paragraphs": [
+          "活动为本地演示，不发生真实领款、开户或金融交易。",
+          "点击相关入口可了解模拟产品与会员权益。"
+        ],
+        "target": {
+          "kind": "products",
+          "title": "查看精选产品",
+          "requiresAuth": false,
+          "category": "fund"
+        }
+      }
+    ],
+    "page": 1,
+    "pageSize": 10,
+    "total": 3,
+    "hasMore": false
+  }
+}

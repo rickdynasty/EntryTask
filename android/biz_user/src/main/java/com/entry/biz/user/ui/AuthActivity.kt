@@ -27,9 +27,8 @@ class AuthActivity : BaseActivity() {
         // 【新增】使用 AndroidX OnBackPressedDispatcher 注册返回事件回调
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                BackPressHelper.handleBackPress(this@AuthActivity) {
-                    finishAffinity() // 连续双击两次，退出应用
-                }
+                if (BackPressHelper.hideKeyboardIfVisible(this@AuthActivity)) return
+                finish()
             }
         })
 

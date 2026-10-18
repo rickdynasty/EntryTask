@@ -1,0 +1,36 @@
+{
+  "$id": "entrytask/message.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "summary",
+    "date",
+    "isRead",
+    "paragraphs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "isRead": {
+      "type": "boolean"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "environment": "demo",
   "endpoints": [
     {
@@ -10,8 +10,19 @@
       "exposure": "jsAllowed",
       "authScope": "none",
       "timeoutMs": 10000,
-      "policyRevision": 1,
+      "policyRevision": 2,
       "responseSchema": "home.content.schema.json"
+    },
+    {
+      "apiId": "service.catalog",
+      "method": "GET",
+      "path": "/api/services",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "service.catalog.schema.json"
     },
     {
       "apiId": "product.list",
@@ -21,8 +32,349 @@
       "exposure": "jsAllowed",
       "authScope": "none",
       "timeoutMs": 10000,
-      "policyRevision": 1,
+      "policyRevision": 2,
       "responseSchema": "product.list.schema.json"
+    },
+    {
+      "apiId": "product.detail",
+      "method": "GET",
+      "path": "/api/wealth/products/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "product.detail.schema.json"
+    },
+    {
+      "apiId": "wealth.content",
+      "method": "GET",
+      "path": "/api/wealth/content",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "wealth.content.schema.json"
+    },
+    {
+      "apiId": "asset.summary",
+      "method": "GET",
+      "path": "/api/assets/summary",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "asset.summary.schema.json"
+    },
+    {
+      "apiId": "account.list",
+      "method": "GET",
+      "path": "/api/accounts",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "account.list.schema.json"
+    },
+    {
+      "apiId": "account.detail",
+      "method": "GET",
+      "path": "/api/accounts/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "account.detail.schema.json"
+    },
+    {
+      "apiId": "transaction.list",
+      "method": "GET",
+      "path": "/api/transactions",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "transaction.list.schema.json"
+    },
+    {
+      "apiId": "transaction.detail",
+      "method": "GET",
+      "path": "/api/transactions/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "transaction.detail.schema.json"
+    },
+    {
+      "apiId": "article.list",
+      "method": "GET",
+      "path": "/api/articles",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "article.list.schema.json"
+    },
+    {
+      "apiId": "article.detail",
+      "method": "GET",
+      "path": "/api/articles/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "article.detail.schema.json"
+    },
+    {
+      "apiId": "member.content",
+      "method": "GET",
+      "path": "/api/member/content",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "member.content.schema.json"
+    },
+    {
+      "apiId": "member.summary",
+      "method": "GET",
+      "path": "/api/member/summary",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "member.summary.schema.json"
+    },
+    {
+      "apiId": "checkin.status",
+      "method": "GET",
+      "path": "/api/member/checkin",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "checkin.status.schema.json"
+    },
+    {
+      "apiId": "checkin.submit",
+      "method": "POST",
+      "path": "/api/member/checkin",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "checkin.submit.schema.json"
+    },
+    {
+      "apiId": "benefit.list",
+      "method": "GET",
+      "path": "/api/member/benefits",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "benefit.list.schema.json"
+    },
+    {
+      "apiId": "benefit.detail",
+      "method": "GET",
+      "path": "/api/member/benefits/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "benefit.detail.schema.json"
+    },
+    {
+      "apiId": "benefit.claim",
+      "method": "POST",
+      "path": "/api/member/benefits/{id}/claims",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "benefit.claim.schema.json"
+    },
+    {
+      "apiId": "claim.list",
+      "method": "GET",
+      "path": "/api/member/claims",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "claim.list.schema.json"
+    },
+    {
+      "apiId": "claim.detail",
+      "method": "GET",
+      "path": "/api/member/claims/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "claim.detail.schema.json"
+    },
+    {
+      "apiId": "energy.records",
+      "method": "GET",
+      "path": "/api/member/energy/records",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "energy.records.schema.json"
+    },
+    {
+      "apiId": "activity.list",
+      "method": "GET",
+      "path": "/api/activities",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "activity.list.schema.json"
+    },
+    {
+      "apiId": "activity.detail",
+      "method": "GET",
+      "path": "/api/activities/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "activity.detail.schema.json"
+    },
+    {
+      "apiId": "profile.summary",
+      "method": "GET",
+      "path": "/api/profile/summary",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "profile.summary.schema.json"
+    },
+    {
+      "apiId": "profile.detail",
+      "method": "GET",
+      "path": "/api/profile",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "profile.detail.schema.json"
+    },
+    {
+      "apiId": "profile.marketing",
+      "method": "GET",
+      "path": "/api/profile/marketing",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "profile.marketing.schema.json"
+    },
+    {
+      "apiId": "personal.items",
+      "method": "GET",
+      "path": "/api/profile/items",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "personal.items.schema.json"
+    },
+    {
+      "apiId": "personal.itemDetail",
+      "method": "GET",
+      "path": "/api/profile/items/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "personal.itemDetail.schema.json"
+    },
+    {
+      "apiId": "message.list",
+      "method": "GET",
+      "path": "/api/messages",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "message.list.schema.json"
+    },
+    {
+      "apiId": "message.detail",
+      "method": "GET",
+      "path": "/api/messages/{id}",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "message.detail.schema.json"
+    },
+    {
+      "apiId": "message.read",
+      "method": "POST",
+      "path": "/api/messages/{id}/read",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "message.read.schema.json"
+    },
+    {
+      "apiId": "message.unread",
+      "method": "GET",
+      "path": "/api/messages/unread-count",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "message.unread.schema.json"
+    },
+    {
+      "apiId": "search.query",
+      "method": "GET",
+      "path": "/api/search",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "none",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "search.query.schema.json"
     }
   ]
 }

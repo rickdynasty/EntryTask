@@ -1,0 +1,75 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "services": [
+      {
+        "id": "accounts",
+        "title": "账户",
+        "icon": "wallet",
+        "target": {
+          "kind": "accounts",
+          "title": "账户",
+          "requiresAuth": true,
+          "category": "accounts"
+        }
+      },
+      {
+        "id": "transactions",
+        "title": "交易明细",
+        "icon": "ledger",
+        "target": {
+          "kind": "transactions",
+          "title": "交易明细",
+          "requiresAuth": true,
+          "category": "transactions"
+        }
+      },
+      {
+        "id": "transfer",
+        "title": "转账",
+        "icon": "transfer",
+        "target": {
+          "kind": "demo",
+          "title": "转账",
+          "requiresAuth": true,
+          "category": "transfer"
+        }
+      },
+      {
+        "id": "cash",
+        "title": "零钱+",
+        "icon": "pig",
+        "target": {
+          "kind": "products",
+          "title": "零钱+",
+          "requiresAuth": false,
+          "category": "cash"
+        }
+      },
+      {
+        "id": "all",
+        "title": "全部",
+        "icon": "more",
+        "target": {
+          "kind": "services",
+          "title": "全部",
+          "requiresAuth": false,
+          "category": "all"
+        }
+      }
+    ],
+    "assetSlogan": "做自己人生的CEO",
+    "assetNotice": "鑫耀金秋：甄选好理 享受丰盈时光",
+    "creditTitle": "信用卡",
+    "creditSubtitle": "查账/还款/分期/积分",
+    "loanTitle": "我的借钱",
+    "loanLimit": {
+      "amountMinor": "50000000",
+      "currency": "CNY",
+      "minorUnit": 2
+    },
+    "loanRate": "0.0435",
+    "isDemo": true
+  }
+}

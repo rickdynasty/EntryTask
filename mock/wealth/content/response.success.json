@@ -1,0 +1,164 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "title": "财富",
+    "services": [
+      {
+        "id": "deposit",
+        "title": "存款",
+        "icon": "deposit",
+        "target": {
+          "kind": "products",
+          "title": "存款",
+          "requiresAuth": false,
+          "category": "deposit"
+        },
+        "badge": "热销"
+      },
+      {
+        "id": "finance",
+        "title": "理财",
+        "icon": "deposit",
+        "target": {
+          "kind": "products",
+          "title": "理财",
+          "requiresAuth": false,
+          "category": "finance"
+        }
+      },
+      {
+        "id": "fund",
+        "title": "基金",
+        "icon": "fund",
+        "target": {
+          "kind": "products",
+          "title": "基金",
+          "requiresAuth": false,
+          "category": "fund"
+        }
+      },
+      {
+        "id": "private-bank",
+        "title": "私行",
+        "icon": "family",
+        "target": {
+          "kind": "demo",
+          "title": "私行",
+          "requiresAuth": false,
+          "category": "private-bank"
+        }
+      },
+      {
+        "id": "insurance",
+        "title": "保险",
+        "icon": "shield",
+        "target": {
+          "kind": "products",
+          "title": "保险",
+          "requiresAuth": false,
+          "category": "insurance"
+        }
+      },
+      {
+        "id": "cash",
+        "title": "零钱+",
+        "icon": "pig",
+        "target": {
+          "kind": "products",
+          "title": "零钱+",
+          "requiresAuth": false,
+          "category": "cash"
+        }
+      },
+      {
+        "id": "xin",
+        "title": "信芯家族",
+        "icon": "hexagon",
+        "target": {
+          "kind": "products",
+          "title": "信芯家族",
+          "requiresAuth": false,
+          "category": "xin"
+        },
+        "badge": "1元起"
+      },
+      {
+        "id": "gold",
+        "title": "黄金",
+        "icon": "gold",
+        "target": {
+          "kind": "products",
+          "title": "黄金",
+          "requiresAuth": false,
+          "category": "gold"
+        }
+      },
+      {
+        "id": "liability",
+        "title": "资产负债表",
+        "icon": "ledger",
+        "target": {
+          "kind": "assets",
+          "title": "资产负债表",
+          "requiresAuth": true,
+          "category": "liability"
+        }
+      },
+      {
+        "id": "all",
+        "title": "全部",
+        "icon": "more",
+        "target": {
+          "kind": "services",
+          "title": "全部",
+          "requiresAuth": false,
+          "category": "all"
+        }
+      }
+    ],
+    "categories": [
+      {
+        "id": "fund",
+        "title": "优选基金"
+      },
+      {
+        "id": "hot",
+        "title": "热门基金"
+      },
+      {
+        "id": "xin",
+        "title": "信芯家族"
+      },
+      {
+        "id": "deposit",
+        "title": "随心存"
+      }
+    ],
+    "market": {
+      "id": "article-1",
+      "title": "基民情报局 | 特斯拉大消息！航空ETF霸榜前五",
+      "summary": "把握市场动向，读懂投资逻辑。以下为本地演示资讯。",
+      "date": "2026-10-13",
+      "category": "市场解读",
+      "paragraphs": [
+        "本资讯仅用于界面原型演示，不构成投资建议。",
+        "通过分散配置、了解风险和长期规划，建立适合自己的投资认知。"
+      ]
+    },
+    "banner": {
+      "id": "sharing",
+      "title": "幸福分享礼",
+      "subtitle": "养老好礼一起享",
+      "assetKey": "seasonal-gifts",
+      "tone": "gold",
+      "target": {
+        "kind": "activity",
+        "title": "幸福分享礼",
+        "requiresAuth": false,
+        "id": "sharing"
+      }
+    },
+    "isDemo": true
+  }
+}

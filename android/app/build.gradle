@@ -119,6 +119,7 @@ dependencies {
     }
 
     implementation(project(":biz_user"))
+    implementation(project(":demo_engine"))
     implementation(project(":lib_net"))
     implementation(project(":lib_base"))
     implementation(project(":lib_storage"))

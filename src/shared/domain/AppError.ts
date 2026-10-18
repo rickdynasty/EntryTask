@@ -1,3 +1,4 @@
+/** EntryTask RN：共享领域契约：定义跨层可复用的纯数据或错误类型。 */
 export type ErrorKind =
   | 'configuration'
   | 'network'

@@ -1,0 +1,93 @@
+{
+  "$id": "entrytask/activity.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "summary",
+    "assetKey",
+    "status",
+    "date",
+    "paragraphs",
+    "target"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "assetKey": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "kind",
+        "title",
+        "requiresAuth",
+        "category"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "products",
+            "product",
+            "assets",
+            "accounts",
+            "transactions",
+            "article",
+            "articles",
+            "activity",
+            "activities",
+            "benefit",
+            "benefits",
+            "claims",
+            "energy",
+            "checkin",
+            "profile",
+            "items",
+            "services",
+            "search",
+            "messages",
+            "message",
+            "settings",
+            "demo",
+            "account",
+            "transaction",
+            "claim",
+            "item"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "requiresAuth": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

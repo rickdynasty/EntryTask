@@ -1,6 +1,7 @@
 package com.entrytask.bridge
 
 import com.entry.lib.log.MLog
+import com.entrytask.MainActivity
 import com.entrytask.BuildConfig
 import com.entrytask.specs.NativeHostSpec
 import com.facebook.react.bridge.Promise
@@ -17,6 +18,24 @@ class HostModule(context: ReactApplicationContext) : NativeHostSpec(context) {
         private const val CONTRACT_PATH = "contracts/bridge/runtime.json"
     }
 
+    private val stopObserving = ShellCoordinator.observe { emitOnHostEvent(it) }
+    override fun command(requestJson: String, promise: Promise) {
+        try {
+            val request = JSONObject(requestJson)
+            val activity = reactApplicationContext.currentActivity as? MainActivity
+            if (activity == null) { promise.resolve(BridgeReply.error("HOST_UNAVAILABLE")); return }
+            activity.runOnUiThread {
+                try {
+                    activity.handleHostCommand(request)
+                    promise.resolve(BridgeReply.ok(true))
+                } catch (e: Exception) {
+                    MLog.e(TAG, "host.command.failed exception=${e.javaClass.simpleName}")
+                    promise.resolve(BridgeReply.error("INVALID_HOST_COMMAND"))
+                }
+            }
+        } catch (e: Exception) { promise.resolve(BridgeReply.error("INVALID_HOST_COMMAND")) }
+    }
+    override fun invalidate() { stopObserving(); super.invalidate() }
     override fun bootstrap(requestJson: String, promise: Promise) {
         var flowId = "unknown"
         var stage = "request.decode"
@@ -34,8 +53,8 @@ class HostModule(context: ReactApplicationContext) : NativeHostSpec(context) {
                 return
             }
             val snapshot = JSONObject().put("protocolVersion", contract.getString("protocolVersion"))
-                .put("componentName", contract.getString("componentName")).put("bootId", bootId)
-                .put("capabilities", JSONArray(listOf("network.execute", "storage.assetVisibility", "session.snapshot", "telemetry.emitBatch")))
+                .put("componentName", contract.getString("componentName")).put("bootId", bootId).put("shell", ShellCoordinator.snapshot())
+                .put("capabilities", JSONArray(listOf("host.events", "host.command", "network.execute", "storage.assetVisibility", "session.snapshot", "telemetry.emitBatch")))
             MLog.i(TAG, "bootstrap.completed flowId=$flowId bootId=$bootId")
             promise.resolve(BridgeReply.ok(snapshot))
         } catch (e: Exception) {

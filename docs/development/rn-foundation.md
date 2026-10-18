@@ -1,103 +1,91 @@
-# RN 工程整理与运行说明
+# RN 工程与四 Tab 运行说明
 
-日期：2026-10-18。当前交付为 RN-P0 工程基础及首页纵向样板，不是四 Tab 全部银行业务已实施。
+更新：2026-10-18。视觉及页面设计见 [四 Tab 设计](../ui/四Tab原型分析与RN页面设计.md)，验收证据见 [实现与验证记录](../ui/四Tab实现与验证记录.md)。
 
-## 运行
+## 启动与诊断
 
-在项目根目录执行：
+在仓库根目录执行：
 
 ```sh
 npm ci
 npx react-native run-android
 ```
 
-官方命令启动 Metro、构建/安装 `com.entrytask`，由 `.MainApplication` 提供唯一 ReactHost；Native 登录后进入首页。当前登录与注册以 Native 实现为准；最近的 Android 调整已采用本地注册账号校验，不应再依赖先前的种子演示账号。
+根目录另开终端执行 `npm run logs:android`；多设备可加 `-- <serial>`。Metro 按 `j` 查看 RN DevTools Console。初始化失败页显示错误码与诊断编号，定位步骤见 [排障说明](troubleshooting.md)。
 
-Android Studio 直接启动同一 app：HomeFragment 的 `USE_REACT_NATIVE=true` 挂载 RN，需 Metro；改为 `false` 展示原 Native 文本，不挂载 RN 内容，其余 RN 工程配置无需改回。入口、包名及注册名不随该开关改变。底部其他三 Tab 仍为现有 Native 占位页，本次不冒充已实现四域业务。
+冷启动默认游客首页，公开内容可以浏览。个人数据、签到、领取、消息等按入口请求 Native 认证；返回可取消，不退出整个应用。当前 Native 认证仍使用现有本地注册账号，不依赖历史种子账号。会话仅进程内保存，杀进程后回游客。
 
-Release 构建：`cd android` 后执行 `./gradlew :app:assembleRelease`。该包沿用项目现有演示签名，不用于正式发布；内置 Bundle，不依赖 Metro。本次未改 applicationId、namespace 或 Manifest Application 注册名。
+Android Studio 与 CLI 使用同一 `com.entrytask`。`HomeFragment.USE_REACT_NATIVE=true` 挂载 RN；改为 false 保留原 Native 文本首页。常规业务开发不修改此开关。
 
-## 入口约定
+## 入口与宿主
 
-| 位置 | 当前值 |
+| 项目 | 当前约定 |
 | --- | --- |
-| JS 注册入口 | `src/index.js`；根目录不保留第二个 index.js |
-| RN 根组件 | `src/app/App.tsx` |
-| package.json main | `src/index.js` |
-| Metro projectRoot | 仓库根；src/specs/contracts 在同一模块图 |
-| Android 开发入口 | MainApplication `jsMainModulePath="src/index"` |
-| Android 打包入口 | app/build.gradle `react.entryFile=../../src/index.js` |
-| Android 包/Activity | `com.entrytask` / `.MainActivity` |
-| AppRegistry/Native componentName | `EntryTask`，与 app.json 一致 |
-| Codegen | package.json `jsSrcsDir=specs`，生成包 `com.entrytask.specs` |
-| iOS 开发/打包入口 | `src/index` / `ENTRY_FILE=src/index.js`；仅同步入口，未实现或构建iOS原生模块 |
+| JS / 根组件 | `src/index.js` / `src/app/App.tsx` |
+| AppRegistry 名 | `EntryTask` |
+| Android Application / 包 | `.MainApplication` / `com.entrytask` |
+| Android Debug / Bundle | `src/index` / `../../src/index.js` |
+| iOS Debug / Bundle 入口 | `src/index` / `ENTRY_FILE=src/index.js`；本轮未修改 iOS |
+| Codegen | `specs/Native*.ts`、`jsSrcsDir=specs`、`com.entrytask.specs` |
+| Host 运行契约 | `contracts/bridge/runtime.json`，版本1.1；增加宿主快照、事件及受控命令 |
 
-Metro 兼容工具请求 `/index.bundle` 时重写为 `/src/index.bundle`；已经是 `/src/index.bundle` 的请求不再次重写。JSON 保持 Metro 默认 sourceExts，无需把 json 错配成二进制 assetExt。
+MainApplication 的唯一 ReactHost → MainActivity 的一个 HomeFragment → 一个 ReactFragment / RootHub Surface。四个 Native Tab 只改变 ShellCoordinator 选中状态，再由 `onHostEvent` 通知 RN；不创建四个 RN Fragment。首次 bootstrap 返回完整 Shell 快照，事件带递增 revision 以丢弃旧消息。
 
-## 工程边界
+RN 根页首次访问才挂载，切 Tab 后保留已访问根页的滚动和分段，暂停非活跃查询。React Navigation native-stack 负责公共子页；RN 上报深度，Native 隐藏/恢复底栏。系统返回优先子页栈，其次回首页，再走原有退出提示。
 
-- `src/app`：组装根、bootstrap与生命周期。
-- `src/features/home`：domain契约、data实现、MVVM展示、factory/public入口。
-- `src/infrastructure/network`：EndpointRegistry、TransportRouter、NativeTransport、RnHttpTransport（真实 Axios 路径）；接口决定通路，失败无自动换路。
-- `src/infrastructure/state`：单应用图的 Redux Toolkit Store / RTK Query ApiService；服务端data仅query缓存，客户端slice仅UI选择。
-- `src/infrastructure/logging`：RN独立 Logger，有界内存、开发输出和Native关联sink。
-- `src/platform/native`：唯一可导入 specs 的适配层；Native模块缺失明确错误，不用JS Fake伪造成功。
-- `src/shared`：无域业务逻辑的控件、token与错误类型。
-- `contracts`：运行时endpoint/bridge配置和JSON Schema，参与Metro模块解析及Android assets打包。
-- `specs`：五个最小Codegen规范；Android实现置于app/bridge适配包，不改应用包名。
-- `mock`：Native网络独享的JSON资源，RN业务不能直接import响应JSON。
+会话 epoch 改变清理旧查询并重建对应资源投影；退出清除受保护子栈。游客完成认证可以回原入口；写操作不因认证完成自动重放。异常恢复、复杂配置恢复和生产会话协调仍需进一步专项验证。
 
-当前提供 bootstrap、网络执行/取消、资产显隐typed存储、只读会话快照、关联日志五个模块的最小能力；完整认证往返、根Tab事件协议、成员事务库、页面导航等仍按设计后续任务推进。认证继续使用已有Native UI，本次补齐完整内存会话建立，不让RN持有凭证。尚未接入的能力不在bootstrap capabilities中宣称存在。
+## 目录和封装
 
-## Mock与新增API
+- `src/app`：应用图、Shell VM、导航及子页契约组装。
+- `features/home|wealth|member|profile`：各域模型、页面 VM、Screen、DI 和 public 入口。
+- `features/services`：服务目录、搜索、统一说明/文档模板及规范化展示模型。
+- `features/messaging`：未读查询、Native 已读写入与缓存失效。
+- `infrastructure/state`：唯一 RTK Query ApiService、资源订阅引用计数、按 epoch 隔离查询和写后失效。不另建服务端数据仓；已移除原样板选中服务 slice。
+- `shared/presentation`：库无关的资源 VM 生命周期原语及 React 订阅绑定。VM 只持有 query cache 的展示投影。
+- `shared/ui`：主题、线性图标、工具栏、服务宫格、分段、卡片、按钮和状态组件。
+- `shared/assets`：用户原型局部装饰图的本地映射；不使用整页截图代替界面。
+- `platform/native`：唯一 Codegen 导入及桥接解码入口，协议异常明确返回，不提供 JS 假成功实现。
 
-当前注册4个Native路由：登录、注册、首页内容、产品分页；RN可调用后两项。此处只统计已实现路由，不宣称需求中的37API均已完成。
+依赖锁定：React19.2.3 / RN0.86.0、Redux Toolkit2.13.0、Axios1.20.0、React Navigation native7.5.1 / native-stack7.21.0、screens4.30.0、svg15.16.0。safe-area 由现有 lockfile 锁定。iOS Pods 本轮未更新，不能据 JS 依赖已安装判断 iOS 可运行。
 
-1. 在 `contracts/api/endpoints.json` 增加稳定apiId、method/path、transport、authScope、timeout及schema；本地演示用nativeMock。
-2. 新建对应响应schema，运行 `npm run contracts:generate`，生成无运行时schema编译的校验函数；生成物需提交。
-3. 在 `mock/<domain>/<api>/response.*.json` 新建数据，在manifest注册精确method+path、handler与exposure；不能仅改Kotlin内联字符串。
-4. 自定义状态操作新增Native handler及校验；静态只读API可复用fixture handler。带动态详情路径的API应新增明确路径模板匹配，当前样板只实现静态路径，禁止误称已支持任意模板。
-5. 运行资源/架构/单测并构建。Gradle Variant API登记的generated assets会让普通CLI/Android Studio/Release构建自动校验并打包，缺文件/坏schema阻断构建。
+## 网络与 Mock
 
-APK中可查看 `assets/mock/`、`assets/contracts/`。assets只读：新注册账号验证数据落Native模拟存储，不反写随包JSON。登录注册响应字段从对应JSON模板安全填充，非字符串拼接；本期网络库内已有账号Mock仍是过渡实现，尚未完成方案中的独立demo_engine/Room迁移。
+34个 RN API 在 `contracts/api/endpoints.json` 显式选择 `nativeMock`，每个有独立响应 schema 和 JSON；包括四根页内容、产品/资讯/活动、个人摘要/资产、服务/搜索、签到/权益/消息等。加既有 Native 认证2路由，manifest共36路由；退出是受控 Native 命令，不声称37个 HTTP API全部实现。
 
-Native Mock随机等待1000～3000ms，等待位于OkHttp worker且可取消；未知API返回错误、不放行公网。RN HTTP独立使用Axios，当前没有产品真实服务端点；不可随意把本地Mock的保留域名改成rnHttp。注册表可为后续批准的公开HTTPS服务增加rnHttp，银行凭证不可发给该通路。
+RN 经 EndpointRegistry → TransportRouter → NativeNetwork；Native 独立校验 apiId、方法、授权、ID和参数，再进入 `MainApplication.prototypeNetwork` 注入的 `demo_engine.PrototypeMockInterceptor`。该 client 不作用于 Metro、RN HTTP 或既有 Native 认证 client。普通请求后台随机等待1000～3000ms，支持取消；未知路径本地拒绝，不放行公网。
 
-## 质量检查
+RN HTTP 保留独立 Axios 封装，只能按明确配置接入公开 HTTPS 服务，不携带银行凭证，不在 Native Mock 失败时自动回退。当前没有真实银行服务。
+
+新增 API：
+
+1. 定义 endpoint 的 apiId、方法、路径、权限、超时和 schema。
+2. 在 mock 按 API 建 fixture，manifest 配置 handler；动态 ID 使用受控路径模板，参数走白名单。
+3. 如需状态变更，在 demo_engine 实现权威状态转换；先保证业务唯一性再提交，RN 不改 fixture 或自增余额。
+4. 运行 `npm run contracts:generate`、`npm run contracts:check`、相关行为测试和原生构建；核对最终 APK 中的资源。
+
+契约/Mock 由 Gradle Variant API 注册的生成任务自动打包到 assets。不得退回仅登记生成路径、不关联 producer 的配置；历史上这会导致 clean 后漏资源而初始化失败。更新 JSON 必须重新构建安装，Reload 不能更新 APK assets。
+
+当前 demo_engine 使用每个 Native 用户 scope 的独立 JSON 账本，经单锁和 SharedPreferences commit 原子写入；覆盖签到日期、能量记录、领取记录及消息已读。它是轻量演示实现，尚未完成总体设计的 Room、全局库存事务、固定 Clock 场景及完整幂等冲突模型。既有 Native 认证存储问题不在本轮整体迁移。
+
+## 检查
+
+根目录：
 
 ```sh
 npm run typecheck
 npm run lint
-npm run contracts:generate
-npm run contracts:check
 npm run architecture:check
-npm test -- --runInBand
+npm run contracts:check
+npm test -- --runInBand --watchman=false
 npm run bundle:android
 ```
 
-Jest使用与RN0.86配套的官方preset，ESM转换覆盖Redux依赖，别名与Babel/TS/Metro一致。单测覆盖无原生能力的可重试初始化、双通路无回退、接口策略、schema拒绝坏数据、RTK查询共享/取消订阅、Logger脱敏/背压。
+Android目录：
 
-当前Native桥接返回的是最小`outcome/data/error`包；完整boot/runtime/session上下文、事件协议和生产级超时/缓存/会话协调仍是总体设计的后续阶段。不要把基础样板当作所有中大型稳定性目标已完成。
+```sh
+./gradlew :demo_engine:testDebugUnitTest :app:assembleDebug
+./gradlew :app:assembleRelease
+```
 
-## 本次验证记录
-
-环境：Node22.23.3、JDK17、RN0.86、Android API37 arm64模拟器。验证日期2026-10-18。
-
-| 项目 | 实际结果 |
-| --- | --- |
-| `npx react-native config` | 识别applicationId/packageName=com.entrytask、MainActivity=.MainActivity |
-| 根目录 `npx react-native run-android` | 构建/安装/启动成功；Native演示账号登录后看到RN首页和产品JSON数据 |
-| Codegen | `:app:generateCodegenArtifactsFromSchema`成功，五个spec生成到com.entrytask.specs |
-| TypeScript / ESLint / 架构边界 / 资源校验 | 通过 |
-| Jest | 4个suite、8个测试通过 |
-| Debug/Release构建 | 均通过；最后一轮按arm64构建，之前Debug默认全ABI构建也通过 |
-| APK资源 | contracts和mock字节与源码一致；Release包含Hermes字节码及11个Mock JSON |
-| Release离线 | 停止Metro、模拟器开启飞行模式后看到RN首页及Mock产品；确认包不可调试；验后恢复原飞行模式关闭状态 |
-| Native-only Home切换 | 保留一处USE_REACT_NATIVE开关及原XML路径；未单独安装false变体回归，不把它记成已设备验证 |
-| iOS | 只同步入口，未安装Pods/构建/运行；原生能力仍延期 |
-
-Release沿用既有debug签名配置、R8关闭等发布基线，当前产物仅作演示。现有Gradle弃用提示、SDK工具XML版本提示和Watchman recrawl提示未作为本次无关升级处理；均未阻断上述实际验证。
-
-## 初始化失败与日志
-
-排障入口与2026-10-18资源缺失修复见 [Android / RN 初始化与日志排障](./troubleshooting.md)。终端独立运行 `npm run logs:android`，再复现问题。此前验证记录不代表空生成目录构建已经正确；本次修复明确补上生成任务依赖并重新验证 APK。
+Release仍使用已有演示签名，内置 Bundle，正式发行安全与混淆基线未在本轮处理。构建、设备验证、性能测量分别记录；不能把脚本成功等同所有产品场景已通过。

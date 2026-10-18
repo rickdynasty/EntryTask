@@ -1,3 +1,4 @@
+/** EntryTask RN：平台无关 Port 契约：描述业务层可调用的宿主或基础设施能力。 */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogFields = {
   apiId?: string;

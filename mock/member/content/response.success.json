@@ -1,0 +1,43 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "title": "会员",
+    "welcome": "欢迎来到中信红会员频道",
+    "welcomeSubtitle": "登录后享受更多权益和活动",
+    "benefits": [
+      {
+        "id": "level",
+        "title": "等级礼遇",
+        "subtitle": "领专属能量值",
+        "assetKey": "crown",
+        "tone": "gold",
+        "status": "available",
+        "requiredLevel": 1,
+        "stock": 120,
+        "paragraphs": [
+          "本权益为演示会员礼遇，每个账户限领一次。",
+          "权益不兑换真实商品，不扣除能量值。"
+        ]
+      },
+      {
+        "id": "book",
+        "title": "信享好书",
+        "subtitle": "免费领书",
+        "assetKey": "book",
+        "tone": "blue",
+        "status": "available",
+        "requiredLevel": 0,
+        "stock": 50,
+        "paragraphs": [
+          "登录即可模拟领取，每个账户限领一次。",
+          "仅生成本地领取记录，不发货、不生成真实兑换码。"
+        ]
+      }
+    ],
+    "checkinTitle": "连续签到赢好礼",
+    "cardTitle": "定制你的专属卡号",
+    "cardSubtitle": "给财富加个幸运Buff",
+    "isDemo": true
+  }
+}

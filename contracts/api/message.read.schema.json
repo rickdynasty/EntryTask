@@ -1,0 +1,17 @@
+{
+  "$id": "entrytask/message.read",
+  "type": "object",
+  "required": [
+    "isRead",
+    "unreadCount"
+  ],
+  "properties": {
+    "isRead": {
+      "type": "boolean"
+    },
+    "unreadCount": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

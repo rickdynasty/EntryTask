@@ -1,3 +1,4 @@
+/** EntryTask RN 测试：覆盖白名单脱敏、有界缓冲、批量投递和失败保护。 */
 import { Logger } from '@infra/logging/Logger';
 import type { LogFields } from '@platform/ports/LoggerPort';
 

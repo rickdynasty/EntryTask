@@ -1,0 +1,48 @@
+{
+  "$id": "entrytask/benefit.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "subtitle",
+    "assetKey",
+    "tone",
+    "status",
+    "requiredLevel",
+    "stock",
+    "paragraphs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "assetKey": {
+      "type": "string"
+    },
+    "tone": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "requiredLevel": {
+      "type": "integer"
+    },
+    "stock": {
+      "type": "integer"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

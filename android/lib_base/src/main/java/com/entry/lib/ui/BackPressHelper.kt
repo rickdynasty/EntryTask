@@ -9,6 +9,15 @@ import com.entry.lib.log.MLog
  * 负责记录时间差，提供统一的“双击退出”防抖逻辑
  */
 object BackPressHelper {
+    /** IME consumes the first back before authentication or RN navigation. */
+    fun hideKeyboardIfVisible(activity: android.app.Activity): Boolean {
+        val visible = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
+            ?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime()) == true
+        if (visible) androidx.core.view.WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+            .hide(androidx.core.view.WindowInsetsCompat.Type.ime())
+        return visible
+    }
+
 
     private const val TAG = "BackPressHelper"
     private var lastPressTime: Long = 0L

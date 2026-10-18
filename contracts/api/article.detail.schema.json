@@ -1,0 +1,36 @@
+{
+  "$id": "entrytask/article.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "summary",
+    "date",
+    "category",
+    "paragraphs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

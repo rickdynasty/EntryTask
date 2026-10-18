@@ -1,3 +1,4 @@
+/** EntryTask RN：RN 结构化日志实现：控制日志字段、缓存容量、Console 输出和 Native 投递。 */
 import type {
   LogEvent,
   LogFields,
@@ -46,7 +47,7 @@ export class Logger implements LoggerPort {
     if (!this.debug && level === 'debug') {
       return;
     }
-    // Explicit allowlist, never serialize errors, request objects or Redux state.
+    // 只接受明细白名单字段，拒绝错误对象、请求对象和 Redux 状态。
     const safe = Object.fromEntries(
       Object.entries(fields)
         .filter(([key]) => allowed.has(key))
@@ -115,12 +116,13 @@ export class Logger implements LoggerPort {
     }
     this.flushing = true;
     const batch = this.queue.splice(0, 20);
+    // 批量异步投递并限制单批大小；Native 不可用时日志仍留在 RN Console。
     try {
       await this.sink(batch);
       this.sinkFailureReported = false;
     } catch {
       this.droppedCount += batch.length;
-      // Never recurse through the failed bridge, or expose the raw rejection.
+      // 桥接投递失败时不递归重试，也不输出原始拒绝原因。
       if (!this.sinkFailureReported) {
         console.warn(
           '[EntryTask:RN] telemetry.sink.failed: Native 日志投递失败，请查看 RN Console / ReactNativeJS',

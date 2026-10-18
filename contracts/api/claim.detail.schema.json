@@ -1,0 +1,24 @@
+{
+  "$id": "entrytask/claim.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "paragraphs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

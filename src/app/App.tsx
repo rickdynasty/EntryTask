@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useSyncExternalStore } from 'react';
+/** EntryTask RN：应用根组件：创建单份应用依赖图，处理 Native 握手与启动状态。 */
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
@@ -7,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { HomeScreen } from '@features/home/public';
+import { AppNavigator } from './navigation/AppNavigator';
 import { createId } from '@infra/logging/Logger';
 import { normalizeError } from '@shared/domain/AppError';
 import { createApplication } from './CompositionRoot';
@@ -19,22 +20,19 @@ export default function App() {
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState({ message: '', code: '', flowId: '' });
   const [attempt, setAttempt] = useState(0);
-  const state = useSyncExternalStore(
-    application.home.subscribe,
-    application.home.getSnapshot,
-  );
   useEffect(() => {
+    // 每轮启动分配独立 flowId；卸载后的异步回调不再更新 React 状态。
     let active = true;
     const flowId = createId();
     void application
       .bootstrap(flowId)
       .then(() => {
         if (active) {
-          application.home.activate();
           setPhase('ready');
         }
       })
       .catch(reason => {
+        // 先归一错误再展示，仅保留安全错误码和可用于日志检索的流程号。
         const safe = normalizeError(reason);
         application.logger.log('error', 'bootstrap', 'bootstrap.failed', {
           code: safe.code,
@@ -47,19 +45,15 @@ export default function App() {
       });
     return () => {
       active = false;
-      application.home.deactivate();
     };
   }, [application, attempt]);
   useEffect(() => () => application.dispose(), [application]);
+  // 启动失败保留错误编号和显式重试入口；正常阶段仅挂载一个导航树。
   return (
     <SafeAreaProvider>
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.root}>
         {phase === 'ready' ? (
-          <HomeScreen
-            state={state}
-            refresh={application.home.refresh}
-            selectService={application.home.selectService}
-          />
+          <AppNavigator application={application} />
         ) : (
           <View style={styles.status}>
             {phase === 'loading' ? (
@@ -94,7 +88,7 @@ export default function App() {
   );
 }
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F6F6F7' },
+  root: { flex: 1, backgroundColor: '#FCF0E5' },
   diagnostic: { fontSize: 12, color: '#555', marginVertical: 4 },
   status: {
     flex: 1,

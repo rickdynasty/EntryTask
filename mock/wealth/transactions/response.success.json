@@ -1,0 +1,144 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "tx-1",
+        "title": "工资收入",
+        "direction": "in",
+        "amountMinor": "20000",
+        "date": "2026-10-02",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-2",
+        "title": "生活消费",
+        "direction": "out",
+        "amountMinor": "30000",
+        "date": "2026-10-03",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-3",
+        "title": "工资收入",
+        "direction": "in",
+        "amountMinor": "40000",
+        "date": "2026-10-04",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-4",
+        "title": "生活消费",
+        "direction": "out",
+        "amountMinor": "50000",
+        "date": "2026-10-05",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-5",
+        "title": "工资收入",
+        "direction": "in",
+        "amountMinor": "60000",
+        "date": "2026-10-06",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-6",
+        "title": "生活消费",
+        "direction": "out",
+        "amountMinor": "70000",
+        "date": "2026-10-07",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-7",
+        "title": "工资收入",
+        "direction": "in",
+        "amountMinor": "80000",
+        "date": "2026-10-08",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-8",
+        "title": "生活消费",
+        "direction": "out",
+        "amountMinor": "90000",
+        "date": "2026-10-09",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-9",
+        "title": "工资收入",
+        "direction": "in",
+        "amountMinor": "100000",
+        "date": "2026-10-10",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-10",
+        "title": "生活消费",
+        "direction": "out",
+        "amountMinor": "110000",
+        "date": "2026-10-11",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-11",
+        "title": "工资收入",
+        "direction": "in",
+        "amountMinor": "120000",
+        "date": "2026-10-12",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      },
+      {
+        "id": "tx-12",
+        "title": "生活消费",
+        "direction": "out",
+        "amountMinor": "130000",
+        "date": "2026-10-13",
+        "summary": "本地模拟交易流水",
+        "paragraphs": [
+          "模拟流水，不对应任何真实账户或金融交易。"
+        ]
+      }
+    ],
+    "page": 1,
+    "pageSize": 10,
+    "total": 12,
+    "hasMore": true
+  }
+}

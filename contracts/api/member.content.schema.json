@@ -1,0 +1,88 @@
+{
+  "$id": "entrytask/member.content",
+  "type": "object",
+  "required": [
+    "title",
+    "welcome",
+    "welcomeSubtitle",
+    "benefits",
+    "checkinTitle",
+    "cardTitle",
+    "cardSubtitle",
+    "isDemo"
+  ],
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "welcome": {
+      "type": "string"
+    },
+    "welcomeSubtitle": {
+      "type": "string"
+    },
+    "benefits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "assetKey",
+          "tone",
+          "status",
+          "requiredLevel",
+          "stock",
+          "paragraphs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "assetKey": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "requiredLevel": {
+            "type": "integer"
+          },
+          "stock": {
+            "type": "integer"
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "checkinTitle": {
+      "type": "string"
+    },
+    "cardTitle": {
+      "type": "string"
+    },
+    "cardSubtitle": {
+      "type": "string"
+    },
+    "isDemo": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

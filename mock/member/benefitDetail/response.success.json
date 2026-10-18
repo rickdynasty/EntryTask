@@ -1,0 +1,18 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "level",
+    "title": "等级礼遇",
+    "subtitle": "领专属能量值",
+    "assetKey": "crown",
+    "tone": "gold",
+    "status": "available",
+    "requiredLevel": 1,
+    "stock": 120,
+    "paragraphs": [
+      "本权益为演示会员礼遇，每个账户限领一次。",
+      "权益不兑换真实商品，不扣除能量值。"
+    ]
+  }
+}

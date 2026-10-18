@@ -1,9 +1,14 @@
+/** EntryTask RN 测试：覆盖应用启动加载、初始化失败提示和重试交互。 */
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { nativeGateway } from '@platform/native/NativeGateway';
 import { AppError } from '@shared/domain/AppError';
 import { Button } from 'react-native';
 import App from '../src/app/App';
+
+jest.mock('../src/app/navigation/AppNavigator', () => ({
+  AppNavigator: () => null,
+}));
 
 jest.mock(
   'react-native-safe-area-context',
@@ -12,6 +17,8 @@ jest.mock(
 
 jest.mock('@platform/native/NativeGateway', () => ({
   nativeGateway: {
+    observeShell: jest.fn(() => () => {}),
+    command: jest.fn().mockResolvedValue(undefined),
     bootstrap: jest.fn().mockRejectedValue(new Error('not linked')),
     emitLogs: jest.fn(),
   },

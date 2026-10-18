@@ -1,0 +1,40 @@
+{
+  "$id": "entrytask/transaction.detail",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "direction",
+    "amountMinor",
+    "date",
+    "summary",
+    "paragraphs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "direction": {
+      "type": "string"
+    },
+    "amountMinor": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,16 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "businessDate": "2026-10-18",
+    "checkedToday": false,
+    "consecutiveDays": 0,
+    "energy": 0,
+    "awardedEnergy": 0,
+    "alreadyChecked": false,
+    "rewardDays": [
+      3,
+      7
+    ]
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "message-1",
+        "title": "欢迎加入会员频道",
+        "summary": "点击查看消息详情",
+        "date": "2026-10-13",
+        "isRead": false,
+        "paragraphs": [
+          "欢迎体验 EntryTask。此消息为本地模拟内容。",
+          "已读状态由 Native 本地 Mock 管理，不连接消息推送服务。"
+        ]
+      },
+      {
+        "id": "message-2",
+        "title": "会员权益已上新",
+        "summary": "点击查看消息详情",
+        "date": "2026-10-13",
+        "isRead": false,
+        "paragraphs": [
+          "欢迎体验 EntryTask。此消息为本地模拟内容。",
+          "已读状态由 Native 本地 Mock 管理，不连接消息推送服务。"
+        ]
+      },
+      {
+        "id": "message-3",
+        "title": "秋日精选产品推荐",
+        "summary": "点击查看消息详情",
+        "date": "2026-10-13",
+        "isRead": false,
+        "paragraphs": [
+          "欢迎体验 EntryTask。此消息为本地模拟内容。",
+          "已读状态由 Native 本地 Mock 管理，不连接消息推送服务。"
+        ]
+      },
+      {
+        "id": "message-4",
+        "title": "资产安全小贴士",
+        "summary": "点击查看消息详情",
+        "date": "2026-10-13",
+        "isRead": false,
+        "paragraphs": [
+          "欢迎体验 EntryTask。此消息为本地模拟内容。",
+          "已读状态由 Native 本地 Mock 管理，不连接消息推送服务。"
+        ]
+      },
+      {
+        "id": "message-5",
+        "title": "幸福分享礼邀您参与",
+        "summary": "点击查看消息详情",
+        "date": "2026-10-13",
+        "isRead": false,
+        "paragraphs": [
+          "欢迎体验 EntryTask。此消息为本地模拟内容。",
+          "已读状态由 Native 本地 Mock 管理，不连接消息推送服务。"
+        ]
+      },
+      {
+        "id": "message-6",
+        "title": "阅读好书，充实生活",
+        "summary": "点击查看消息详情",
+        "date": "2026-10-13",
+        "isRead": false,
+        "paragraphs": [
+          "欢迎体验 EntryTask。此消息为本地模拟内容。",
+          "已读状态由 Native 本地 Mock 管理，不连接消息推送服务。"
+        ]
+      }
+    ],
+    "page": 1,
+    "pageSize": 10,
+    "total": 6,
+    "hasMore": false
+  }
+}

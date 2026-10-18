@@ -2,27 +2,263 @@
   "code": 200,
   "message": "success",
   "data": {
-    "title": "欢迎来到 EntryTask",
-    "subtitle": "首页 · RN MVVM 工程样板",
+    "title": "首页",
+    "subtitle": "精选产品 · 品质生活",
     "services": [
       {
+        "id": "finance",
+        "title": "理财",
+        "icon": "deposit",
+        "target": {
+          "kind": "products",
+          "title": "理财",
+          "requiresAuth": false,
+          "category": "finance"
+        }
+      },
+      {
+        "id": "fund",
+        "title": "基金",
+        "icon": "fund",
+        "target": {
+          "kind": "products",
+          "title": "基金",
+          "requiresAuth": false,
+          "category": "fund"
+        }
+      },
+      {
+        "id": "deposit",
+        "title": "智慧存款",
+        "icon": "deposit",
+        "target": {
+          "kind": "products",
+          "title": "智慧存款",
+          "requiresAuth": false,
+          "category": "deposit"
+        }
+      },
+      {
+        "id": "private",
+        "title": "私募",
+        "icon": "shield",
+        "target": {
+          "kind": "products",
+          "title": "私募",
+          "requiresAuth": false,
+          "category": "private"
+        }
+      },
+      {
+        "id": "exchange",
+        "title": "结售汇",
+        "icon": "exchange",
+        "target": {
+          "kind": "demo",
+          "title": "结售汇",
+          "requiresAuth": false,
+          "category": "exchange"
+        }
+      },
+      {
+        "id": "benefits",
+        "title": "耀钻礼遇",
+        "icon": "diamond",
+        "target": {
+          "kind": "benefits",
+          "title": "耀钻礼遇",
+          "requiresAuth": false,
+          "category": "benefits"
+        }
+      },
+      {
+        "id": "city",
+        "title": "城市服务",
+        "icon": "city",
+        "target": {
+          "kind": "demo",
+          "title": "城市服务",
+          "requiresAuth": false,
+          "category": "city"
+        }
+      },
+      {
+        "id": "gold",
+        "title": "黄金专区",
+        "icon": "gold",
+        "target": {
+          "kind": "products",
+          "title": "黄金专区",
+          "requiresAuth": false,
+          "category": "gold"
+        }
+      },
+      {
+        "id": "family",
+        "title": "家族传承",
+        "icon": "family",
+        "target": {
+          "kind": "demo",
+          "title": "家族传承",
+          "requiresAuth": false,
+          "category": "family"
+        }
+      },
+      {
+        "id": "all",
+        "title": "全部",
+        "icon": "more",
+        "target": {
+          "kind": "services",
+          "title": "全部",
+          "requiresAuth": false,
+          "category": "all"
+        }
+      }
+    ],
+    "quickServices": [
+      {
         "id": "assets",
-        "title": "资产总览"
+        "title": "资产总览",
+        "icon": "assets",
+        "target": {
+          "kind": "assets",
+          "title": "资产总览",
+          "requiresAuth": true,
+          "category": "assets"
+        }
       },
       {
         "id": "accounts",
-        "title": "账户"
+        "title": "账户",
+        "icon": "wallet",
+        "target": {
+          "kind": "accounts",
+          "title": "账户",
+          "requiresAuth": true,
+          "category": "accounts"
+        }
       },
       {
         "id": "transfer",
-        "title": "转账"
+        "title": "转账",
+        "icon": "transfer",
+        "target": {
+          "kind": "demo",
+          "title": "转账",
+          "requiresAuth": true,
+          "category": "transfer"
+        }
       },
       {
         "id": "credit",
-        "title": "信用卡"
+        "title": "信用卡",
+        "icon": "card",
+        "target": {
+          "kind": "demo",
+          "title": "信用卡",
+          "requiresAuth": true,
+          "category": "credit"
+        }
       }
     ],
+    "shortcuts": [
+      {
+        "id": "travel",
+        "title": "出国金融",
+        "icon": "globe",
+        "target": {
+          "kind": "demo",
+          "title": "出国金融",
+          "requiresAuth": false,
+          "category": "travel"
+        }
+      },
+      {
+        "id": "orders",
+        "title": "我的订单",
+        "icon": "ledger",
+        "target": {
+          "kind": "items",
+          "title": "我的订单",
+          "requiresAuth": true,
+          "category": "orders"
+        }
+      },
+      {
+        "id": "transactions",
+        "title": "交易明细",
+        "icon": "ledger",
+        "target": {
+          "kind": "transactions",
+          "title": "交易明细",
+          "requiresAuth": true,
+          "category": "transactions"
+        }
+      },
+      {
+        "id": "benefits",
+        "title": "专属权益",
+        "icon": "diamond",
+        "target": {
+          "kind": "benefits",
+          "title": "专属权益",
+          "requiresAuth": false,
+          "category": "benefits"
+        }
+      }
+    ],
+    "banners": [
+      {
+        "id": "autumn",
+        "title": "金彩秋冬",
+        "subtitle": "私人银行 · 精选产品",
+        "assetKey": "hero-ginkgo",
+        "tone": "gold",
+        "target": {
+          "kind": "activity",
+          "title": "金彩秋冬",
+          "requiresAuth": false,
+          "id": "autumn"
+        }
+      },
+      {
+        "id": "certification",
+        "title": "首次认证 专享好礼",
+        "subtitle": "首次自证合格投资者享100元权益",
+        "assetKey": "certification-gift",
+        "tone": "gold",
+        "target": {
+          "kind": "activity",
+          "title": "首次认证 专享好礼",
+          "requiresAuth": false,
+          "id": "certification"
+        }
+      }
+    ],
+    "categories": [
+      {
+        "id": "all",
+        "title": "当期热销"
+      },
+      {
+        "id": "finance",
+        "title": "钻石理财"
+      },
+      {
+        "id": "private",
+        "title": "私募"
+      },
+      {
+        "id": "insurance",
+        "title": "保险"
+      },
+      {
+        "id": "fund",
+        "title": "基金"
+      }
+    ],
+    "searchPlaceholder": "证券服务",
     "isDemo": true
-  },
-  "traceId": "mock-template"
+  }
 }

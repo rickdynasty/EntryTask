@@ -1,0 +1,22 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "autumn",
+    "title": "金彩秋冬",
+    "summary": "私人银行 · 精选产品",
+    "assetKey": "hero-ginkgo",
+    "status": "进行中",
+    "date": "2026-10-01 — 2026-10-31（演示活动期）",
+    "paragraphs": [
+      "活动为本地演示，不发生真实领款、开户或金融交易。",
+      "点击相关入口可了解模拟产品与会员权益。"
+    ],
+    "target": {
+      "kind": "products",
+      "title": "查看精选产品",
+      "requiresAuth": false,
+      "category": "fund"
+    }
+  }
+}

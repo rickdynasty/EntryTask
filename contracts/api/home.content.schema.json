@@ -1,11 +1,15 @@
 {
-  "$id": "home.content",
+  "$id": "entrytask/home.content",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "title",
     "subtitle",
     "services",
+    "quickServices",
+    "shortcuts",
+    "banners",
+    "categories",
+    "searchPlaceholder",
     "isDemo"
   ],
   "properties": {
@@ -19,25 +23,354 @@
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title",
+              "requiresAuth"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "products",
+                  "product",
+                  "assets",
+                  "accounts",
+                  "transactions",
+                  "article",
+                  "articles",
+                  "activity",
+                  "activities",
+                  "benefit",
+                  "benefits",
+                  "claims",
+                  "energy",
+                  "checkin",
+                  "profile",
+                  "items",
+                  "services",
+                  "search",
+                  "messages",
+                  "message",
+                  "settings",
+                  "demo",
+                  "account",
+                  "transaction",
+                  "claim",
+                  "item"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "requiresAuth": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "quickServices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title",
+              "requiresAuth"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "products",
+                  "product",
+                  "assets",
+                  "accounts",
+                  "transactions",
+                  "article",
+                  "articles",
+                  "activity",
+                  "activities",
+                  "benefit",
+                  "benefits",
+                  "claims",
+                  "energy",
+                  "checkin",
+                  "profile",
+                  "items",
+                  "services",
+                  "search",
+                  "messages",
+                  "message",
+                  "settings",
+                  "demo",
+                  "account",
+                  "transaction",
+                  "claim",
+                  "item"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "requiresAuth": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "shortcuts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title",
+              "requiresAuth"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "products",
+                  "product",
+                  "assets",
+                  "accounts",
+                  "transactions",
+                  "article",
+                  "articles",
+                  "activity",
+                  "activities",
+                  "benefit",
+                  "benefits",
+                  "claims",
+                  "energy",
+                  "checkin",
+                  "profile",
+                  "items",
+                  "services",
+                  "search",
+                  "messages",
+                  "message",
+                  "settings",
+                  "demo",
+                  "account",
+                  "transaction",
+                  "claim",
+                  "item"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "requiresAuth": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "banners": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "assetKey",
+          "tone",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "assetKey": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title",
+              "requiresAuth",
+              "id"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "products",
+                  "product",
+                  "assets",
+                  "accounts",
+                  "transactions",
+                  "article",
+                  "articles",
+                  "activity",
+                  "activities",
+                  "benefit",
+                  "benefits",
+                  "claims",
+                  "energy",
+                  "checkin",
+                  "profile",
+                  "items",
+                  "services",
+                  "search",
+                  "messages",
+                  "message",
+                  "settings",
+                  "demo",
+                  "account",
+                  "transaction",
+                  "claim",
+                  "item"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "requiresAuth": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
         "required": [
           "id",
           "title"
         ],
         "properties": {
           "id": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           },
           "title": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           }
-        }
+        },
+        "additionalProperties": true
       }
     },
+    "searchPlaceholder": {
+      "type": "string"
+    },
     "isDemo": {
-      "const": true
+      "type": "boolean"
     }
-  }
+  },
+  "additionalProperties": true
 }

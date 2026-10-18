@@ -1,9 +1,12 @@
+/** EntryTask RN 测试：覆盖启动流程日志、Native Telemetry 连接时序和错误隔离。 */
 import { createApplication } from '@app/CompositionRoot';
 import { nativeGateway } from '@platform/native/NativeGateway';
 import { AppError } from '@shared/domain/AppError';
 
 jest.mock('@platform/native/NativeGateway', () => ({
   nativeGateway: {
+    observeShell: jest.fn(() => () => {}),
+    command: jest.fn().mockResolvedValue(undefined),
     bootstrap: jest.fn(),
     emitLogs: jest.fn().mockResolvedValue(undefined),
   },
