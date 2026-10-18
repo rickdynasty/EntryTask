@@ -1,11 +1,11 @@
 package com.entry.lib.net
 
-import android.content.Context
+import com.entry.lib.base.AppGlobals
 import okhttp3.Call
-import okhttp3.Request
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.InputStream
@@ -19,10 +19,7 @@ import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 object NetManager {
-    private lateinit var mockContext: Context
-
-    fun initMock(context: Context) {
-        mockContext = context.applicationContext
+    fun initMock() {
         baseUrl = "https://entrytask.invalid/"
     }
 
@@ -83,7 +80,7 @@ object NetManager {
             .callTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .dispatcher(Dispatcher().apply { maxRequests = 8; maxRequestsPerHost = 8 })
-            .addInterceptor(MockInterceptor(checkNotNull(if (::mockContext.isInitialized) mockContext else null) { "Call initMock first" })) // 统一挂载 Mock 拦截器
+            .addInterceptor(MockInterceptor(AppGlobals.context)) // 统一挂载 Mock 拦截器
 
         // 1. 动态挂载所有已注册的拦截器
         interceptors.forEach { builder.addInterceptor(it) }

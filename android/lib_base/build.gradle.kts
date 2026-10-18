@@ -36,6 +36,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
 
+    implementation("androidx.startup:startup-runtime:1.1.1")
     //api("com.tencent:mmkv:2.4.2")
     api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
 }

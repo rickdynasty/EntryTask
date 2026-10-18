@@ -21,8 +21,33 @@ abstract class BaseViewModel<State : IUiState, Effect : IUiEffect, Intent : IUiI
     initialState: State
 ) : ViewModel() {
 
-    // 内部可变的状态流
+    // 内部可变的状态流（热流：必须有一个初始值，它永远在内存中保留最新状态）
     private val _uiState = MutableStateFlow(initialState)
+
+    /** 另一种冷流的使用场景：搜索(热流 + 冷流执行)
+    // 1. 这是一个【热流】（StateFlow）
+    // 它的值一直存在内存里。不管有没有人 collect，只要你调用 onQueryChanged，它的 value 就变了。
+    private val searchQueryFlow = MutableStateFlow("")
+
+    init {
+        viewModelScope.launch {
+            searchQueryFlow
+            .debounce(300L)
+            .distinctUntilChanged()
+            .flatMapLatest { query ->
+                // 2. 注意这里！这是一个标准的【冷流】（flow { ... }）
+                // 只有当 searchQueryFlow 有了新值、且通过了前面的防抖过滤后，
+                // 这个 flow 才会真正被创建并执行里面的网络请求代码！
+                flow {
+                    emit(apiService.search(query))
+                }.flowOn(Dispatchers.IO)
+            }
+            .collect { results ->
+                // 3. 收集结果
+            }
+        }
+    }
+     */
 
     // 外部只读的状态流，确保严格的单向数据流 (SSOT)
     val uiState: StateFlow<State> = _uiState.asStateFlow()

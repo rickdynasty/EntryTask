@@ -45,4 +45,5 @@ dependencies {
 
 
     implementation(project(":lib_storage"))
+    implementation(project(":lib_base"))
 }

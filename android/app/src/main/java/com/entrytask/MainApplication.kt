@@ -47,7 +47,7 @@ class MainApplication : Application(), ReactApplication {
         StorageManager.init(this)
         getSharedPreferences("app_default_pref", MODE_PRIVATE).edit()
             .remove("key_token").remove("mock_db_password").remove("mock_db_username").apply()
-        NetManager.initMock(this)
+        NetManager.initMock()
 
         loadReactNative(this)
     }

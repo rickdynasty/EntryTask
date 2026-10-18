@@ -29,6 +29,9 @@ class UserViewModel(private val repository: UserRepository) : BaseViewModel<Auth
     }
 
     private fun login() {
+        // 【防抖拦截】：如果当前已经在请求中，直接返回，拒绝重复点击
+        if (currentState.isLoading) return
+
         val (username, password) = currentState
         if (username.isBlank() || password.isBlank()) {
             sendEffect { AuthUiEffect.ShowToast("账号或密码不能为空") }
@@ -52,6 +55,9 @@ class UserViewModel(private val repository: UserRepository) : BaseViewModel<Auth
     }
 
     private fun register() {
+        // 【防抖拦截】：如果当前已经在请求中，直接返回，拒绝重复点击
+        if (currentState.isLoading) return
+
         val (username, password) = currentState
         if (username.isBlank() || password.isBlank()) {
             sendEffect { AuthUiEffect.ShowToast("账号或密码不能为空") }

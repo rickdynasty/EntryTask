@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+
+            <!-- 配置你的 Initializer -->
+            <meta-data
+                android:name="com.entry.lib.base.AppContextInitializer"
+                android:value="androidx.startup" />
+        </provider>
+    </application>
 
 </manifest>
