@@ -11,6 +11,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 
 class MainApplication : Application(), ReactApplication {
+    val shellGraph by lazy { com.entrytask.shell.di.ShellGraph() }
     val prototypeNetwork: okhttp3.OkHttpClient by lazy {
         okhttp3.OkHttpClient.Builder().retryOnConnectionFailure(false)
             .callTimeout(10, java.util.concurrent.TimeUnit.SECONDS)

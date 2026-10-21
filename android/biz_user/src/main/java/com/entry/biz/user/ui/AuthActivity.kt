@@ -48,6 +48,7 @@ class AuthActivity : BaseActivity() {
                 viewModel = viewModel, onLoginSuccess = {
                     MLog.d(TAG, "登录成功，关闭 AuthActivity 返回首页")
                     // 只关闭认证页；singleTask 的 MainActivity 保留在栈底并在恢复时发布会话快照。
+                    setResult(RESULT_OK)
                     finish()
                 })
         }

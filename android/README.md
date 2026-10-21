@@ -17,7 +17,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 
 ## RN 宿主和运行约定
 
-当前采用全应用登录门禁：RN 经 Session Bridge 检查登录，未登录不挂载业务页面、隐藏 Native 底栏，并通过 Host Bridge 拉起认证。AuthActivity 成功只关闭自身，singleTask MainActivity 恢复后发布会话快照。取消返回门禁，可显式重试。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
+当前采用全应用登录门禁：RN 经 Session Bridge 检查登录，未登录不挂载业务页面、隐藏 Native 底栏，并通过 Host Bridge 拉起认证。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。取消返回门禁，可显式重试。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
 
 - 根目录 `npx react-native run-android` 是官方 CLI 开发路径；Android Studio 使用同一 `android/` 工程。
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
@@ -25,6 +25,23 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 - `MainApplication` 持有进程内唯一 ReactHost。Native Tab 切换同步给一个 RN Surface；不能在每个 Tab 或 Fragment 各自创建 RN 实例。
 - `HomeFragment.USE_REACT_NATIVE` 保留 RN 首页与 Native-only 首页两条调试路径。常规开发使用 RN 路径；切换开关只影响首页内容，不改变 RN 工程结构。
 - TurboModule TypeScript 契约位于根目录 `specs/Native*.ts`，`package.json` 的 Codegen 扫描 `specs/` 并生成 `com.entrytask.specs` 下的接口；Android Native 实现由 `EntryTaskPackage` 注册。修改契约需同步 JS adapter、Native 实现、注册与 Codegen 构建。
+
+## 首页 MVVM 与分步迁移
+
+当前首页保持 XML：MainActivity.setContentView 加载 activity_home.xml，MainShellView 只渲染 MainViewModel 的只读 MainUiState。Activity 在 STARTED 区间收集状态，在 RESUMED 区间执行认证展示。后续再单独转换 Compose；认证模块已有的 Compose 保持原状。
+
+```text
+XML 点击 → MainViewModel → ShellRepository ← ShellBridgeAdapter ← HostModule ← RN
+                                  ↓ StateFlow
+                      XML 渲染 + HostModule.onHostEvent → RN
+```
+
+- `app/.../shell/domain` 定义 Shell/会话契约和返回策略；`data` 适配 Native 会话；`presentation` 放 VM 和 XML 渲染；`host` 管宿主句柄与前台端点；`di/ShellGraph` 在 Application 组装。
+- Repository 是 Tab/depth/revision 唯一来源，UserAuthManager 是会话权威。BottomTabBar 点击只上报动作，选中外观由 UiState 回写。
+- MainActivity 复用 `entrytask-root-hub` 对应的 HomeFragment；不存在才添加，内层保持 `entrytask-rn-root` / `R.id.rn_content`，Tab 与认证不替换宿主。
+- XML 根预留系统底部安全区，RN 容器预留顶部/侧边，RN 按裁剪后的视口计算剩余 Insets；游客/子页隐藏分割线与底栏，始终保留 RN 门禁容器。
+- 认证展示使用 VM 防重状态、前台端点和 Activity Result；结果通知后重读 Native 会话，不根据 RESULT_OK 直接设置登录。
+- 返回路径为 IME → RN 子栈 → Native 根 Tab → 首页500ms双击退出。深度冲突先同步，以 RN 实际栈纠正。
 
 ## 环境要求
 
@@ -55,7 +72,7 @@ npm start
 npx react-native run-android
 ```
 
-多个设备连接时，先用 `adb devices` 确认目标设备，CLI 可通过 `--deviceId <serial>` 指定。常用 RN 静态检查在仓库根目录执行：
+多个设备连接时，先用 `adb devices` 确认目标设备，CLI 可通过 `--device <serial>` 指定。常用 RN 静态检查在仓库根目录执行：
 
 ```sh
 npm run typecheck
@@ -76,6 +93,9 @@ npm test -- --runInBand
 ```sh
 ./gradlew :app:assembleDebug
 ./gradlew :app:installDebug
+./gradlew :app:testDebugUnitTest :app:lintDebug
+# 连接设备并启动 Metro 后运行XML/宿主集成测试
+./gradlew :app:connectedDebugAndroidTest
 ```
 
 生成 APK 位于 `android/app/build/outputs/apk/debug/`。`release` 当前仍沿用演示签名，且不是经过签名、混淆和发布验收的生产包。
@@ -116,6 +136,7 @@ Android Studio Logcat 可按 `package:com.entrytask` 过滤；排查 RN JS Conso
 - [RN 项目 README](../src/README.md)
 - [全工程总体设计](../docs/design/EtryTask%20项目设计方案.md)
 - [Android 技术方案](../docs/design/Android%20技术方案.md)
+- [首页 MVVM、混合宿主与后续 Compose 分步方案](../docs/design/Android首页Compose与MVVM改造方案.md)（当前XML+MVVM，Compose延期；验证见方案第5节）
 - [RN 技术方案](../docs/design/前端RN技术方案.md)
 - [iOS 技术方案与延期范围](../docs/design/iOS技术方案.md)
 - [Android 架构文档](docs/01-architecture-design.md)、[Android 工程规范](docs/02-engineering-standards.md)、[实施路线图](docs/03-implementation-roadmap.md)

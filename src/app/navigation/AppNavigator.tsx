@@ -77,6 +77,17 @@ export function AppNavigator({ application }: { application: Application }) {
     }
     previouslyAuthenticated.current = shell.authenticated;
   }, [shell.sessionEpoch, shell.authenticated, navigation]);
+  useEffect(() => {
+    // Native 返回协调器发现深度不一致时会重发快照，以 RN 导航栈纠正投影，避免误退出。
+    if (!shell.authenticated || !navigation.isReady()) return;
+    const depth = Math.max(0, (navigation.getRootState()?.routes.length ?? 1) - 1);
+    if (shell.depth !== depth) {
+      application.logger.log('warn', 'navigation', 'depth.resynchronized', {
+        pageId: 'root-shell',
+      });
+      application.shell.command({ type: 'navigation', depth });
+    }
+  }, [application, navigation, shell.authenticated, shell.depth, shell.revision]);
   if (!shell.authenticated) {
     // 未认证时不创建根 Tab 或业务页面；登录界面由 Native Bridge 拉起。
     return <AuthenticationGate application={application} />;

@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/shellRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/white"
     android:orientation="vertical">
 
-    <!-- Fragment 容器 -->
+    <!-- 稳定宿主容器；Tab/认证变化只更新状态，不替换 Fragment。 -->
     <FrameLayout
         android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- 分割线 -->
-    <View
+    <!-- 分割线与底栏按同一 UiState 显隐。 -->
+    <LinearLayout
+        android:id="@+id/bottomChrome"
         android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:background="#FFDDDDDD" />
-
-    <!-- 自定义底部 Tab 导航栏 -->
-    <com.entry.lib.ui.BottomTabBar
-        android:id="@+id/bottomTabBar"
-        android:layout_width="match_parent"
-        android:layout_height="56dp" />
-
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="#FFDDDDDD" />
+        <com.entry.lib.ui.BottomTabBar
+            android:id="@+id/bottomTabBar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp" />
+    </LinearLayout>
 </LinearLayout>

@@ -74,6 +74,11 @@ def enableProguardInReleaseBuilds = false
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
@@ -85,6 +90,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     signingConfigs {
         debug {
@@ -109,6 +115,20 @@ android {
 }
 
 dependencies {
+    // 外壳直接声明所用能力；沿用已解析的工具链，不依赖业务模块的传递导出。
+    implementation('androidx.activity:activity-ktx:1.8.2')
+    implementation('androidx.appcompat:appcompat:1.6.1')
+    implementation('androidx.fragment:fragment-ktx:1.8.9')
+    implementation('androidx.lifecycle:lifecycle-runtime-ktx:2.8.7')
+    implementation('androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7')
+    implementation('androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7')
+    implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1')
+    testImplementation('junit:junit:4.13.2')
+    testImplementation('org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1')
+    testImplementation('org.json:json:20240303')
+    androidTestImplementation('androidx.test.ext:junit:1.1.5')
+    androidTestImplementation('androidx.test:runner:1.5.2')
+    androidTestImplementation('androidx.test:core-ktx:1.5.0')
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 

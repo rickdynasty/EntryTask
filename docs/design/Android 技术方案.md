@@ -88,31 +88,39 @@ Startup 用于表达轻量组件依赖，Initializer 在需要先初始化的组
 
 ## 4. Shell MVVM与单RN宿主
 
-### 4.1 生命周期所有权
+2026-10-21 调整为分步实施：[首页MVVM与Compose分步方案](Android首页Compose与MVVM改造方案.md)。当前完成 XML + MVVM 与混合宿主适配，后续单独转换 Compose；本节只描述当前实现。
 
-MainApplication持有一个ReactHost（沿用本地getDefaultReactHost入口，G0核查RN0.86 API）；MainActivity持有ShellViewModel和单RnHostFragment。ShellUiState包含selectedTab、hostRevision、底栏策略、authOverlay、hostPhase/loading/error、rnReady；不持有页面产品/会员/资产数据。
+### 4.1 生命周期所有权与状态
 
-ReactHost属于进程；Surface属于Fragment View生命周期；Codegen模块实例属于ReactContext/runtime；HostPort的Activity引用为可撤销的当前宿主引用，Activity销毁解除，不由模块长期强持有。FragmentManager恢复先findFragmentByTag，容器ID用R.id.rn_content，不生成随机ID；状态已保存时把导航意图排队到RESUMED，禁止commitAllowingStateLoss。
+MainApplication 懒加载 ShellGraph，构造 DefaultShellRepository、UserAuthSessionAdapter、ForegroundHostConnection 和 ShellBridgeAdapter；唯一 ReactHost 仍使用 getDefaultReactHost。Activity 作用域 MainViewModel 与 SavedStateHandle 负责只读 MainUiState，MainActivity 在 STARTED 区间收集并交给 MainShellView 渲染。VM 不依赖 XML/Compose、Activity、Fragment、JSON 或凭证。
 
-ReactFragment/ReactSurface的具体托管路径在G0基于本地RN0.86选择一种固定实现，默认使用官方Fragment集成；不得同时由ReactFragment和自定义Surface重复attach同一Root。将root挂载/前后台/销毁的调用链和线程写入PoC记录后再扩页。[RN0.86宿主集成](https://reactnative.dev/docs/0.86/integration-with-existing-apps)
+Repository 是 tabId/depth/revision 的唯一事实源，UserAuthManager 是认证权威。真实变化发布 revision，恢复和显式同步允许强制发布，旧 epoch 不回退。Bridge 与 VM 使用同一来源，移除旧 ShellCoordinator。
 
-### 4.2 导航与布局
+MainActivity.setContentView 后先按 entrytask-root-hub 查找 HomeFragment，缺失才添加到稳定 R.id.fragmentContainer；复用原 XML 版本的恢复约定。BaseFragment 保留 entrytask-rn-root / R.id.rn_content 的内层 ReactFragment。Tab/认证不替换片段，Activity 重建可重建 Surface，但不新建 Application 的 ReactHost。
 
-ShellCoordinator拥有底栏和selectedTab，每次真实变化递增hostRevision；Native按钮直接更新RootHub命令并显示切换中，RN ACK成功完成；失败重取快照，拒绝持续错位。子页中Native底栏隐藏且不可点击；RN子栈不再在Android创建额外Activity承载每个页面。
+### 4.2 XML渲染、导航与布局
 
-WindowInsetsCompat在宿主处读系统栏/IME，发布内容区域insets；RN处理自身内容安全区，原生底栏仅根页占高。当前edgeToEdgeEnabled=false不等于target36下无需适配；自定义Activity需按平台实测处理系统边到边，禁止靠模板flag当完成证据。旋转重建、键盘弹起、系统导航模式均有独立用例。
+MainShellView 初始化现有 BottomTabBar 并只上报 Tab 点击；render(MainUiState) 控制选中外观和整组底栏/分割线显隐。控件选中缓存只服务绘制，不在点击时独立改变状态。游客和子页隐藏底栏，RN 容器始终存在，门禁可继续经 Bridge 请求登录。
+
+ViewCompat Insets 监听在根预留系统底部导航区，在 RN 容器预留顶部/侧边 systemBars/displayCutout；RN SafeAreaView 在裁剪后的视口中计算剩余量，不重复硬编码系统高度。HostFragmentHandle 仅在 Activity/View 作用域保留当前宿主并在销毁清理。
+
+后续 Compose 任务只替换 XML/View 渲染及必要的宿主互操作，不改 VM/Repository/Bridge 协议，必须独立验收外层 tag 迁移和 Insets，不能保留两个并行 Fragment 管理者。
 
 ### 4.3 返回协议
 
-OnBackPressedDispatcher只有一个Shell协调入口。认证Activity优先处理自己的返回；Shell发backRequested(commandId)，RN按弹层/键盘/子栈返回consumed/notConsumed，Native等待确认，不同时调用super和RN返回。RN报告根页且未消费后，非首页切首页；首页按现有2秒双击返回退出，窗口单调时间计时，RN子页返回不启动该窗口。
+保留单个 OnBackPressedDispatcher：先收键盘，再调用当前 ReactFragment.onBackPressed；RN 未消费后通过 DefaultHardwareBackBtnHandler 回到 MainActivity.invokeDefaultOnBackPressed。RootBackPolicy 使用 SystemClock.elapsedRealtime：子页深度冲突只重同步，其他根 Tab 回首页，首页沿用原有 500ms 双击退出窗口。RN AppNavigator 在收到不一致快照时按实际栈深度纠正，防止陈旧 depth 导致卡住或误退。
 
-500ms无ACK则重同步snapshot，不能推定未消费并退出；2秒无响应显示Native可恢复提示，可选择重建RN或返回首页，不自动退出掩盖卡死。Android预测返回的注册与native-stack交互在G0验证：预览不提交状态，commit才请求实际pop，cancel保留原depth；不支持的组合在兼容报告写明，不伪称手势完整支持。
+当前沿用 RN 官方返回路径，未新增 backRequested/ACK 协议或确认超时机制；不声称覆盖 RN 完全无响应时的恢复及预测返回全部手势场景。
 
-### 4.4 启动与故障
+### 4.4 Bridge 与认证展示
 
-初始化顺序：基础配置/安全日志 → 作用域容器/轻量会话 → Shell首帧 → 异步存储迁移与Demo资源校验 → RN runtime/Surface → bootstrap就绪 → 查询数据。DB迁移期间能显示骨架/明确准备态，禁止主线程等待I/O；迁移失败阻断写操作、允许可解释故障页。
+HostModule 使用模块作用域协程和容量64的单消费者命令队列：Default 线程解析请求和读取 runtime contract，Main.immediate 按受理顺序调用 ShellBridgeAdapter；队列满返回 HOST_COMMAND_BUSY，不无界缓存；StateFlow 订阅独立于 UI 订阅，invalidate 时取消。DTO 边界验证长度、类型、Tab 和 depth 范围，传输协议维持原样，不修改 specs/。
 
-Bundle读取失败/注册缺失/主版本不符由Native错误视图处理；可恢复runtime最多重建一次，释放旧模块/监听后重握手；仍失败由用户显式重试，不循环创建ReactHost。Native崩溃不是宿主错误视图能兜底的情况，必须保留符号化诊断与修复。
+ForegroundHostConnection 在 MainActivity RESUMED 时绑定 VM 的认证动作，在 onPause 解除；认证请求无前台端点返回 HOST_NOT_READY，非 UI 命令不需要 Activity。VM 保存 Requested/InFlight/Failed 展示状态，Activity 在 RESUMED 收集并确认请求后通过 Activity Result 启动 AuthActivity。ACK 仅表示受理。认证成功先由 Repository 建立 Native 会话，再 setResult/finish；结果回调及 onResume 重读会话并发布。
+
+### 4.5 当前边界
+
+MainViewModel 只保存非敏感 Tab；新进程没有内存会话时回首页门禁，不恢复私有子页、凭证或认证任务。配置变化由 ViewModel 和 Activity Result 协调，singleTask 重入通过 onNewIntent 解除孤立展示状态并重读会话。不承诺进程永久保活。认证表单 VM 的 Channel 效果与安全存储遗留问题仍按第5节专项治理；本次未扩展 iOS 或网络下载协议。
 
 ## 5. Native认证MVVM与会话
 
@@ -124,8 +132,8 @@ Bundle读取失败/注册缺失/主版本不符由Native错误视图处理；可
 | --- | --- |
 | 查询登录态 | NativeSession.getSnapshot；UserAuthManager 在同一锁内读取 authenticated/epoch，不返回账号或凭证 |
 | 展示认证页 | NativeHost.command 的 authenticate；仅在主线程且 MainActivity RESUMED 时展示，防重复请求，启动异常解除防重标记 |
-| 命令 ACK | 成功只表示已受理/无需再次展示，**不代表用户认证成功**；HOST_UNAVAILABLE、HOST_NOT_READY、HOST_COMMAND_FAILED 分别进入安全诊断 |
-| 认证结果 | 登录/注册 Repository 建立完整会话后 AuthActivity 仅 finish 自身；MainActivity.onResume 发布最新 Shell 快照，RN 据此放行 |
+| 命令 ACK | 成功只表示已受理/无需再次展示，**不代表用户认证成功**；HOST_NOT_READY、INVALID_HOST_COMMAND、HOST_COMMAND_FAILED 分别进入安全诊断 |
+| 认证结果 | 登录/注册 Repository 建立完整会话后 AuthActivity setResult(RESULT_OK) 并 finish 自身；MainActivity 的 Activity Result 回调及 onResume 重读会话并发布 Shell 快照，RN 据此放行 |
 | 未登录 UI | 不创建 RN 业务导航和业务资源订阅；Native 底栏隐藏，门禁提供“前往登录” |
 | 取消/失败 | 表单失败留在认证页；返回取消后留在门禁，重新登录由用户显式触发，不反复弹认证页 |
 | 退出登录 | Native 清会话/递增 epoch，根 Tab 回首页、深度归零、底栏隐藏；RN 清旧查询并卸载业务导航，再进入门禁 |
@@ -138,7 +146,7 @@ MainActivity 保持 singleTask；正常栈为 `[MainActivity] → [MainActivity,
 
 singleTask 不能保证对象在内存中永远存活；系统回收/进程终止仍需恢复。重新向 singleTask 首页发送 Intent 还可能移除其上层页面，因此重新点桌面图标、外部 Intent、认证页旋转与进程重启必须单独验收。当前 session 仅进程内存在：后台恢复仍有效，进程终止后必须重新认证；“保活”指业务流程不主动销毁首页，不采用静态 Activity 引用或伪后台保活。
 
-当前认证防重标记属于 MainActivity 的临时 UI 协调，不能作为登录事实，也未覆盖完整跨进程认证任务恢复。后续复杂恢复应由 Activity Result + 生命周期状态协调，不缓存 Activity/Promise，不在每次 onResume 强制重开认证页；Native-only 文本调试分支未走 RN 门禁，不视为业务路径验收通过。
+当前认证展示状态由 MainViewModel 管理，经 Activity Result + RESUMED 生命周期协调；不作为登录事实，不缓存 Activity/Promise，也不在每次 onResume 强制重开认证页。跨进程认证任务与表单结果的完整恢复仍待专项验证；Native-only 文本调试分支未走 RN 门禁，不视为业务路径验收通过。
 
 ### 5.3 核心日志与验收
 

@@ -32,6 +32,7 @@ class BottomTabBar @JvmOverloads constructor(
         this.onTabSelectedListener = onSelected
         removeAllViews()
         tabViews.clear()
+        currentSelectedId = -1
 
         items.forEachIndexed { index, item ->
             val tabView = createTabView(item)
@@ -39,12 +40,14 @@ class BottomTabBar @JvmOverloads constructor(
             tabView.layoutParams = params
 
             tabView.setOnClickListener {
-                selectTab(item.id)
+                // 点击只上报意图，选中外观等待外部 UiState 渲染。
                 onTabSelectedListener?.invoke(index, item.id)
             }
 
             addView(tabView)
             tabViews[item.id] = tabView
+            tabView.contentDescription = item.title
+            setTabState(tabView, false)
         }
     }
 
@@ -80,6 +83,7 @@ class BottomTabBar @JvmOverloads constructor(
         return layout
     }
 
+    /** 只更新控件外观；不发布业务选择事件，不独立修改 Shell 状态。 */
     fun selectTab(id: Int) {
         if (currentSelectedId == id) return
 
@@ -96,13 +100,14 @@ class BottomTabBar @JvmOverloads constructor(
     }
 
     private fun setTabState(tabView: LinearLayout, isSelected: Boolean) {
+        tabView.isSelected = isSelected
         val icon = tabView.findViewById<ImageView>(android.R.id.icon)
         val text = tabView.findViewById<TextView>(android.R.id.text1)
 
         val color = if (isSelected) {
-            resources.getColor(R.color.tab_select) // 选中颜色（可替换为您的主题色）
+            ContextCompat.getColor(context, R.color.tab_select) // 选中颜色（可替换为您的主题色）
         } else {
-            resources.getColor(R.color.tab_unselect) // 未选中颜色
+            ContextCompat.getColor(context, R.color.tab_unselect) // 未选中颜色
         }
 
         icon.setColorFilter(color)

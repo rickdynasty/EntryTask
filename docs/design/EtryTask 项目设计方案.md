@@ -80,7 +80,7 @@ flowchart TB
 | 事实 | 唯一权威 | 可派生投影 | 清理时机 |
 | --- | --- | --- | --- |
 | 当前用户、凭证、sessionEpoch | Native SessionCoordinator | RN SessionProjection（脱敏） | 退出、401、进程终止 |
-| 根Tab与hostRevision | Native ShellCoordinator | RN RootHub投影 | 进程终止恢复首页 |
+| 根Tab与hostRevision | Native ShellRepository（Android 经 MainViewModel 驱动 XML） | RN RootHub投影 | 进程终止恢复首页 |
 | 子页栈、分段、滚动/筛选 | RN NavigationCoordinator/页面VM | Native内存仅保存脱敏恢复描述 | 退出清保护页、进程终止全清 |
 | 签到/能量/领取/库存/消息 | Native Demo DB事务 | RN资源内存快照、Native查询缓存 | 重置演示数据；普通退出保留数据库事实 |
 | 公开内容缓存 | Native CacheStore | RN可见资源内存快照 | TTL、数据版本/场景切换、显式失效 |
@@ -181,7 +181,7 @@ Native以requestId维护状态`registered → running → completed|failed|cance
 
 ### 6.1 导航所有权
 
-Native ShellCoordinator持有selectedTab、hostRevision、底栏布局；RN RootHub惰性挂载四个根Panel并保留VM，子页统一push到RootStack。RootPanel被隐藏时暂停副作用，RN不渲染第二个底栏。切Native Tab时发送带revision的tabSelected；RN应用后确认；重复revision无操作。RN跨Tab请求先发Native command，确认后应用同一tabSelected，不能先自行切画面导致底栏错位。
+Native ShellRepository（Android 经 MainViewModel 驱动 XML）持有selectedTab、hostRevision、底栏布局；RN RootHub惰性挂载四个根Panel并保留VM，子页统一push到RootStack。RootPanel被隐藏时暂停副作用，RN不渲染第二个底栏。切Native Tab时发送带revision的tabSelected；RN应用后确认；重复revision无操作。RN跨Tab请求先发Native command，确认后应用同一tabSelected，不能先自行切画面导致底栏错位。
 
 子页push前RN发布`pendingTransition + targetDepth`，Native先隐藏底栏，RN执行转场并提交导航revision；转场失败回滚至已提交快照。返回根页的转场完成才恢复底栏；在Native认证覆盖期间底栏始终隐藏。命令有commandId，500ms未确认触发snapshot重同步，2秒仍不一致进入可恢复宿主错误态，不无限发送重复命令。
 
