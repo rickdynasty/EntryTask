@@ -18,6 +18,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
+/** RN 受控网络桥接：按 API 清单调用 Native client，并支持请求取消。 */
 class NetworkModule(context: ReactApplicationContext) : NativeNetworkSpec(context) {
     private val calls = ConcurrentHashMap<String, Call>()
     private val cancelled = ConcurrentHashMap<String, Long>()
@@ -25,6 +26,7 @@ class NetworkModule(context: ReactApplicationContext) : NativeNetworkSpec(contex
     @Volatile private var valid = true
 
     override fun execute(requestJson: String, promise: Promise) {
+        // 先验证请求大小、API 暴露策略和认证要求，再交给后台网络执行器。
         if (requestJson.toByteArray().size > 65536 || !valid) { promise.resolve(BridgeReply.error("INVALID_REQUEST")); return }
         try {
             val input = JSONObject(requestJson)

@@ -80,6 +80,7 @@ Android Native 构建及日志命令见 [Android 项目 README](android/README.m
 | 原型与 API/Mock 需求 | [原型需求](docs/requirements/01-prototype-requirements.md)、[API 与 Mock 需求](docs/requirements/02-api-mock-requirements.md) |
 | 四 Tab 页面设计 | [原型分析与 RN 页面设计](docs/ui/四Tab原型分析与RN页面设计.md)、[实现与验证记录](docs/ui/四Tab实现与验证记录.md) |
 | RN 工程整理与启动基线 | [RN foundation](docs/development/rn-foundation.md) |
+| 启动、RN挂载、Bridge与登录逐步源码时序 | [启动与登录全链路源码详解](docs/development/启动与登录全链路源码详解.md) |
 | 运行异常排查 | [Troubleshooting](docs/development/troubleshooting.md) |
 | Android 早期架构/规范/路线资料 | [Android docs 索引](android/docs/README.md) |
 

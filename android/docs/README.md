@@ -31,6 +31,8 @@
 
 ## 当前技术设计入口
 
+2026-10-19 当前基线为 [Android 技术方案 V1.2](../../docs/design/Android%20技术方案.md)：明确 RN 全局登录门禁和 singleTask 认证返回流程、AppGlobals/Startup 对原 AppProxy 的替代、lib_net 下载初版与可靠性缺口。以下旧稿中的游客浏览与 AppProxy 初始化建议均为历史背景。
+
 本目录保留历史初稿。当前混合应用总体设计见[EtryTask 项目设计方案](../../docs/design/EtryTask%20项目设计方案.md)，本期Android实施依据见[Android 技术方案](../../docs/design/Android%20技术方案.md)，共享业务页面见[前端RN技术方案](../../docs/design/前端RN技术方案.md)，iOS延期设计见[iOS技术方案](../../docs/design/iOS技术方案.md)。
 
 2026-10-18：当前设计已修订为V1.1，支持按API选择RN/Native网络、RN独立Logger及核心跨端关联、Axios/Redux Toolkit/RTK Query封装、开发前RN-P0整理与单RN instance。37原型API默认Native Mock，JSON随APK打包；本目录历史初稿不覆盖这些新决策。

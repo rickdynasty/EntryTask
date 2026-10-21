@@ -8,14 +8,16 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 | --- | --- |
 | `app` | 应用入口与组装、唯一 ReactHost、HomeFragment/RN Surface、Native 根 Tab、Codegen Bridge 适配、Mock/contract 资源打包 |
 | `biz_user` | Native 登录注册 UI、用户业务 MVVM、Repository 与会话实现 |
-| `lib_base` | 已有基础能力、UI/MVVM 封装 |
-| `lib_net` | Native 网络基础设施及现有通用网络能力 |
+| `lib_base` | AppGlobals/AndroidX Startup 应用信息代理、基础能力及现有 UI/MVVM 封装 |
+| `lib_net` | Native 网络基础设施及进程内下载初版（可靠性边界见技术方案） |
 | `lib_storage` | Native 存储封装 |
 | `demo_engine` | RN 原型 API 专用 Mock 拦截与演示业务状态，与 Native 登录认证 Mock 分离 |
 
 模块依赖由 `app` 组装，基础库不新增对业务 UI、`app` 或 RN 的反向依赖。架构目标与模块演进边界见 [Android 技术方案](../docs/design/Android%20技术方案.md)；当前已实施的 Native 设计说明见 [Android 架构文档](docs/01-architecture-design.md)。
 
 ## RN 宿主和运行约定
+
+当前采用全应用登录门禁：RN 经 Session Bridge 检查登录，未登录不挂载业务页面、隐藏 Native 底栏，并通过 Host Bridge 拉起认证。AuthActivity 成功只关闭自身，singleTask MainActivity 恢复后发布会话快照。取消返回门禁，可显式重试。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
 
 - 根目录 `npx react-native run-android` 是官方 CLI 开发路径；Android Studio 使用同一 `android/` 工程。
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
@@ -118,3 +120,4 @@ Android Studio Logcat 可按 `package:com.entrytask` 过滤；排查 RN JS Conso
 - [iOS 技术方案与延期范围](../docs/design/iOS技术方案.md)
 - [Android 架构文档](docs/01-architecture-design.md)、[Android 工程规范](docs/02-engineering-standards.md)、[实施路线图](docs/03-implementation-roadmap.md)
 - [RN 启动与宿主基线](../docs/development/rn-foundation.md)、[运行故障排查](../docs/development/troubleshooting.md)
+- [启动与登录全链路源码详解](../docs/development/启动与登录全链路源码详解.md)：从 attachBaseContext、Startup 到 RN Bridge 登录与首页请求，逐步对应方法和源码行号。

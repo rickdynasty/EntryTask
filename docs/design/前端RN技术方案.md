@@ -3,6 +3,8 @@
 版本：1.1 · 日期：2026-10-18 · 状态：待评审设计，尚未实施  
 适用：共享RN业务代码，Android本期运行，iOS后续复用
 
+2026-10-19 认证修订：所有 RN 根页与子页先经 Native Bridge 确认登录，未登录由全局门禁请求 Native 认证，取代下文 V1.1 的游客浏览默认。状态排序、取消和 Activity 返回边界见 [ADR-011](../adr/011-required-native-authentication.md) 及 [Android 技术方案 §5](Android%20技术方案.md)。
+
 ## 1. 目标与技术基线
 
 输入为[需求规格](../requirements/01-prototype-requirements.md)、[API/Mock需求](../requirements/02-api-mock-requirements.md)与[总体设计](EtryTask%20项目设计方案.md)。本方案负责四Tab和全部RN子页、组件复用、MVVM、路由、能力Port、数据投影与性能测试；Native登录注册和根Tab不迁至JS。

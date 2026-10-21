@@ -66,6 +66,13 @@ export function createApplication() {
       shell.start();
       const snapshot = await nativeGateway.bootstrap(flowId);
       if (snapshot?.shell) shell.accept(snapshot.shell);
+      // 通过只读 Session Bridge 校准认证状态；RN 不从本地缓存推断登录事实。
+      const session = await nativeGateway.session();
+      shell.acceptSession(session);
+      logger.log('info', 'session', 'session.snapshot.checked', {
+        pageId: shell.getSnapshot().authenticated ? 'authenticated' : 'guest',
+        flowId,
+      });
       logger.log('info', 'bootstrap', 'bootstrap.completed', { flowId });
     },
     dispose() {

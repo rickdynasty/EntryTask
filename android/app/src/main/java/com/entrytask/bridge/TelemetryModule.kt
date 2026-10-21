@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import org.json.JSONArray
 import org.json.JSONObject
 
+/** 接收 RN 白名单诊断事件并转发到 Native 日志，不记录业务载荷。 */
 class TelemetryModule(context: ReactApplicationContext) : NativeTelemetrySpec(context) {
     private val seen = LinkedHashSet<String>()
     @Synchronized override fun emitBatch(batchJson: String, promise: Promise) {

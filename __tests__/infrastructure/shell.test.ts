@@ -69,3 +69,21 @@ test('late visibility reads cannot disclose a previous user preference', async (
   await Promise.resolve();
   expect(shell.getSnapshot().assetsVisible).toBe(false);
 });
+
+test('late Session snapshots and host events cannot roll back a newer login epoch', () => {
+  const shell = new ShellViewModel(host, { log: jest.fn() }, jest.fn());
+  shell.accept({
+    tabId: 4, depth: 0, authenticated: false, sessionEpoch: 2, revision: 6,
+  });
+  shell.acceptSession({ authenticated: true, sessionEpoch: 1 });
+  shell.accept({
+    tabId: 1, depth: 0, authenticated: true, sessionEpoch: 1, revision: 7,
+  });
+  expect(shell.getSnapshot()).toMatchObject({
+    tabId: 4, authenticated: false, sessionEpoch: 2, revision: 6,
+  });
+  shell.acceptSession({ authenticated: false, sessionEpoch: 3 });
+  expect(shell.getSnapshot().sessionEpoch).toBe(3);
+  expect(shell.getSnapshot().revision).toBe(6);
+  shell.dispose();
+});

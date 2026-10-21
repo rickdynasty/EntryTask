@@ -77,6 +77,10 @@ export function AppNavigator({ application }: { application: Application }) {
     }
     previouslyAuthenticated.current = shell.authenticated;
   }, [shell.sessionEpoch, shell.authenticated, navigation]);
+  if (!shell.authenticated) {
+    // 未认证时不创建根 Tab 或业务页面；登录界面由 Native Bridge 拉起。
+    return <AuthenticationGate application={application} />;
+  }
   return (
     <Context.Provider value={application}>
       <NavigationContainer
@@ -105,6 +109,34 @@ export function AppNavigator({ application }: { application: Application }) {
     </Context.Provider>
   );
 }
+
+/** 首页门禁：启动时自动请求 Native 登录，取消后保留明确的重新登录入口。 */
+function AuthenticationGate({ application }: { application: Application }) {
+  const requestLogin = useCallback(() => {
+    application.logger.log('info', 'session', 'authentication.requested', {
+      pageId: 'login-gate',
+    });
+    application.shell.command({ type: 'authenticate' });
+  }, [application]);
+  useEffect(() => {
+    application.logger.log('warn', 'session', 'authentication.required', {
+      pageId: 'login-gate',
+    });
+    requestLogin();
+  }, [application, requestLogin]);
+  return (
+    <SafeAreaView style={styles.authGate}>
+      <View style={styles.authGateContent}>
+        <Text style={ui.heading}>登录后继续</Text>
+        <Text style={[ui.body, styles.authGateDescription]}>
+          请完成登录后访问首页及业务页面。
+        </Text>
+        <PrimaryButton title="前往登录" onPress={requestLogin} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
 function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
   const application = useApplication();
   const shell = useSyncExternalStore(
@@ -411,6 +443,9 @@ function LocalPage({ target, onBack }: { target: Target; onBack: () => void }) {
   );
 }
 const styles = StyleSheet.create({
+  authGate: { flex: 1, justifyContent: 'center', backgroundColor: '#FCF0E5' },
+  authGateContent: { alignItems: 'center', paddingHorizontal: 28 },
+  authGateDescription: { marginTop: 12, marginBottom: 24, textAlign: 'center' },
   localContent: { padding: 16, gap: 16 },
   headerSpacer: { width: 23 },
   fill: { flex: 1 },

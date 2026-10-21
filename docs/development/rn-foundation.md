@@ -4,6 +4,8 @@
 
 ## 启动与诊断
 
+从Application.attachBaseContext到RN页面挂载、会话Bridge和Native认证返回的逐步调用链，见 [启动与登录全链路源码详解](启动与登录全链路源码详解.md)，每一步均有当前源码方法/行号入口。
+
 在仓库根目录执行：
 
 ```sh
@@ -13,7 +15,7 @@ npx react-native run-android
 
 根目录另开终端执行 `npm run logs:android`；多设备可加 `-- <serial>`。Metro 按 `j` 查看 RN DevTools Console。初始化失败页显示错误码与诊断编号，定位步骤见 [排障说明](troubleshooting.md)。
 
-冷启动默认游客首页，公开内容可以浏览。个人数据、签到、领取、消息等按入口请求 Native 认证；返回可取消，不退出整个应用。当前 Native 认证仍使用现有本地注册账号，不依赖历史种子账号。会话仅进程内保存，杀进程后回游客。
+2026-10-19 登录基线：冷启动先通过 NativeSession Bridge 读取 Native 内存会话。未登录时 RN 不挂载首页或任何业务子页，并经 NativeHost Bridge 拉起认证；MainActivity 保持在栈内，登录成功只关闭 AuthActivity，宿主恢复后发布快照并放行 RN 首页。取消认证停留在登录门禁，可显式重试。会话仅进程内保存，杀进程后重新认证；当前使用本地注册账号。详见 [登录门禁 ADR](../adr/011-required-native-authentication.md)。
 
 Android Studio 与 CLI 使用同一 `com.entrytask`。`HomeFragment.USE_REACT_NATIVE=true` 挂载 RN；改为 false 保留原 Native 文本首页。常规业务开发不修改此开关。
 

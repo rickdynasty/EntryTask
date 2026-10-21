@@ -8,6 +8,9 @@ jest.mock('@platform/native/NativeGateway', () => ({
     observeShell: jest.fn(() => () => {}),
     command: jest.fn().mockResolvedValue(undefined),
     bootstrap: jest.fn(),
+    session: jest.fn().mockResolvedValue({ authenticated: false, sessionEpoch: 0 }),
+    readVisibility: jest.fn().mockResolvedValue(false),
+    writeVisibility: jest.fn().mockResolvedValue(undefined),
     emitLogs: jest.fn().mockResolvedValue(undefined),
   },
 }));
@@ -38,5 +41,34 @@ test('host failure can be logged through Native telemetry before handshake succe
   );
   app.dispose();
   error.mockRestore();
+  info.mockRestore();
+});
+
+test('startup session bridge is authoritative for the RN shell login gate', async () => {
+  const info = jest.spyOn(console, 'info').mockImplementation(() => {});
+  jest.mocked(nativeGateway.bootstrap).mockResolvedValue({
+    protocolVersion: '1.1',
+    bootId: 'boot-1',
+    componentName: 'EntryTask',
+    capabilities: [],
+    shell: {
+      tabId: 1,
+      depth: 0,
+      authenticated: false,
+      sessionEpoch: 0,
+      revision: 1,
+    },
+  });
+  jest
+    .mocked(nativeGateway.session)
+    .mockResolvedValue({ authenticated: true, sessionEpoch: 4 });
+  const app = createApplication();
+  await app.bootstrap('flow-session');
+  expect(nativeGateway.session).toHaveBeenCalledTimes(1);
+  expect(app.shell.getSnapshot()).toMatchObject({
+    authenticated: true,
+    sessionEpoch: 4,
+  });
+  app.dispose();
   info.mockRestore();
 });

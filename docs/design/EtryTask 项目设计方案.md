@@ -2,6 +2,8 @@
 
 版本：1.1 · 日期：2026-10-18 · 状态：待评审技术设计  
 工程名称：EntryTask（本文文件名按交付要求保留 EtryTask）  
+2026-10-19 认证修订：全应用 RN 页面必须登录，替代本文 V1.1 游客浏览默认；实现边界见 [ADR-011](../adr/011-required-native-authentication.md) 与 [Android方案 §5](Android%20技术方案.md)。其余目标设计不因此自动视为已实施。
+
 总体方案负责人：架构负责人（实施启动时实名登记）
 
 ## 1. 方案定位与阅读方式
@@ -28,6 +30,7 @@
 | ADR-009 | RN HTTP + Native网络按API选择，禁止失败回退 | Native保留银行认证/Mock，RN允许独立公开服务，不将NativeModule视为唯一请求入口 |
 | ADR-010 | Axios + Redux Toolkit/RTK Query封装；RN Logger独立且关联Native | 避免自研状态/查询框架，开发前完成目录与样板门禁 |
 | ADR-008 | 当前构建版本先复现，再锁兼容矩阵；新增依赖采用G0验证过的精确版本 | 不以“最新”代替兼容，不在设计期虚构可构建的依赖组合 |
+| [ADR-011](../adr/011-required-native-authentication.md) | 所有RN页面先登录，Native会话权威与singleTask首页上方认证页 | 2026-10-19用户明确要求；替代游客浏览默认，取消停留门禁 |
 
 单运行时是资源和一致性决策，不宣称能自动消除卡顿；单RN instance是用户明确约束，Tab/页面/认证不另建实例；异常重建先释放旧runtime/监听再创建新runtime，禁止双实例同时运行或后台预热第二实例。
 

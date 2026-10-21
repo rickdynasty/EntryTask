@@ -3,6 +3,7 @@ package com.entrytask.bridge
 import com.entry.lib.log.MLog
 import com.entrytask.MainActivity
 import com.entrytask.BuildConfig
+import androidx.lifecycle.Lifecycle
 import com.entrytask.specs.NativeHostSpec
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -11,6 +12,7 @@ import org.json.JSONObject
 import java.io.FileNotFoundException
 import java.util.UUID
 
+/** Native 宿主桥接：仅转发受控导航/认证命令并提供启动握手与 Shell 事件。 */
 class HostModule(context: ReactApplicationContext) : NativeHostSpec(context) {
     companion object {
         private val bootId = UUID.randomUUID().toString()
@@ -22,18 +24,36 @@ class HostModule(context: ReactApplicationContext) : NativeHostSpec(context) {
     override fun command(requestJson: String, promise: Promise) {
         try {
             val request = JSONObject(requestJson)
+            val commandType = request.optString("type").replace(Regex("[^A-Za-z]"), "").take(40)
+            MLog.i(TAG, "host.command.received type=$commandType")
             val activity = reactApplicationContext.currentActivity as? MainActivity
-            if (activity == null) { promise.resolve(BridgeReply.error("HOST_UNAVAILABLE")); return }
+            if (activity == null || activity.isFinishing || activity.isDestroyed) {
+                MLog.e(TAG, "host.command.failed code=HOST_UNAVAILABLE type=$commandType")
+                promise.resolve(BridgeReply.error("HOST_UNAVAILABLE")); return
+            }
             activity.runOnUiThread {
                 try {
+                    // 展示认证页前在主线程重查宿主生命周期，避免应用切后台后启动页面。
+                    if (activity.isFinishing || activity.isDestroyed ||
+                        (request.optString("type") == "authenticate" &&
+                            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))) {
+                        MLog.e(TAG, "host.command.failed code=HOST_NOT_READY type=$commandType")
+                        promise.resolve(BridgeReply.error("HOST_NOT_READY"))
+                        return@runOnUiThread
+                    }
                     activity.handleHostCommand(request)
+                    // ACK 只表示命令已受理；登录结果以后续会话快照为准。
+                    MLog.i(TAG, "host.command.completed type=$commandType")
                     promise.resolve(BridgeReply.ok(true))
                 } catch (e: Exception) {
-                    MLog.e(TAG, "host.command.failed exception=${e.javaClass.simpleName}")
-                    promise.resolve(BridgeReply.error("INVALID_HOST_COMMAND"))
+                    MLog.e(TAG, "host.command.failed type=$commandType exception=${e.javaClass.simpleName}")
+                    promise.resolve(BridgeReply.error(if (e is IllegalArgumentException) "INVALID_HOST_COMMAND" else "HOST_COMMAND_FAILED"))
                 }
             }
-        } catch (e: Exception) { promise.resolve(BridgeReply.error("INVALID_HOST_COMMAND")) }
+        } catch (e: Exception) {
+            MLog.e(TAG, "host.command.failed code=INVALID_HOST_COMMAND exception=${e.javaClass.simpleName}")
+            promise.resolve(BridgeReply.error("INVALID_HOST_COMMAND"))
+        }
     }
     override fun invalidate() { stopObserving(); super.invalidate() }
     override fun bootstrap(requestJson: String, promise: Promise) {

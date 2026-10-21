@@ -20,6 +20,7 @@ jest.mock('@platform/native/NativeGateway', () => ({
     observeShell: jest.fn(() => () => {}),
     command: jest.fn().mockResolvedValue(undefined),
     bootstrap: jest.fn().mockRejectedValue(new Error('not linked')),
+    session: jest.fn().mockResolvedValue({ authenticated: false, sessionEpoch: 0 }),
     emitLogs: jest.fn(),
   },
 }));

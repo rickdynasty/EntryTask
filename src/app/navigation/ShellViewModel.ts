@@ -33,8 +33,11 @@ export class ShellViewModel {
     }
   }
   accept = (value: ShellSnapshot): void => {
-    if (value.revision < this.state.revision) {
-      // 异步事件可能乱序；旧版本不得覆盖新的宿主状态。
+    if (
+      value.revision < this.state.revision ||
+      value.sessionEpoch < this.state.sessionEpoch
+    ) {
+      // 宿主事件与 Session 响应可能乱序；revision 和会话 epoch 都不得回退。
       return;
     }
     const changed = value.sessionEpoch !== this.state.sessionEpoch;
@@ -68,6 +71,15 @@ export class ShellViewModel {
         );
     }
   };
+  /** Session Bridge 不携带 Shell revision，只更新同代或更新一代的会话字段。 */
+  acceptSession(value: Pick<ShellSnapshot, 'authenticated' | 'sessionEpoch'>): void {
+    if (value.sessionEpoch < this.state.sessionEpoch) return;
+    this.accept({
+      ...this.state,
+      authenticated: value.authenticated,
+      sessionEpoch: value.sessionEpoch,
+    });
+  }
   command = (command: Parameters<HostPort['command']>[0]): void => {
     this.logger.log('info', 'host', 'command.started', {
       pageId: command.type,

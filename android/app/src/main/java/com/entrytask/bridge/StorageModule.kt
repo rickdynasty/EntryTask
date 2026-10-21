@@ -8,12 +8,14 @@ import com.facebook.react.bridge.ReactApplicationContext
 import org.json.JSONObject
 import java.util.concurrent.Executors
 
+/** 提供受控的 RN 偏好读写；数据按 Native 会话 scope 隔离。 */
 class StorageModule(context: ReactApplicationContext) : NativeStorageSpec(context) {
     private val io = Executors.newSingleThreadExecutor()
     override fun read(requestJson: String, promise: Promise) = perform(requestJson, promise, "read")
     override fun write(requestJson: String, promise: Promise) = perform(requestJson, promise, "write")
     override fun remove(requestJson: String, promise: Promise) = perform(requestJson, promise, "remove")
     private fun perform(raw: String, promise: Promise, operation: String) {
+        // 磁盘访问放在专用串行线程，避免阻塞 React Native 或 UI 线程。
         io.execute {
             try {
                 val input = JSONObject(raw); require(input.getString("key") == "assetVisibility")

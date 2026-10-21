@@ -6,6 +6,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 
+/** 将 Codegen 生成的五个 TurboModule 实现注册到唯一 ReactHost。 */
 class EntryTaskPackage : BaseReactPackage() {
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? = when (name) {
         "NativeHost" -> HostModule(reactContext)

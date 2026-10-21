@@ -1,5 +1,7 @@
 # EntryTask Android 工程架构与能力封装设计
 
+> 2026-10-19：AppProxy 空类的旧描述已被 `AppGlobals + AppContextInitializer/AndroidX Startup` 取代。全局登录门禁、下载模块和当前六模块状态以 [Android 技术方案 V1.2](../../docs/design/Android%20技术方案.md) 为准；本历史初稿不再作为当前能力完成清单。
+
 > 需求基线更新（2026-10-17）：本文件为旧技术方案初稿。后续方案请先阅读[原型需求规格说明书](../../docs/requirements/01-prototype-requirements.md)和[接口与 Mock 数据需求](../../docs/requirements/02-api-mock-requirements.md)。本期明确由 RN 实现四 Tab 及全部业务子页，Native 提供认证、宿主、网络/存储/日志能力；本地 Mock 经 Native 网络拦截并按 API 使用 JSON，普通请求随机延迟 1～3 秒；iOS 本期延期。本文中原生业务 UI 优先、直接 Fake 数据、注册返回登录及强制 Room 样板等冲突项不再作为本期实施依据，待技术方案统一修订。
 
 版本：1.0 · 日期：2026-10-17 · 状态：建议基线，待评审采纳
@@ -20,7 +22,7 @@
 | --- | --- | --- | --- |
 | `settings.gradle` | app、lib_base、lib_net、lib_storage、biz_user | 其余业务页面仍在 app | 按业务域迁移，app 只做组装 |
 | `app/.../MainApplication.kt` | SP、网络、日志与 RN 初始化 | 日志晚于部分能力初始化；无明确失败策略 | 可见、可测、不可重复变更的初始化顺序 |
-| `lib_base/.../AppProxy.kt` | 空类 | 尚无单例、环境或配置能力 | 最小只读应用信息代理 |
+| `lib_base/.../AppGlobals.kt`、`AppContextInitializer.kt` | 已提供应用Context/包名/debug属性和Startup注册 | 不可变AppConfig、重复初始化冲突与行为测试待补齐 | 单一应用信息代理；不新增第二个AppProxy |
 | `lib_base/.../mvvm/*` | BaseActivity、BaseViewModel、Result、BaseRepository | UI Loading 混入数据 Result；catch Throwable 吞取消；全局 Loading 布尔值不适合并发 | 明确区分数据结果、页面状态和协程取消 |
 | `biz_user/.../UserViewModel.kt` | 登录注册状态与 Factory | 未采用已有 BaseViewModel；公开可变 Flow；用回调驱动成功/错误 | 统一状态、只读接口、构造注入 |
 | `lib_net/.../NetManager.kt` | OkHttp/Retrofit/Gson、mTLS 接入 | 硬挂 Mock；lazy 后配置变化无效；TLS 初始化异常被吞；ignoreCert 参数未使用 | 不可变配置创建实例，失败可见，Mock 隔离 |
@@ -200,13 +202,13 @@ Compose Route 使用 `collectAsStateWithLifecycle`；纯 Screen 接收 state 和
 
 ## 6. lib_base 能力设计
 
-### 6.1 AppProxy
+### 6.1 应用信息代理（原AppProxy，当前AppGlobals）
 
-`AppProxy` 使用 Kotlin object 或等效线程安全单例，仅管理 `applicationContext`、不可变 `AppEnvironment`、不可变 `AppConfig`（版本、buildType、功能开关等非敏感配置）。由 Application 单点初始化；相同实例与相同配置重复初始化可幂等返回，不同配置直接失败；未初始化访问抛出清晰异常。
+当前为 `AppGlobals` object，由 AndroidX Startup 的 `AppContextInitializer` 注入 applicationContext，公开 context、applicationId 和宿主 isDebug；未初始化访问明确失败。旧稿 AppProxy 类已不适用，不新增第二个代理或并行手动初始化链。重复初始化冲突、线程发布和不可变配置仍需按 [Android V1.2 §2](../../docs/design/Android%20技术方案.md) 补齐，不能视为现已完成。
 
 不缓存 Activity/Fragment、不保存 Token、用户对象、仓库或网络 Client；不成为业务全局服务定位器。环境选择由构建变体决定，客户端不能在运行中把真实账户无提示切到演示环境。测试优先注入配置接口，测试重置能力不暴露给生产代码。
 
-建议公开形态：`init(application, environment, config)`、只读 `application`、`environment`、`config`。初始化链：AppProxy → 日志 → 存储 → 网络 → 业务模块/会话 → 根导航；RN 初始化保持在 app 适配路径。同步初始化只做轻量必要操作，Room 创建和公开内容预加载按需，失败区分阻断与可降级。
+初始化职责为 Startup 轻量注入 Context，随后 MainApplication 组装日志、存储、网络和 RN。Initializer 不同步初始化 MMKV/网络/数据库或 RN；异步迁移与预加载按需执行，失败区分阻断与可降级。AppEnvironment/AppConfig 是后续显式注入的不可变信息，不由代理推断或动态改写业务环境。
 
 ### 6.2 日志与可观测性
 
