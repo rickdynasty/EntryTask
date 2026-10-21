@@ -140,6 +140,10 @@ MainViewModel 只保存非敏感 Tab；新进程没有内存会话时回首页�
 
 RN 门禁是页面访问策略，不替代 Native API 鉴权；受保护 API 仍在 Network/Storage Bridge 检查 Native 会话及发起 epoch。公开 fixture/API 的 `requiresAuth=false` 只表示数据接口本身公开，不豁免当前全应用登录门禁。
 
+登录和注册按各自 NavBackStackEntry 创建独立 UserViewModel 实例，只复用状态类型、Factory 与 Repository，不共用输入或事件流。进入注册页为空表单；返回登录只保留登录页自己的账号，密码在离页、宿主销毁和成功提交时清空，不放入 SavedStateHandle/Bundle。离页取消本页请求，取消不作为失败提示；请求版本防止旧 finally 覆盖新请求的 loading。AuthActivity 不再持有表单级 VM。
+
+本次表单隔离回归：4个新增VM单元测试覆盖失败后隔离、离页清理/取消、重复提交及旧请求终态；1个API37设备用例验证真实切页与重建，0失败/跳过。失败响应由Fake服务提供；设备仅输入合成文本、不提交认证、不修改账号。Debug构建和Lint通过。设备任务的本机Maven TLS故障通过临时官方依赖缓存处理，工程仓库配置不变。
+
 ### 5.2 singleTask与认证页生命周期
 
 MainActivity 保持 singleTask；正常栈为 `[MainActivity] → [MainActivity, AuthActivity] → [MainActivity]`。从首页使用 Activity Context 的普通 Intent 启动认证页，不添加 NEW_TASK/CLEAR_TOP，不在成功回调重新启动 MainActivity，也不 finish 首页。这样认证期间首页暂停/停止，成功后恢复已有首页和 RN Host。[Android 任务与返回栈说明](https://developer.android.com/guide/components/activities/tasks-and-back-stack)

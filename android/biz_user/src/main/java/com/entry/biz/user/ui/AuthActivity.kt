@@ -3,7 +3,6 @@ package com.entry.biz.user.ui
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
-import androidx.lifecycle.ViewModelProvider
 import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.biz.user.network.userService
 import com.entry.biz.user.repository.UserRepository
@@ -34,18 +33,14 @@ class AuthActivity : BaseActivity() {
 
         MLog.d(TAG, "AuthActivity 创建，初始化 ViewModel 与 Compose 布局")
 
-        // 1. 构建依赖链：UserService -> UserRepository -> UserViewModel.Factory
-//        val userService = NetManager.userService
+        // Repository 可复用；表单 VM 由每个导航页面独立创建。
         val userRepository = UserRepository(userService)
         val viewModelFactory = UserViewModel.Factory(userRepository)
-
-        // 2. 获取 UserViewModel 实例
-        val viewModel = ViewModelProvider(this, viewModelFactory)[UserViewModel::class.java]
 
         setContent {
             // 3. 渲染导航宿主，并传入 ViewModel 与登录成功回调
             AuthNavHost(
-                viewModel = viewModel, onLoginSuccess = {
+                viewModelFactory = viewModelFactory, onLoginSuccess = {
                     MLog.d(TAG, "登录成功，关闭 AuthActivity 返回首页")
                     // 只关闭认证页；singleTask 的 MainActivity 保留在栈底并在恢复时发布会话快照。
                     setResult(RESULT_OK)

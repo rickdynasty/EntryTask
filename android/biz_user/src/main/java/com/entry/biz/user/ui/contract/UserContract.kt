@@ -5,7 +5,7 @@ import com.entry.lib.base.mvvm.contract.IUiIntent
 import com.entry.lib.base.mvvm.contract.IUiState
 
 /**
- * 登录/注册模块的唯一 UI 状态
+ * 单个认证页面的 UI 状态类型；各导航页面持有独立实例
  */
 data class AuthUiState(
     val username: String = "",

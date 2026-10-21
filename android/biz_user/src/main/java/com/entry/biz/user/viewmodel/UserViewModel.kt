@@ -9,6 +9,10 @@ import com.entry.biz.user.ui.contract.AuthUiState
 import com.entry.biz.user.repository.UserRepository
 import com.entry.lib.base.mvvm.viewmodel.BaseViewModel
 import com.entry.lib.log.MLog
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 class UserViewModel(private val repository: UserRepository) : BaseViewModel<AuthUiState, AuthUiEffect, AuthUiIntent>(
@@ -28,57 +32,60 @@ class UserViewModel(private val repository: UserRepository) : BaseViewModel<Auth
         }
     }
 
-    private fun login() {
-        // 【防抖拦截】：如果当前已经在请求中，直接返回，拒绝重复点击
-        if (currentState.isLoading) return
+    private var requestJob: Job? = null
+    private var requestVersion = 0L
 
+    /** 离页即清密码并取消本页请求；保留本页账号，不向其他页面传递字段。 */
+    fun onFormLeft() {
+        requestVersion++
+        requestJob?.cancel()
+        requestJob = null
+        updateState { copy(password = "", isLoading = false) }
+        MLog.d(TAG, "form.left passwordCleared=true")
+    }
+
+    private fun login() = submit(isRegistration = false)
+    private fun register() = submit(isRegistration = true)
+
+    private fun submit(isRegistration: Boolean) {
+        if (currentState.isLoading) return
         val (username, password) = currentState
         if (username.isBlank() || password.isBlank()) {
             sendEffect { AuthUiEffect.ShowToast("账号或密码不能为空") }
             return
         }
-
-        viewModelScope.launch {
-            updateState { copy(isLoading = true) }
-            MLog.d(TAG, "开始执行登录网络请求")
+        // 先同步置忙，避免协程尚未运行时重复受理；旧请求终态不能覆盖新页面状态。
+        val version = ++requestVersion
+        val operation = if (isRegistration) "register" else "login"
+        updateState { copy(isLoading = true) }
+        requestJob = viewModelScope.launch {
+            MLog.d(TAG, "request.started operation=$operation")
             try {
-                repository.login(username, password)
-                MLog.d(TAG, "登录成功，发送导航通知")
+                if (isRegistration) repository.register(username, password)
+                else repository.login(username, password)
+                currentCoroutineContext().ensureActive()
+                if (version != requestVersion) return@launch
+                updateState { copy(password = "") }
+                MLog.d(TAG, "request.completed operation=$operation")
+                if (isRegistration) sendEffect { AuthUiEffect.ShowToast("注册成功") }
                 sendEffect { AuthUiEffect.NavigateToMain }
-            } catch (e: Exception) {
-                MLog.e(TAG, "登录失败: ${e.message}", e)
-                sendEffect { AuthUiEffect.ShowToast(e.message ?: "登录失败，请检查账号密码") }
+            } catch (cancelled: CancellationException) {
+                MLog.d(TAG, "request.cancelled operation=$operation")
+                throw cancelled
+            } catch (error: Exception) {
+                if (version == requestVersion) {
+                    MLog.e(TAG, "request.failed operation=$operation exception=${error.javaClass.simpleName}")
+                    sendEffect { AuthUiEffect.ShowToast(error.message ?: "操作失败，请稍后重试") }
+                }
             } finally {
-                updateState { copy(isLoading = false) }
+                if (version == requestVersion) updateState { copy(isLoading = false) }
             }
         }
     }
 
-    private fun register() {
-        // 【防抖拦截】：如果当前已经在请求中，直接返回，拒绝重复点击
-        if (currentState.isLoading) return
-
-        val (username, password) = currentState
-        if (username.isBlank() || password.isBlank()) {
-            sendEffect { AuthUiEffect.ShowToast("账号或密码不能为空") }
-            return
-        }
-
-        viewModelScope.launch {
-            updateState { copy(isLoading = true) }
-            MLog.d(TAG, "开始执行注册网络请求")
-            try {
-                repository.register(username, password)
-                MLog.d(TAG, "注册成功，自动登录并进入主页")
-                sendEffect { AuthUiEffect.ShowToast("注册成功") }
-                sendEffect { AuthUiEffect.NavigateToMain }
-            } catch (e: Exception) {
-                MLog.e(TAG, "注册失败: ${e.message}", e)
-                sendEffect { AuthUiEffect.ShowToast(e.message ?: "注册失败，请稍后重试") }
-            } finally {
-                updateState { copy(isLoading = false) }
-            }
-        }
+    override fun onCleared() {
+        onFormLeft()
+        super.onCleared()
     }
 
     class Factory(private val repository: UserRepository) : ViewModelProvider.Factory {
