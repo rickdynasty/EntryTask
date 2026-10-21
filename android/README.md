@@ -17,7 +17,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 
 ## RN 宿主和运行约定
 
-当前采用全应用登录门禁：RN 经 Session Bridge 检查登录，未登录不挂载业务页面、隐藏 Native 底栏，并通过 Host Bridge 拉起认证。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。取消返回门禁，可显式重试。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
+当前采用 Native 提前认证 + RN 默认页面门禁：MainActivity.onCreate 经 VM/Repository 先读 Native 会话，首次游客在 RESUMED 直接拉起认证，不等待 RN。返回或启动失败后再挂载 RN；RN 经 Session Bridge 校准会话，默认保护业务页面，仅帮助中心公开。后续认证通过 Host Bridge 请求，展示期间重复请求合并。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。取消返回门禁，可显式重试。singleTask 重入使用流程编号及旧空结果消费隔离迟到取消，旧 Activity 清理不影响新流程。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
 
 - 根目录 `npx react-native run-android` 是官方 CLI 开发路径；Android Studio 使用同一 `android/` 工程。
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
@@ -38,8 +38,8 @@ XML 点击 → MainViewModel → ShellRepository ← ShellBridgeAdapter ← Host
 
 - `app/.../shell/domain` 定义 Shell/会话契约和返回策略；`data` 适配 Native 会话；`presentation` 放 VM 和 XML 渲染；`host` 管宿主句柄与前台端点；`di/ShellGraph` 在 Application 组装。
 - Repository 是 Tab/depth/revision 唯一来源，UserAuthManager 是会话权威。BottomTabBar 点击只上报动作，选中外观由 UiState 回写。
-- MainActivity 复用 `entrytask-root-hub` 对应的 HomeFragment；不存在才添加，内层保持 `entrytask-rn-root` / `R.id.rn_content`，Tab 与认证不替换宿主。
-- XML 根预留系统底部安全区，RN 容器预留顶部/侧边，RN 按裁剪后的视口计算剩余 Insets；游客/子页隐藏分割线与底栏，始终保留 RN 门禁容器。
+- MainActivity 复用 `entrytask-root-hub` 对应的 HomeFragment；首次认证返回/失败后不存在才添加（系统恢复既有片段仍按框架时序），内层保持 `entrytask-rn-root` / `R.id.rn_content`，Tab 与认证不替换宿主。
+- XML 根预留系统底部安全区，RN 容器预留顶部/侧边，RN 按裁剪后的视口计算剩余 Insets；游客/子页隐藏分割线与底栏，始终保留 XML 内容槽，首次认证结束后挂载 RN 门禁容器。
 - 认证展示使用 VM 防重状态、前台端点和 Activity Result；结果通知后重读 Native 会话，不根据 RESULT_OK 直接设置登录。
 - 返回路径为 IME → RN 子栈 → Native 根 Tab → 首页500ms双击退出。深度冲突先同步，以 RN 实际栈纠正。
 

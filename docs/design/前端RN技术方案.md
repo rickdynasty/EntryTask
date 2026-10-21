@@ -3,7 +3,7 @@
 版本：1.1 · 日期：2026-10-18 · 状态：待评审设计，尚未实施  
 适用：共享RN业务代码，Android本期运行，iOS后续复用
 
-2026-10-19 认证修订：所有 RN 根页与子页先经 Native Bridge 确认登录，未登录由全局门禁请求 Native 认证，取代下文 V1.1 的游客浏览默认。状态排序、取消和 Activity 返回边界见 [ADR-011](../adr/011-required-native-authentication.md) 及 [Android 技术方案 §5](Android%20技术方案.md)。
+2026-10-21 认证修订：Native 首次进入 MainActivity 提前校验并展示认证，不等待 RN。RN 根页与子页默认登录后访问，集中策略仅公开 helpCenter；历史 Target.requiresAuth=false 不放行页面。RN 通过 Native Bridge 校准会话并在受保护子页请求认证；根门禁在 Native 取消后不再自动重弹。该基线取代下文 V1.1 的游客浏览默认。状态排序、取消和 Activity 返回边界见 [ADR-011](../adr/011-required-native-authentication.md) 及 [Android 技术方案 §5](Android%20技术方案.md)。
 
 ## 1. 目标与技术基线
 
@@ -128,20 +128,23 @@ VM使用AbortController表达取消，经NetworkPort根据transport映射Native 
 
 ## 5. 路由与宿主协调
 
-RootStack仅一个NavigationContainer，初始为RootHub；RootHub惰性挂载home/wealth/member/profile Panel，以active参数控制可见和副作用，Native选中态为唯一根来源。native-stack通过原生导航组件实现转场与手势，但页面视图和自定义标题仍由RN组件渲染。[React Navigation native-stack](https://reactnavigation.org/docs/native-stack-navigator/)
+RootStack仅一个NavigationContainer，初始为RootRoute门禁，认证后挂载RootHub；RootHub惰性挂载home/wealth/member/profile Panel，以active参数控制可见和副作用，Native选中态为唯一根来源。native-stack通过原生导航组件实现转场与手势，但页面视图和自定义标题仍由RN组件渲染。[React Navigation native-stack](https://reactnavigation.org/docs/native-stack-navigator/)
 
 | 路由族 | 页面ID | 允许参数 | 保护 |
 | --- | --- | --- | --- |
-| RootHub | H/W/M/P-01 | selectedTab只读投影、当前分段 | 混合权限 |
-| ProductList/Detail | W-02/03 | category/scene、productId | 公开 |
+| RootHub | H/W/M/P-01 | selectedTab只读投影、当前分段 | 登录 |
+| ProductList/Detail | W-02/03 | category/scene、productId | 登录 |
 | AssetOverview/AccountList/AccountDetail/TransactionList/Detail | W-04～06 | view、accountId、transactionId、direction | 登录 |
-| ArticleList/Detail | W-07 | category、articleId | 公开 |
-| ActivityList/Detail | M-02 | category、activityId | 公开 |
+| ArticleList/Detail | W-07 | category、articleId | 登录 |
+| ActivityList/Detail | M-02 | category、activityId | 登录 |
 | Checkin | M-03 | 无用户ID/业务日期路由参数 | 登录 |
-| BenefitList/Detail | M-04 | category、benefitId | 浏览公开、领取登录 |
+| BenefitList/Detail | M-04 | category、benefitId | 页面登录、写操作独立鉴权 |
 | ClaimList/Detail、Energy | M-05/06 | claimId、可选分页筛选 | 登录 |
-| ProfileDetail/Settings/PersonalItems/ItemDetail | P-02～04 | type、itemId | Settings公开，其余登录 |
-| ServiceDirectory/Search/MessageList/Detail/Explanation | C-01～05 | group、scope、messageId、serviceId | 消息及受保护服务需登录 |
+| ProfileDetail/Settings/PersonalItems/ItemDetail | P-02～04 | type、itemId | 默认登录 |
+| ServiceDirectory/Search/MessageList/Detail/Explanation | C-01～05 | group、scope、messageId、serviceId | 默认登录 |
+| HelpCenter | 本地帮助页 | 无个人参数 | 公开 |
+
+页面访问由 `src/app/navigation/routeAccess.ts` 集中维护，未知页面默认需要登录；API目标的 `requiresAuth` 提示不能降级页面权限。公开帮助页只展示本地说明，不新增API。
 
 RouteRegistry按白名单解析，不接受任意组件名/函数/URL；routeKey由导航层生成，重复同目的地+参数的快速点击合并。金额、手机号、完整产品对象不放导航参数。目标验证失败进入RouteError可返回页。
 

@@ -22,7 +22,7 @@ mock/                              仅供 Android Native Mock 拦截器读取的
 
 业务页面采用 MVVM。Screen 负责 UI 呈现和事件转发；ViewModel 负责视图状态、选择和动作流程；Domain 定义模型及 Port；Data/基础设施访问 Native 或 RN HTTP 能力；`di/` 与 `CompositionRoot` 负责依赖组装；`public/` 是跨域入口。共享 UI 不引入业务规则，跨域依赖只能通过公开接口。
 
-Native Shell 是根导航和身份会话的权威来源。启动经 NativeSession Bridge 查询登录态，所有 RN 根页和子页使用全局登录门禁；未登录经 NativeHost Bridge 打开认证页，取消留在门禁。认证成功由 Native 发布快照后挂载业务导航；Native 底部 Tab 驱动同一个 RN Surface，RN native-stack 展示共用子页。未登录和子页状态隐藏 Native 底栏；revision 与 sessionEpoch 均拒绝旧状态回退。详见 [登录门禁 ADR](../docs/adr/011-required-native-authentication.md)。
+Native Shell 是根导航和身份会话的权威来源。MainActivity 启动先校验 Native 会话并直接打开认证页，不等待 RN；首次认证返回/失败后挂载 RN，RN 经 NativeSession Bridge 再校准会话。页面默认登录后访问，集中策略仅公开帮助中心；受保护子页经 NativeHost Bridge 请求认证，取消留门禁、手动重试。认证成功由 Native 发布快照后放行业务模型；Native 底部 Tab 驱动同一个 RN Surface，RN native-stack 展示共用子页。未登录和子页状态隐藏 Native 底栏；revision 与 sessionEpoch 均拒绝旧状态回退。详见 [登录门禁 ADR](../docs/adr/011-required-native-authentication.md)。
 
 业务数据通过 `EndpointRegistry → TransportRouter → NativeTransport / RnHttpTransport`。每个 API 明确选择传输方式，错误时不自动切换通道。本原型的 API 走 Android 独立本地 Mock 网络客户端，按 API ID 选择 APK 中 `../mock` JSON；RN 不直接导入响应 Fixture。响应经生成的 Schema validator 校验，再进入 RTK Query 缓存。签到、领取和消息已读由 Native Mock 保存事实，RN 在成功后使相关查询失效并重新读取。
 

@@ -4,7 +4,7 @@
 
 输入：[总体方案](EtryTask%20项目设计方案.md)、[RN方案](前端RN技术方案.md)、[需求](../requirements/01-prototype-requirements.md)
 
-本版以源码为当前基线，保留尚未完成的模块化和生产能力设计；“当前实现”不代表设备验收通过。最新产品要求为**进入任何 RN 首页或子页面前必须登录**，取代 V1.1 的游客浏览默认，决策见 [登录门禁 ADR](../adr/011-required-native-authentication.md)。
+本版以源码为当前基线，保留尚未完成的模块化和生产能力设计；“当前实现”不代表设备验收通过。最新产品要求为**Native 启动提前认证，RN 页面默认需要登录，仅帮助中心明确公开**，取代 V1.1 的游客浏览默认，决策见 [登录门禁 ADR](../adr/011-required-native-authentication.md)。
 
 ### 当前落地状态
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 工程模块 | `app`、`biz_user`、`lib_base`、`lib_net`、`lib_storage`、`demo_engine` | 下文 contract/ui/host/bridge/user_api 是渐进拆分目标，尚未全部创建 |
 | RN 宿主 | MainApplication 单 ReactHost；MainActivity 单 HomeFragment/ReactFragment，Native 四 Tab | 完整返回 ACK、runtime 恢复、预测返回与性能验收未完成 |
-| 认证门禁 | NativeSession 只读状态 + Host authenticate 命令；RN 全局门禁；MainActivity 恢复发布 Shell 快照 | 完整 SessionCoordinator/可恢复认证任务尚未完成；Native-only 文本页是开发分支，不作为 RN 登录业务验收路径 |
+| 认证门禁 | MainActivity 提前检查 + Activity Result；RN 默认页面门禁；NativeSession/Host Bridge 校准会话 | 完整 SessionCoordinator/可恢复认证任务尚未完成；Native-only 文本页是开发分支，不作为 RN 登录业务验收路径 |
 | Bridge | 五模块实现位于 `app/src/main/java/com/entrytask/bridge/`，继承 `specs/` 生成接口 | 抽 lib_bridge/lib_rn_host 需迁移依赖，不假定现已独立成库 |
 | 应用信息代理 | `AppGlobals` + `AppContextInitializer` + Startup Provider；已替代旧稿 AppProxy 空类 | 未实现不可变 AppConfig、重复初始化冲突检查；不再新增并行 AppProxy 单例 |
 | 网络/Mock | Native 认证使用 NetManager；RN 业务使用 MainApplication.prototypeNetwork + demo_engine；34 个 RN API | 不等于 37 API 全场景验收；两条现有 Native client 尚未统一为目标容器 |
@@ -27,7 +27,7 @@ Android实现Native Shell、四根Tab、单RN容器、Native认证、会话、�
 
 | 现有实现 | 迁移决策 | 完成证据 |
 | --- | --- | --- |
-| MainActivity与RN容器 | 保留 singleTask 稳定宿主，RN全局登录门禁，认证页覆盖展示 | 未登录无业务页面/底栏，登录后恢复原宿主，取消不循环弹窗 |
+| MainActivity与RN容器 | 保留 singleTask 稳定宿主，Native 提前认证 + RN 页面门禁 | 未登录无私有业务/底栏，帮助中心公开，取消不循环弹窗 |
 | BaseFragment生成ViewId及每次replace RN片段 | 专用RnHostFragment稳定资源ID/tag，恢复已有Fragment；删除万能混合基类分支 | Activity重建/进程重启不重复add |
 | UserViewModel回调、公开MutableStateFlow、注册只置Boolean | Login/Register分VM，统一AuthRepository和SessionCoordinator | 完整会话、取消/错误/重入状态测试 |
 | UserAuthManager内存会话 | 当前原子快照，后续统一为SessionCoordinator；Token仅Native | 进程重启重新认证，退出无残留，旧epoch不得回退新会话 |
@@ -74,7 +74,7 @@ Room用于**有事务需求的Demo数据库**，不是为了让RN每个只读产
 
 Startup 用于表达轻量组件依赖，Initializer 在需要先初始化的组件列表中声明依赖；它不是后台任务框架。保持自动初始化只注入 Context，日志/存储/网络/RN 的组装仍由 MainApplication 管理，后续通过显式 AppContainer 拆分，禁止在 Initializer 同步加载 fixture、迁移数据库、建立连接或预热 RN。[Android Startup 官方说明](https://developer.android.com/topic/libraries/app-startup)
 
-当前顺序为 `Startup Context → MainApplication/MLog → StorageManager/旧键清理 → NetManager.initMock → loadReactNative → 按需 ReactHost/Surface → Bridge bootstrap/Session 检查 → 登录门禁 → 业务查询`。Startup 早于 MLog 初始化的异常需有安全平台日志，不能依赖尚未初始化的日志组件。合并 Manifest 必须核对 Provider authority 和 Initializer meta-data；测试覆盖普通启动、未初始化、重复初始化、宿主 debug 属性，以及组件测试手动初始化。
+当前顺序为 `Startup Context → MainApplication/MLog → StorageManager/旧键清理 → NetManager.initMock → loadReactNative → MainActivity/VM 提前读会话 → RESUMED 展示认证 → 认证返回后按需 ReactHost/Surface → Bridge bootstrap/Session 校准 → 页面门禁 → 业务查询`。Startup 早于 MLog 初始化的异常需有安全平台日志，不能依赖尚未初始化的日志组件。合并 Manifest 必须核对 Provider authority 和 Initializer meta-data；测试覆盖普通启动、未初始化、重复初始化、宿主 debug 属性，以及组件测试手动初始化。
 
 ## 3. 构建与环境基线
 
@@ -96,11 +96,11 @@ MainApplication 懒加载 ShellGraph，构造 DefaultShellRepository、UserAuthS
 
 Repository 是 tabId/depth/revision 的唯一事实源，UserAuthManager 是认证权威。真实变化发布 revision，恢复和显式同步允许强制发布，旧 epoch 不回退。Bridge 与 VM 使用同一来源，移除旧 ShellCoordinator。
 
-MainActivity.setContentView 后先按 entrytask-root-hub 查找 HomeFragment，缺失才添加到稳定 R.id.fragmentContainer；复用原 XML 版本的恢复约定。BaseFragment 保留 entrytask-rn-root / R.id.rn_content 的内层 ReactFragment。Tab/认证不替换片段，Activity 重建可重建 Surface，但不新建 Application 的 ReactHost。
+MainActivity.setContentView 后调用 MainViewModel.onHostCreated 检查会话；首次游客先启动认证，不新建 HomeFragment。认证成功、取消或启动失败后，在 RESUMED 且 FragmentManager 未保存状态时按 entrytask-root-hub 查找 HomeFragment，缺失才添加到稳定 R.id.fragmentContainer；复用原 XML 版本的恢复约定。BaseFragment 保留 entrytask-rn-root / R.id.rn_content 的内层 ReactFragment。Tab/认证不替换片段，Activity 重建可重建 Surface，但不新建 Application 的 ReactHost。
 
 ### 4.2 XML渲染、导航与布局
 
-MainShellView 初始化现有 BottomTabBar 并只上报 Tab 点击；render(MainUiState) 控制选中外观和整组底栏/分割线显隐。控件选中缓存只服务绘制，不在点击时独立改变状态。游客和子页隐藏底栏，RN 容器始终存在，门禁可继续经 Bridge 请求登录。
+MainShellView 初始化现有 BottomTabBar 并只上报 Tab 点击；render(MainUiState) 控制选中外观和整组底栏/分割线显隐。控件选中缓存只服务绘制，不在点击时独立改变状态。游客和子页隐藏底栏，XML 容器始终存在；RN 首次挂载延迟到认证返回/失败，之后页面门禁可继续经 Bridge 请求登录。
 
 ViewCompat Insets 监听在根预留系统底部导航区，在 RN 容器预留顶部/侧边 systemBars/displayCutout；RN SafeAreaView 在裁剪后的视口中计算剩余量，不重复硬编码系统高度。HostFragmentHandle 仅在 Activity/View 作用域保留当前宿主并在销毁清理。
 
@@ -116,29 +116,29 @@ ViewCompat Insets 监听在根预留系统底部导航区，在 RN 容器预留�
 
 HostModule 使用模块作用域协程和容量64的单消费者命令队列：Default 线程解析请求和读取 runtime contract，Main.immediate 按受理顺序调用 ShellBridgeAdapter；队列满返回 HOST_COMMAND_BUSY，不无界缓存；StateFlow 订阅独立于 UI 订阅，invalidate 时取消。DTO 边界验证长度、类型、Tab 和 depth 范围，传输协议维持原样，不修改 specs/。
 
-ForegroundHostConnection 在 MainActivity RESUMED 时绑定 VM 的认证动作，在 onPause 解除；认证请求无前台端点返回 HOST_NOT_READY，非 UI 命令不需要 Activity。VM 保存 Requested/InFlight/Failed 展示状态，Activity 在 RESUMED 收集并确认请求后通过 Activity Result 启动 AuthActivity。ACK 仅表示受理。认证成功先由 Repository 建立 Native 会话，再 setResult/finish；结果回调及 onResume 重读会话并发布。
+ForegroundHostConnection 在 MainActivity RESUMED 时绑定 VM 的认证动作，在 onPause 解除；认证展示中仅保留流程编号，重复请求直接合并；其他无前台端点的认证请求返回 HOST_NOT_READY，非 UI 命令不需要 Activity。VM 保存 Requested/InFlight/Failed/Canceled 展示状态，Activity 在 RESUMED 收集并确认请求后通过 Activity Result 启动 AuthActivity。ACK 仅表示受理。认证成功先由 Repository 建立 Native 会话，再 setResult/finish；结果回调及 onResume 重读会话并发布。
 
 ### 4.5 当前边界
 
-MainViewModel 只保存非敏感 Tab；新进程没有内存会话时回首页门禁，不恢复私有子页、凭证或认证任务。配置变化由 ViewModel 和 Activity Result 协调，singleTask 重入通过 onNewIntent 解除孤立展示状态并重读会话。不承诺进程永久保活。认证表单 VM 的 Channel 效果与安全存储遗留问题仍按第5节专项治理；本次未扩展 iOS 或网络下载协议。
+MainViewModel 保存非敏感 Tab、首次检查标记及认证 UI 阶段/序号；不保存凭证或登录事实。配置/任务恢复通过 SavedStateHandle 与 Activity Result 协调在途认证；没有 Native 会话时仍阻断私有页面。singleTask 重入通过 onNewIntent → onNewEntry 建立新请求，旧结果按编号隔离；系统清除产生的空data旧取消结果先单独消费，不撤销新请求，完整进程恢复需专项验收。不承诺进程永久保活。认证表单 VM 的 Channel 效果与安全存储遗留问题仍按第5节专项治理；本次未扩展 iOS 或网络下载协议。
 
 ## 5. Native认证MVVM与会话
 
 ### 5.1 当前登录门禁与职责
 
-当前路径为 `MainActivity → HomeFragment/RN → NativeHost.bootstrap → NativeSession.getSnapshot → RN AuthenticationGate → NativeHost.command(authenticate) → AuthActivity`。Native 是会话权威，RN 只消费安全布尔值和 epoch；查询缓存、SharedPreferences 或 JS 变量都不能独立证明已登录。Host bootstrap 和独立 Session 请求可能乱序，因此 RN 同时按 Shell revision 与 sessionEpoch 拒绝回退；Session 响应只更新会话字段，不覆盖新 Tab、导航深度或 revision。
+首次路径为 `MainActivity.onCreate → MainViewModel.onHostCreated → NativeSessionPort → Requested → RESUMED/Activity Result → AuthActivity`，不依赖 RN。认证返回/启动失败后挂载 RN，经 `bootstrap → NativeSession.getSnapshot` 校准会话。受保护 RN 子页走 `DetailRoute → AuthenticationGate → HostPort → NativeHost.command(authenticate) → 同一 Native 认证协调`。Native 是会话权威，RN 只消费安全布尔值和 epoch；查询缓存、SharedPreferences 或 JS 变量都不能独立证明已登录。Host bootstrap 和独立 Session 请求可能乱序，因此 RN 同时按 Shell revision 与 sessionEpoch 拒绝回退；Session 响应只更新会话字段，不覆盖新 Tab、导航深度或 revision。
 
 | 能力 | 当前实现与结果语义 |
 | --- | --- |
 | 查询登录态 | NativeSession.getSnapshot；UserAuthManager 在同一锁内读取 authenticated/epoch，不返回账号或凭证 |
-| 展示认证页 | NativeHost.command 的 authenticate；仅在主线程且 MainActivity RESUMED 时展示，防重复请求，启动异常解除防重标记 |
+| 展示认证页 | Native 首次检查或 RN authenticate 命令汇合到同一 VM；仅在主线程且 MainActivity RESUMED 时启动，展示期间重复请求合并，启动异常可重试 |
 | 命令 ACK | 成功只表示已受理/无需再次展示，**不代表用户认证成功**；HOST_NOT_READY、INVALID_HOST_COMMAND、HOST_COMMAND_FAILED 分别进入安全诊断 |
 | 认证结果 | 登录/注册 Repository 建立完整会话后 AuthActivity setResult(RESULT_OK) 并 finish 自身；MainActivity 的 Activity Result 回调及 onResume 重读会话并发布 Shell 快照，RN 据此放行 |
-| 未登录 UI | 不创建 RN 业务导航和业务资源订阅；Native 底栏隐藏，门禁提供“前往登录” |
+| 未登录 UI | 导航容器允许存在；RootRoute/DetailRoute 在创建受保护 VM/资源订阅前拦截，底栏隐藏，门禁提供登录/帮助入口，仅帮助中心公开 |
 | 取消/失败 | 表单失败留在认证页；返回取消后留在门禁，重新登录由用户显式触发，不反复弹认证页 |
-| 退出登录 | Native 清会话/递增 epoch，根 Tab 回首页、深度归零、底栏隐藏；RN 清旧查询并卸载业务导航，再进入门禁 |
+| 退出登录 | Native 清会话/递增 epoch，根 Tab 回首页、深度归零、底栏隐藏；RN 清旧查询及私有路由，受保护页请求认证一次；当前公开帮助页可继续显示。取消后等待手动重试 |
 
-RN 门禁是页面访问策略，不替代 Native API 鉴权；受保护 API 仍在 Network/Storage Bridge 检查 Native 会话及发起 epoch。公开 fixture/API 的 `requiresAuth=false` 只表示数据接口本身公开，不豁免当前全应用登录门禁。
+RN 门禁是页面访问策略，不替代 Native API 鉴权；受保护 API 仍在 Network/Storage Bridge 检查 Native 会话及发起 epoch。公开 fixture/API 的 `requiresAuth=false` 只表示数据接口本身公开，不豁免 RN 默认页面门禁；只有 routeAccess.ts 明确登记的 helpCenter 页面公开。
 
 登录和注册按各自 NavBackStackEntry 创建独立 UserViewModel 实例，只复用状态类型、Factory 与 Repository，不共用输入或事件流。进入注册页为空表单；返回登录只保留登录页自己的账号，密码在离页、宿主销毁和成功提交时清空，不放入 SavedStateHandle/Bundle。离页取消本页请求，取消不作为失败提示；请求版本防止旧 finally 覆盖新请求的 loading。AuthActivity 不再持有表单级 VM。
 
@@ -150,11 +150,11 @@ MainActivity 保持 singleTask；正常栈为 `[MainActivity] → [MainActivity,
 
 singleTask 不能保证对象在内存中永远存活；系统回收/进程终止仍需恢复。重新向 singleTask 首页发送 Intent 还可能移除其上层页面，因此重新点桌面图标、外部 Intent、认证页旋转与进程重启必须单独验收。当前 session 仅进程内存在：后台恢复仍有效，进程终止后必须重新认证；“保活”指业务流程不主动销毁首页，不采用静态 Activity 引用或伪后台保活。
 
-当前认证展示状态由 MainViewModel 管理，经 Activity Result + RESUMED 生命周期协调；不作为登录事实，不缓存 Activity/Promise，也不在每次 onResume 强制重开认证页。跨进程认证任务与表单结果的完整恢复仍待专项验证；Native-only 文本调试分支未走 RN 门禁，不视为业务路径验收通过。
+当前认证展示状态由 MainViewModel 管理，经 Activity Result + RESUMED 生命周期协调；不作为登录事实，不缓存 Activity/Promise，也不在每次 onResume 强制重开认证页。跨进程认证任务与表单结果的完整恢复仍待专项验证；Native-only 文本调试分支同样会先做 Native 启动检查，但不能代替 RN 页面门禁验收。
 
 ### 5.3 核心日志与验收
 
-RN 记录 `session.snapshot.checked → authentication.required/requested → command.started/completed/failed → session.epoch.changed`；Native 记录 `session.snapshot.completed/failed`、Host 命令受理/失败、认证页创建/成功关闭及 MainActivity 恢复。命令成功与认证成功分开定位，关联字段仅沿用日志白名单。当前会话读取/认证命令尚未贯通独立 authFlowId，后续扩展需同步 specs/adapter/两端能力与测试，不能宣称完整认证链路关联已实现。
+RN 记录 `session.snapshot.checked → authentication.required/requested → command.started/completed/failed → session.epoch.changed`；Native 记录 `session.snapshot.completed/failed`、Host 命令受理/失败、认证页创建/成功关闭及 MainActivity 恢复。命令成功与认证成功分开定位，关联字段仅沿用日志白名单。Native 启动/返回日志带认证流程编号，AuthActivity 结果原样回传以隔离迟到结果；RN 命令日志仍沿用现有 Bridge 关联机制，本轮不新增跨端 authFlowId 字段，不能宣称全链路关联已完成。
 
 必须覆盖冷启动未登录、进程内已有会话、注册成功、表单失败、返回取消/重试、连续点击、命令启动异常、后台时拒绝展示、退出后重新登录、迟到 Session/Host 事件、singleTask 重入、Activity 恢复及进程重启。验收分别记录源码、Jest、Native 构建和设备证据；构建通过不能替代认证往返设备测试。
 
@@ -381,3 +381,17 @@ TelemetrySink增加有界近期eventId去重（按runtime+eventId，初始1000�
 | Host命令转到UI线程期间生命周期可能变化 | 后台或已销毁宿主仍可能尝试展示认证页 | UI线程重查Activity与RESUMED状态；不展示时安全失败 |
 
 本轮运行 `npm run typecheck`、`npm run lint`、`npm run architecture:check` 全部通过；`npm test -- --runInBand --watchman=false` 为7套/18项通过，使用参数避开本机Watchman状态目录限制；`./gradlew :app:generateCodegenArtifactsFromSchema :app:assembleDebug` 通过。ADB设备列表为空，未执行CLI设备启动、登录往返、singleTask重入及恢复验证。未修改下载/AppGlobals实现，也未新增其行为测试，§2与§7中的可靠性缺口仍需独立实施。
+
+
+## 15. Native 提前认证与 RN 页面门禁实施记录（2026-10-21）
+
+第一步已实现：onCreate 原生会话校验、RESUMED 展示认证、首次认证返回后延迟挂载 RN、页面默认保护/公开帮助、取消不循环、singleTask 重入及迟到结果隔离。XML/MVVM、EntryTask 注册名、com.entrytask、稳定 Fragment tag 与单 ReactHost 保持原约定；没有引入引擎预热或首页数据预取。
+
+- RN：typecheck、lint、architecture:check 通过；Jest 8套/25项通过（使用 `--watchman=false` 避开本机 Watchman 状态目录限制）。覆盖默认保护、公开帮助、取消后revision刷新不重弹、ACK不放行、Native会话确认及失效清理。
+- Native：`:app:testDebugUnitTest` 17项、`:biz_user:testDebugUnitTest` 5项，零失败/跳过；Codegen、Debug构建、Lint及设备测试编译通过。构建使用 `-PreactNativeArchitectures=arm64-v8a --max-workers=2`，本轮仅验证该ABI。
+- 设备：API37 Pixel_10模拟器，StartupAuthenticationTest两项 + ShellHostTest四项共6项通过。验证首次认证前没有HomeFragment、重复Bridge合并、取消/帮助/重试、singleTask重入空结果隔离、认证返回原MainActivity、根Tab/返回与Activity重建。成功分支用测试内存会话，不提交账号注册/密码认证、不改已有账号。
+- 官方CLI：根目录 `npx react-native run-android --no-packager --active-arch-only`，使用已运行的Metro完成构建、安装和启动。
+
+首轮设备测试发现并修复两处竞态：singleTask清除认证页的空data取消结果覆盖新请求；旧MainActivity销毁清除新流程防重状态。修复后完整重跑6项设备用例通过。
+
+未验证：跨进程认证任务恢复、真机/其他ABI、Release性能、iOS原生对等能力。没有以本轮Debug设备结果承诺性能指标；完整引擎预热属于后续独立阶段。

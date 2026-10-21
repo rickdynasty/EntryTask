@@ -25,10 +25,12 @@ export type TargetKind =
   | 'messages'
   | 'message'
   | 'settings'
-  | 'demo';
+  | 'demo'
+  | 'helpCenter';
 export type Target = {
   kind: TargetKind;
   title: string;
+  /** API 目标的历史提示；页面放行由 app 导航集中策略决定，false 不能绕过门禁。 */
   requiresAuth: boolean;
   id?: string;
   category?: string;

@@ -34,6 +34,6 @@ class MainShellView(root: View, onTabSelected: (Int) -> Unit) {
     fun render(state: MainUiState) {
         tabs.selectTab(state.shell.tabId)
         chrome.visibility = if (state.bottomBarVisible) View.VISIBLE else View.GONE
-        // 宿主容器始终存在，未认证时仍由 RN 门禁跨端请求 Native 登录。
+        // 宿主容器始终存在，首次认证由 Native 提前触发，RN 挂载后负责页面级门禁。
     }
 }

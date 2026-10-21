@@ -43,6 +43,8 @@ import {
   ui,
 } from '@shared/ui/Primitives';
 import type { Application } from '../CompositionRoot';
+import { AuthenticationGate } from './AuthenticationGate';
+import { helpCenterTarget, requiresPageAuthentication } from './routeAccess';
 type StackParams = { Root: undefined; Detail: { target: Target } };
 const Stack = createNativeStackNavigator<StackParams>();
 const Context = createContext<Application | null>(null);
@@ -68,30 +70,63 @@ export function AppNavigator({ application }: { application: Application }) {
     if (lastEpoch.current !== shell.sessionEpoch) {
       // 已认证会话切换时清空私有页面，游客首次登录则保留认证前目标。
       lastEpoch.current = shell.sessionEpoch;
-      if (
-        previouslyAuthenticated.current &&
-        navigation.isReady() &&
-        navigation.canGoBack()
-      )
-        navigation.resetRoot({ index: 0, routes: [{ name: 'Root' }] });
+      const current = navigation.getRootState()?.routes.at(-1);
+      const target =
+        current?.params && 'target' in current.params
+          ? current.params.target
+          : undefined;
+      const publicPage =
+        current?.name === 'Detail' &&
+        typeof target === 'object' &&
+        target !== null &&
+        'kind' in target &&
+        target.kind === 'helpCenter';
+      if (previouslyAuthenticated.current) {
+        if (navigation.isReady() && navigation.canGoBack()) {
+          // 清掉旧会话私有路由；公开帮助页保留展示，但不保留下面的私有页面参数。
+          navigation.resetRoot(
+            publicPage
+              ? {
+                  index: 1,
+                  routes: [
+                    { name: 'Root' },
+                    { name: 'Detail', params: { target: helpCenterTarget } },
+                  ],
+                }
+              : { index: 0, routes: [{ name: 'Root' }] },
+          );
+        }
+        if (!shell.authenticated && !publicPage) {
+          // 已登录页面失去会话只触发一次认证；首次启动取消不经过这个分支。
+          application.logger.log('info', 'session', 'authentication.expired', {
+            pageId: 'root-shell',
+          });
+          application.shell.command({ type: 'authenticate' });
+        }
+      }
     }
     previouslyAuthenticated.current = shell.authenticated;
-  }, [shell.sessionEpoch, shell.authenticated, navigation]);
+  }, [application, shell.sessionEpoch, shell.authenticated, navigation]);
   useEffect(() => {
     // Native 返回协调器发现深度不一致时会重发快照，以 RN 导航栈纠正投影，避免误退出。
-    if (!shell.authenticated || !navigation.isReady()) return;
-    const depth = Math.max(0, (navigation.getRootState()?.routes.length ?? 1) - 1);
+    if (!navigation.isReady()) return;
+    const depth = Math.max(
+      0,
+      (navigation.getRootState()?.routes.length ?? 1) - 1,
+    );
     if (shell.depth !== depth) {
       application.logger.log('warn', 'navigation', 'depth.resynchronized', {
         pageId: 'root-shell',
       });
       application.shell.command({ type: 'navigation', depth });
     }
-  }, [application, navigation, shell.authenticated, shell.depth, shell.revision]);
-  if (!shell.authenticated) {
-    // 未认证时不创建根 Tab 或业务页面；登录界面由 Native Bridge 拉起。
-    return <AuthenticationGate application={application} />;
-  }
+  }, [
+    application,
+    navigation,
+    shell.authenticated,
+    shell.depth,
+    shell.revision,
+  ]);
   return (
     <Context.Provider value={application}>
       <NavigationContainer
@@ -113,7 +148,7 @@ export function AppNavigator({ application }: { application: Application }) {
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="Root" component={RootHub} />
+          <Stack.Screen name="Root" component={RootRoute} />
           <Stack.Screen name="Detail" component={DetailRoute} />
         </Stack.Navigator>
       </NavigationContainer>
@@ -121,31 +156,27 @@ export function AppNavigator({ application }: { application: Application }) {
   );
 }
 
-/** 首页门禁：启动时自动请求 Native 登录，取消后保留明确的重新登录入口。 */
-function AuthenticationGate({ application }: { application: Application }) {
-  const requestLogin = useCallback(() => {
-    application.logger.log('info', 'session', 'authentication.requested', {
-      pageId: 'login-gate',
-    });
-    application.shell.command({ type: 'authenticate' });
-  }, [application]);
-  useEffect(() => {
-    application.logger.log('warn', 'session', 'authentication.required', {
-      pageId: 'login-gate',
-    });
-    requestLogin();
-  }, [application, requestLogin]);
-  return (
-    <SafeAreaView style={styles.authGate}>
-      <View style={styles.authGateContent}>
-        <Text style={ui.heading}>登录后继续</Text>
-        <Text style={[ui.body, styles.authGateDescription]}>
-          请完成登录后访问首页及业务页面。
-        </Text>
-        <PrimaryButton title="前往登录" onPress={requestLogin} />
-      </View>
-    </SafeAreaView>
+/** 根页挂载前检查会话；Native 首次认证取消后不再自动请求。 */
+function RootRoute({
+  navigation,
+  route,
+}: NativeStackScreenProps<StackParams, 'Root'>) {
+  const application = useApplication();
+  const shell = useSyncExternalStore(
+    application.shell.subscribe,
+    application.shell.getSnapshot,
   );
+  if (!shell.authenticated)
+    return (
+      <AuthenticationGate
+        application={application}
+        pageId="root-shell"
+        onHelp={() =>
+          navigation.navigate('Detail', { target: helpCenterTarget })
+        }
+      />
+    );
+  return <RootHub navigation={navigation} route={route} />;
 }
 
 function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
@@ -170,39 +201,18 @@ function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
   );
   useEffect(() => () => channels.dispose(), [channels]);
   const unread = useResource(channels.messaging.unread, shell.authenticated);
-  const pending = useRef<Target | null>(null);
   const open = useCallback(
     (target: Target) => {
       application.logger.log('info', 'navigation', 'target.opened', {
         pageId: target.kind,
       });
-      if (target.requiresAuth && !shell.authenticated) {
-        // 只暂存待访问目标；Native 登录成功后再恢复，不缓存写操作。
-        application.logger.log(
-          'info',
-          'navigation',
-          'authentication.required',
-          {
-            pageId: target.kind,
-          },
-        );
-        pending.current = target;
-        application.shell.command({ type: 'authenticate' });
-        return;
-      }
+      // 先进入目标路由，统一边界在挂载业务模型前鉴权；登录成功留在原目标。
       const state = navigation.getState();
       if (state.routes.at(-1)?.name === 'Detail') return;
       navigation.navigate('Detail', { target });
     },
-    [application, navigation, shell.authenticated],
+    [application, navigation],
   );
-  useEffect(() => {
-    if (pending.current) {
-      const target = pending.current;
-      pending.current = null;
-      if (shell.authenticated) navigation.navigate('Detail', { target });
-    }
-  }, [shell.revision, shell.authenticated, navigation]);
   const demo = (title: string): Target => ({
     kind: 'demo',
     title,
@@ -302,12 +312,40 @@ function DetailRoute({
   );
   const target = route.params.target;
   const onOpen = (next: Target) => {
-    if (next.requiresAuth && !shell.authenticated) {
-      app.shell.command({ type: 'authenticate' });
-      return;
-    }
     navigation.push('Detail', { target: next });
   };
+  // 覆盖页面入口、嵌套跳转与恢复路由；鉴权前不创建 RemoteDetail 的 VM 或查询。
+  if (requiresPageAuthentication(target.kind) && !shell.authenticated)
+    return (
+      <AuthenticationGate
+        key={`${route.key}:${shell.sessionEpoch}`}
+        application={app}
+        pageId={route.key}
+        autoRequest
+        onBack={navigation.goBack}
+        onHelp={() => navigation.push('Detail', { target: helpCenterTarget })}
+      />
+    );
+  if (target.kind === 'helpCenter')
+    return (
+      <SafeAreaView edges={['bottom']} style={styles.fill}>
+        <PageHeader title="帮助中心" onBack={navigation.goBack} />
+        <ScrollView contentContainerStyle={styles.localContent}>
+          <Surface>
+            <Text style={ui.heading}>欢迎使用 EntryTask</Text>
+            <Text style={ui.body}>
+              首页、财富、会员、我的及业务详情需要登录后访问。
+            </Text>
+            <Text style={ui.body}>
+              取消登录后可点击“前往登录”重试。账号不存在时，请先在原生登录页进入注册。
+            </Text>
+            <Text style={ui.muted}>
+              本工程使用本地模拟数据，不连接真实银行服务。
+            </Text>
+          </Surface>
+        </ScrollView>
+      </SafeAreaView>
+    );
   if (target.kind === 'demo' || target.kind === 'settings')
     return (
       <SafeAreaView edges={['bottom']} style={styles.fill}>
@@ -454,9 +492,6 @@ function LocalPage({ target, onBack }: { target: Target; onBack: () => void }) {
   );
 }
 const styles = StyleSheet.create({
-  authGate: { flex: 1, justifyContent: 'center', backgroundColor: '#FCF0E5' },
-  authGateContent: { alignItems: 'center', paddingHorizontal: 28 },
-  authGateDescription: { marginTop: 12, marginBottom: 24, textAlign: 'center' },
   localContent: { padding: 16, gap: 16 },
   headerSpacer: { width: 23 },
   fill: { flex: 1 },

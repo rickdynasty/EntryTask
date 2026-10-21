@@ -47,8 +47,13 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     }
     private val authentication = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // Result 只是返回通知；是否成功必须重读 Native 会话，不能信任 RESULT_OK 置登录。
-        viewModel.authenticationReturned()
-        MLog.i(TAG, "authentication.returned result=${it.resultCode}")
+        val id = it.data?.takeIf { data -> data.hasExtra(AuthActivity.EXTRA_AUTH_FLOW_ID) }
+            ?.getLongExtra(AuthActivity.EXTRA_AUTH_FLOW_ID, -1)
+        val accepted = viewModel.authenticationReturned(id)
+        if (accepted) {
+            graph.foreground.authenticationFinished(id ?: viewModel.authenticationFlowId)
+        }
+        MLog.i(TAG, "authentication.returned flowId=$id result=${it.resultCode} accepted=$accepted")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,7 +61,13 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         super.onCreate(savedInstanceState)
         legacyTab = savedInstanceState?.takeIf { it.containsKey("root_tab") }?.getInt("root_tab")
         setContentView(R.layout.activity_home)
-        bindRootHost()
+        viewModel.onHostCreated()
+        when (val launch = viewModel.authLaunch.value) {
+            is AuthLaunchState.Requested -> graph.foreground.authenticationStarted(launch.id)
+            is AuthLaunchState.InFlight -> graph.foreground.authenticationStarted(launch.id)
+            else -> Unit
+        }
+        MLog.i(TAG, "authentication.startup.checked authenticated=${graph.repository.snapshots.value.authenticated}")
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
@@ -75,12 +86,27 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
                     if (launch is AuthLaunchState.Requested && viewModel.authenticationStarted(launch.id)) {
                         try {
                             check(!isFinishing && !isDestroyed)
-                            MLog.i(TAG, "authentication.launch.started")
-                            authentication.launch(Intent(this@MainActivity, AuthActivity::class.java))
+                            graph.foreground.authenticationStarted(launch.id)
+                            MLog.i(TAG, "authentication.launch.started flowId=${launch.id}")
+                            authentication.launch(Intent(this@MainActivity, AuthActivity::class.java)
+                                .putExtra(AuthActivity.EXTRA_AUTH_FLOW_ID, launch.id))
                         } catch (error: Exception) {
+                            graph.foreground.authenticationFinished(launch.id)
                             viewModel.authenticationFailed(launch.id)
                             MLog.e(TAG, "authentication.launch.failed exception=${error.javaClass.simpleName}")
                         }
+                    }
+                }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.uiState.collect { state ->
+                    // 首次未登录先展示 Native 认证；返回/失败后才准备 RN 门禁和公开页。
+                    if (state.canAttachContent) window.decorView.post {
+                        // 避开 FragmentManager 正在派发生命周期的事务窗口，并重读最新认证状态。
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+                            viewModel.canAttachContent() && !supportFragmentManager.isStateSaved) bindRootHost()
                     }
                 }
             }
@@ -103,13 +129,16 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
             supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, ROOT_TAG).commitNow()
         }
         hostHandle.bind(host)
-        MLog.i(TAG, "host.content.attached restored=${restored != null}")
+        if (restored == null) MLog.i(TAG, "host.content.attached restored=false")
     }
     override fun onResume() {
         super.onResume()
         unbindForeground?.invoke()
         unbindForeground = graph.foreground.bind(viewModel::requestAuthentication)
         viewModel.onHostResumed()
+        if (viewModel.authLaunch.value !is AuthLaunchState.InFlight) {
+            graph.foreground.authenticationFinished(viewModel.authenticationFlowId)
+        }
         MLog.i(TAG, "shell.resumed")
     }
     override fun onPause() {
@@ -121,11 +150,13 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         super.onNewIntent(intent)
         setIntent(intent)
         // singleTask 重入可能移除上层认证页，解除孤立展示状态并重读事实。
-        viewModel.authenticationReturned()
+        graph.foreground.authenticationFinished(viewModel.authenticationFlowId)
+        viewModel.onNewEntry()
         MLog.i(TAG, "shell.new-intent")
     }
     override fun onDestroy() {
         hostHandle.clear()
+        if (isFinishing) graph.foreground.authenticationFinished(viewModel.authenticationFlowId)
         MLog.i(TAG, "host.content.detached")
         super.onDestroy()
     }

@@ -1,6 +1,7 @@
 package com.entry.biz.user.ui
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import com.entry.biz.user.viewmodel.UserViewModel
@@ -18,12 +19,21 @@ import com.entry.lib.ui.BackPressHelper
 class AuthActivity : BaseActivity() {
 
     companion object {
+        /** 由调用方传入并原样返回，隔离 singleTask 重入后迟到的认证结果。 */
+        const val EXTRA_AUTH_FLOW_ID = "entrytask.auth.flowId"
         private const val TAG = "Rick_tan:AuthActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 【新增】使用 AndroidX OnBackPressedDispatcher 注册返回事件回调
+        val result = Intent().apply {
+            if (intent.hasExtra(EXTRA_AUTH_FLOW_ID)) {
+                putExtra(EXTRA_AUTH_FLOW_ID, intent.getLongExtra(EXTRA_AUTH_FLOW_ID, -1))
+            }
+        }
+        // 默认取消也携带关联编号，成功只改变结果码；事实仍由 Native 会话决定。
+        setResult(RESULT_CANCELED, result)
+        //使用 AndroidX OnBackPressedDispatcher 注册返回事件回调
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (BackPressHelper.hideKeyboardIfVisible(this@AuthActivity)) return
@@ -43,7 +53,7 @@ class AuthActivity : BaseActivity() {
                 viewModelFactory = viewModelFactory, onLoginSuccess = {
                     MLog.d(TAG, "登录成功，关闭 AuthActivity 返回首页")
                     // 只关闭认证页；singleTask 的 MainActivity 保留在栈底并在恢复时发布会话快照。
-                    setResult(RESULT_OK)
+                    setResult(RESULT_OK, result)
                     finish()
                 })
         }

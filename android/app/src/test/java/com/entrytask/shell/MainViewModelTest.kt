@@ -60,4 +60,77 @@ class MainViewModelTest {
         assertFalse(vm.uiState.value.bottomBarVisible)
         assertEquals(AuthLaunchState.Idle, vm.authLaunch.value)
     }
+    @Test fun startupRequestsNativeAuthenticationBeforeContentAndCancelDoesNotLoop() = runTest(dispatcher) {
+        val vm = model(DefaultShellRepository(FakeSession()))
+        vm.onHostCreated()
+        assertTrue(vm.authLaunch.value is AuthLaunchState.Requested)
+        assertFalse(vm.canAttachContent())
+        val id = (vm.authLaunch.value as AuthLaunchState.Requested).id
+        vm.authenticationStarted(id)
+        vm.onHostResumed()
+        assertEquals(AuthLaunchState.InFlight(id), vm.authLaunch.value)
+        vm.authenticationReturned(id)
+        repeat(3) { vm.onHostResumed(); vm.onHostCreated() }
+        assertEquals(AuthLaunchState.Canceled(id), vm.authLaunch.value)
+        assertTrue(vm.canAttachContent())
+        vm.requestAuthentication()
+        assertTrue(vm.authLaunch.value is AuthLaunchState.Requested)
+    }
+
+    @Test fun recreatedPendingAuthenticationIsNotLaunchedAgainAndCanceledStateSurvives() = runTest(dispatcher) {
+        val repository = DefaultShellRepository(FakeSession())
+        val state = SavedStateHandle()
+        val first = MainViewModel(repository, state) { 100L }.also { models.put("first", it) }
+        first.onHostCreated()
+        val request = first.authLaunch.value as AuthLaunchState.Requested
+        first.authenticationStarted(request.id)
+        val restored = MainViewModel(repository, state) { 100L }.also { models.put("restored", it) }
+        restored.onHostCreated()
+        assertEquals(AuthLaunchState.InFlight(request.id), restored.authLaunch.value)
+        assertFalse(restored.authenticationStarted(request.id))
+        restored.authenticationReturned(request.id)
+        val canceled = MainViewModel(repository, state) { 100L }.also { models.put("canceled", it) }
+        canceled.onHostCreated()
+        canceled.onHostResumed()
+        assertEquals(AuthLaunchState.Canceled(request.id), canceled.authLaunch.value)
+    }
+
+    @Test fun singleTaskReentryStartsOneNewAttemptAndIgnoresOldResult() = runTest(dispatcher) {
+        val vm = model(DefaultShellRepository(FakeSession()))
+        vm.onHostCreated()
+        val old = vm.authLaunch.value as AuthLaunchState.Requested
+        vm.authenticationStarted(old.id)
+        vm.onNewEntry()
+        val next = vm.authLaunch.value as AuthLaunchState.Requested
+        assertTrue(next.id > old.id)
+        vm.authenticationReturned(old.id)
+        assertEquals(next, vm.authLaunch.value)
+        vm.authenticationStarted(next.id)
+        vm.authenticationReturned(next.id)
+        assertEquals(AuthLaunchState.Canceled(next.id), vm.authLaunch.value)
+    }
+
+    @Test fun authenticatedStartupAttachesContentWithoutLaunchingLogin() = runTest(dispatcher) {
+        val session = FakeSession().apply { login() }
+        val vm = model(DefaultShellRepository(session))
+        vm.onHostCreated()
+        vm.onHostResumed()
+        assertEquals(AuthLaunchState.Idle, vm.authLaunch.value)
+        assertTrue(vm.canAttachContent())
+    }
+
+    @Test fun systemCanceledResultWithoutDataCannotCancelSingleTaskReentryAttempt() = runTest(dispatcher) {
+        val vm = model(DefaultShellRepository(FakeSession()))
+        vm.onHostCreated()
+        val first = vm.authLaunch.value as AuthLaunchState.Requested
+        vm.authenticationStarted(first.id)
+        vm.onNewEntry()
+        val next = vm.authLaunch.value as AuthLaunchState.Requested
+        assertFalse(vm.authenticationReturned(null))
+        assertEquals(next, vm.authLaunch.value)
+        vm.authenticationStarted(next.id)
+        assertTrue(vm.authenticationReturned(next.id))
+        assertEquals(AuthLaunchState.Canceled(next.id), vm.authLaunch.value)
+    }
+
 }
