@@ -83,6 +83,8 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
+    // 同变体 A/B可显式开启；模拟器尚未证明稳定收益，默认关闭，不接受外部Intent切换。
+    testBuildType providers.gradleProperty('entrytaskTestBuildType').getOrElse('debug')
     namespace "com.entrytask"
     defaultConfig {
         applicationId "com.entrytask"
@@ -91,6 +93,15 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        buildConfigField 'boolean', 'RN_WARMUP_ENABLED', providers.gradleProperty('entrytaskRnWarmup').getOrElse('false')
+    }
+    // 性能采样有冷进程前置条件，显式接入专用源码，不混进日常功能回归。
+    sourceSets {
+        androidTest {
+            if (providers.gradleProperty('entrytaskPerformanceTests').getOrElse('false').toBoolean()) {
+                java.srcDir('src/benchmark/java')
+            }
+        }
     }
     signingConfigs {
         debug {

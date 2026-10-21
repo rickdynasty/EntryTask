@@ -395,3 +395,12 @@ TelemetrySink增加有界近期eventId去重（按runtime+eventId，初始1000�
 首轮设备测试发现并修复两处竞态：singleTask清除认证页的空data取消结果覆盖新请求；旧MainActivity销毁清除新流程防重状态。修复后完整重跑6项设备用例通过。
 
 未验证：跨进程认证任务恢复、真机/其他ABI、Release性能、iOS原生对等能力。没有以本轮Debug设备结果承诺性能指标；完整引擎预热属于后续独立阶段。
+
+
+## 16. RN 引擎预热（第二步，2026-10-21）
+
+沿用§15提前认证，预热能力默认关闭（模拟器A/B未证明稳定收益），可用entrytaskRnWarmup=true显式启用。MainApplication注册AuthWarmupLifecycle，在Native认证首帧提交之后的下一动画回调调用唯一ReactHost.start()。入口只注册组件，不挂载Surface/业务图、不请求首页数据；MainActivity仍在认证返回/失败后挂载RN内容。首帧旧API退化语义、生命周期清理、低内存跳过、失败隔离与构建开关见 [ADR-012](../adr/012-rn-engine-warmup.md)。
+
+RnWarmupController为进程级纯状态协调，注入引擎启动、作用域、单调时钟和诊断；不持有Activity/View。AuthWarmupLifecycle拥有可撤销帧回调，暂停即撤销待启动工作；已启动共享引擎不随页面取消销毁。真实Surface请求后不再隔离运行异常。公开TaskInterface用25ms异步有界观察，30秒超时仅停止观察，不破坏共享引擎。
+
+性能使用同Release变体开关A/B、固定认证停留、独立进程和交替顺序，首页可见与Mock数据完成分开统计。可复现命令、原始样本摘要和未验证范围见 [预热性能验证](../development/rn-warmup-performance.md)。

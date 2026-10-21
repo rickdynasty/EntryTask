@@ -61,6 +61,10 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
         super.onCreate(savedInstanceState)
         legacyTab = savedInstanceState?.takeIf { it.containsKey("root_tab") }?.getInt("root_tab")
         setContentView(R.layout.activity_home)
+        // 框架可能早于门禁恢复旧Fragment；它已属于真实页面需求，不能按无Surface预热隔离异常。
+        if (HomeFragment.usesReactNative() && supportFragmentManager.findFragmentByTag(ROOT_TAG) != null) {
+            (application as MainApplication).rnWarmup.surfaceWillAttach()
+        }
         viewModel.onHostCreated()
         when (val launch = viewModel.authLaunch.value) {
             is AuthLaunchState.Requested -> graph.foreground.authenticationStarted(launch.id)
@@ -124,6 +128,7 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private fun bindRootHost() {
         val restored = supportFragmentManager.findFragmentByTag(ROOT_TAG)
         check(restored == null || restored is HomeFragment)
+        if (HomeFragment.usesReactNative()) (application as MainApplication).rnWarmup.surfaceWillAttach()
         val host = restored as? HomeFragment ?: HomeFragment().also {
             check(!supportFragmentManager.isStateSaved)
             supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, ROOT_TAG).commitNow()

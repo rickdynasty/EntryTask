@@ -17,7 +17,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 
 ## RN 宿主和运行约定
 
-当前采用 Native 提前认证 + RN 默认页面门禁：MainActivity.onCreate 经 VM/Repository 先读 Native 会话，首次游客在 RESUMED 直接拉起认证，不等待 RN。返回或启动失败后再挂载 RN；RN 经 Session Bridge 校准会话，默认保护业务页面，仅帮助中心公开。后续认证通过 Host Bridge 请求，展示期间重复请求合并。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。取消返回门禁，可显式重试。singleTask 重入使用流程编号及旧空结果消费隔离迟到取消，旧 Activity 清理不影响新流程。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
+当前采用 Native 提前认证 + RN 默认页面门禁：MainActivity.onCreate 经 VM/Repository 先读 Native 会话，首次游客在 RESUMED 直接拉起认证，不等待 RN；显式启用时在认证首帧提交后预热唯一 RN 引擎和Bundle，不创建业务Surface或请求首页。返回或启动失败后再挂载 RN；RN 经 Session Bridge 校准会话，默认保护业务页面，仅帮助中心公开。后续认证通过 Host Bridge 请求，展示期间重复请求合并。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。取消返回门禁，可显式重试。singleTask 重入使用流程编号及旧空结果消费隔离迟到取消，旧 Activity 清理不影响新流程。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
 
 - 根目录 `npx react-native run-android` 是官方 CLI 开发路径；Android Studio 使用同一 `android/` 工程。
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
@@ -142,3 +142,5 @@ Android Studio Logcat 可按 `package:com.entrytask` 过滤；排查 RN JS Conso
 - [Android 架构文档](docs/01-architecture-design.md)、[Android 工程规范](docs/02-engineering-standards.md)、[实施路线图](docs/03-implementation-roadmap.md)
 - [RN 启动与宿主基线](../docs/development/rn-foundation.md)、[运行故障排查](../docs/development/troubleshooting.md)
 - [启动与登录全链路源码详解](../docs/development/启动与登录全链路源码详解.md)：从 attachBaseContext、Startup 到 RN Bridge 登录与首页请求，逐步对应方法和源码行号。
+
+预热默认关闭（当前模拟器未证明稳定收益）；用 `-PentrytaskRnWarmup=true` 显式启用。配置、Release A/B复现与实测限制见 [RN预热性能验证](../docs/development/rn-warmup-performance.md)。

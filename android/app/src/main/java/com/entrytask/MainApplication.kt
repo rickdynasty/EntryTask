@@ -1,6 +1,18 @@
 package com.entrytask
 
 import android.app.Application
+import android.app.ActivityManager
+import android.content.ComponentCallbacks2
+import android.os.SystemClock
+import com.entrytask.home.HomeFragment
+import com.entrytask.shell.runtime.AuthFrameTiming
+import com.entrytask.shell.runtime.AuthWarmupLifecycle
+import com.entrytask.shell.runtime.RnWarmupController
+import com.entrytask.shell.runtime.WarmupHandle
+import com.entrytask.shell.runtime.WarmupPhase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.entry.lib.log.MLog
 import com.entry.lib.net.NetManager
 import com.entry.lib.stroage.StorageManager
@@ -11,6 +23,28 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 
 class MainApplication : Application(), ReactApplication {
+    private val runtimeScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    val authFrameTiming = AuthFrameTiming()
+    @Volatile private var memoryPressure = false
+    val rnWarmup by lazy {
+        RnWarmupController(BuildConfig.RN_WARMUP_ENABLED, runtimeScope, {
+            // start() 初始化现有 Host；不加载 ReactFragment、不改变其宿主生命周期。
+            val task = reactHost.start()
+            WarmupHandle {
+                when {
+                    !task.isCompleted() -> null
+                    task.isCancelled() -> WarmupPhase.CANCELED
+                    task.isFaulted() -> WarmupPhase.FAILED
+                    else -> WarmupPhase.READY
+                }
+            }
+        }, SystemClock::elapsedRealtime) { value ->
+            val elapsed = value.endedMs?.let { it - (value.startedMs ?: it) }
+            val message = "warmup.${value.phase.name.lowercase()} durationMs=$elapsed"
+            if (value.phase in setOf(WarmupPhase.FAILED, WarmupPhase.TIMED_OUT)) MLog.w("EntryTask.RNStartup", message)
+            else MLog.i("EntryTask.RNStartup", message)
+        }
+    }
     val shellGraph by lazy { com.entrytask.shell.di.ShellGraph() }
     val prototypeNetwork: okhttp3.OkHttpClient by lazy {
         okhttp3.OkHttpClient.Builder().retryOnConnectionFailure(false)
@@ -23,6 +57,12 @@ class MainApplication : Application(), ReactApplication {
         getDefaultReactHost(
             context = applicationContext,
             jsMainModulePath = "src/index",
+            exceptionHandler = { error ->
+                if (rnWarmup.handlesPreloadException()) {
+                    // 不能让可选预热使 Native 登录崩溃；不记录异常载荷或吞掉页面运行异常。
+                    MLog.e("EntryTask.RNStartup", "warmup.engine.failed code=RN_PRELOAD_FAILED exception=${error.javaClass.simpleName}")
+                } else throw error
+            },
             packageList =
                 PackageList(this).packages.apply {
                     // Packages that cannot be autolinked yet can be added manually here, for example:
@@ -51,5 +91,22 @@ class MainApplication : Application(), ReactApplication {
         NetManager.initMock()
 
         loadReactNative(this)
+        registerActivityLifecycleCallbacks(AuthWarmupLifecycle(authFrameTiming) {
+            if (HomeFragment.usesReactNative()) {
+                val lowRam = getSystemService(ActivityManager::class.java).isLowRamDevice
+                rnWarmup.afterAuthFrame(lowRam || memoryPressure)
+            }
+        })
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        memoryPressure = true
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // UI_HIDDEN 只是后台，不等同低内存；已启动的共享引擎不在此销毁。
+        if (level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) memoryPressure = true
     }
 }

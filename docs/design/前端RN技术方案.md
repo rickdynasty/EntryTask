@@ -5,6 +5,10 @@
 
 2026-10-21 认证修订：Native 首次进入 MainActivity 提前校验并展示认证，不等待 RN。RN 根页与子页默认登录后访问，集中策略仅公开 helpCenter；历史 Target.requiresAuth=false 不放行页面。RN 通过 Native Bridge 校准会话并在受保护子页请求认证；根门禁在 Native 取消后不再自动重弹。该基线取代下文 V1.1 的游客浏览默认。状态排序、取消和 Activity 返回边界见 [ADR-011](../adr/011-required-native-authentication.md) 及 [Android 技术方案 §5](Android%20技术方案.md)。
 
+
+2026-10-21 预热修订：Native 在认证首帧提交后可启动唯一ReactHost的引擎/Bundle预热；RN入口只注册组件，业务图、bootstrap和查询仍等Surface挂载。实现与测量口径见 [RN预热性能验证](../development/rn-warmup-performance.md)。
+
+
 ## 1. 目标与技术基线
 
 输入为[需求规格](../requirements/01-prototype-requirements.md)、[API/Mock需求](../requirements/02-api-mock-requirements.md)与[总体设计](EtryTask%20项目设计方案.md)。本方案负责四Tab和全部RN子页、组件复用、MVVM、路由、能力Port、数据投影与性能测试；Native登录注册和根Tab不迁至JS。
