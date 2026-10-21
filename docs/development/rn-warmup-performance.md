@@ -2,6 +2,8 @@
 
 日期：2026-10-21。本轮只预热引擎与Bundle，保持Native提前认证和RN页面门禁。[决策与边界](../adr/012-rn-engine-warmup.md)。
 
+完整的方案取舍、实施调整、命令输出与逐文件变更见 [实施全过程与变更记录](RN引擎预热实施全过程与变更记录.md)。
+
 ## 实现调用链
 
 `MainApplication.onCreate → registerActivityLifecycleCallbacks → AuthWarmupLifecycle.onActivityResumed → DecorView附着 → 首帧提交 → 下一动画回调 → RnWarmupController.afterAuthFrame → 唯一ReactHost.start()`。
@@ -54,7 +56,7 @@ python3 tools/benchmark-rn-warmup.py --serial emulator-5554 --baseline-apk /tmp/
 
 首页指标中位数减少426ms（6.9%），但分布明显重叠；PSS中位数增加6.6MiB。认证帧发生在预热启动之前，不能把组间首帧差异解释为预热的因果效果；它也说明当前环境噪声较大。
 
-预实验曾使用Accessibility树查询，存在明显RPC等待；该组结果未纳入上表。正式指标改为应用内布局检查后的下一帧提交；不能把这次测量修正误称为应用性能优化。
+预实验曾使用Accessibility树查询，查询路径涉及RPC与空闲等待，保留5个完成样本；因观测方法不同，该组结果未纳入上表，也未单独量化工具等待耗时。正式指标改为应用内布局检查后的下一帧提交；不能把这次测量修正误称为应用性能优化。
 
 补充8秒目标停留，每组3个独立进程，单独统计：
 
@@ -77,7 +79,6 @@ python3 tools/benchmark-rn-warmup.py --serial emulator-5554 --baseline-apk /tmp/
 
 | 目标停留ms | 轮次 | 预热 | 认证帧ms | 返回首页帧ms | PSS KiB | 返回时任务阶段 |
 | --- | --- | --- | --- | --- | --- | --- |
-
 | 3000 | 1 | 关 | 7491 | 6551 | 64995 | IDLE |
 | 3000 | 1 | 开 | 9592 | 7305 | 67463 | RUNNING |
 | 3000 | 2 | 开 | 8814 | 5722 | 68818 | RUNNING |
@@ -94,7 +95,6 @@ python3 tools/benchmark-rn-warmup.py --serial emulator-5554 --baseline-apk /tmp/
 | 8000 | 2 | 关 | 7754 | 7253 | 57201 | IDLE |
 | 8000 | 3 | 关 | 8802 | 5140 | 64666 | IDLE |
 | 8000 | 3 | 开 | 7711 | 4945 | 73331 | READY |
-
 
 ## 验证与追踪
 

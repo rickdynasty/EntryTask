@@ -2,6 +2,8 @@
 
 日期：2026-10-21。状态：已实施；性能证据见 [预热性能验证](../development/rn-warmup-performance.md)。
 
+实施步骤、命令输出、调整记录与代码清单见 [实施全过程与变更记录](../development/RN引擎预热实施全过程与变更记录.md)。
+
 ## 决策
 
 - MainApplication 注册 AuthWarmupLifecycle，观察 Native AuthActivity 的首个提交帧；下一次动画回调才调用 RnWarmupController，复用 MainApplication.reactHost.start()。不在 Application.onCreate 或 MainActivity.onCreate 启动引擎。
