@@ -18,6 +18,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
+/** 单个认证页的表单VM；登录/注册使用独立实例，成功只发认证通知，由宿主处理返回。 */
 class UserViewModel(private val repository: UserRepository) : BaseViewModel<AuthUiState, AuthUiEffect, AuthUiIntent>(
     AuthUiState()
 ) {
@@ -71,7 +72,7 @@ class UserViewModel(private val repository: UserRepository) : BaseViewModel<Auth
                 updateState { copy(password = "") }
                 MLog.d(TAG, "request.completed operation=$operation")
                 if (isRegistration) sendEffect { AuthUiEffect.ShowToast("注册成功") }
-                sendEffect { AuthUiEffect.NavigateToMain }
+                sendEffect { AuthUiEffect.AuthSucceeded }
             } catch (cancelled: CancellationException) {
                 MLog.d(TAG, "request.cancelled operation=$operation")
                 throw cancelled

@@ -13,18 +13,26 @@ import com.entry.lib.base.mvvm.ui.ComposableScreen
 fun LoginRoute(
     viewModel: UserViewModel,
     onNavigateToRegister: () -> Unit,
-    onLoginSuccess: () -> Unit,
+    onAuthSuccess: () -> Unit,
 ) {
     // 离页取消请求并清除密码，不在导航页面之间传递凭证。
     DisposableEffect(viewModel) { onDispose { viewModel.onFormLeft() } }
     val context = LocalContext.current
-    ComposableScreen(viewModel = viewModel, onEffect = { effect ->
-        when (effect) {
-            is AuthUiEffect.ShowToast -> Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
-            is AuthUiEffect.NavigateToMain -> onLoginSuccess()
-        }
-    }) { state, onIntent ->
-        AuthFormContent(state = state, isRegistration = false,
-            onIntent = onIntent, onSwitchForm = onNavigateToRegister)
+    ComposableScreen(
+        viewModel = viewModel,
+        onEffect = { effect ->
+            when (effect) {
+                is AuthUiEffect.ShowToast ->
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                AuthUiEffect.AuthSucceeded -> onAuthSuccess()
+            }
+        },
+    ) { state, onIntent ->
+        AuthFormContent(
+            state = state,
+            isRegistration = false,
+            onIntent = onIntent,
+            onSwitchForm = onNavigateToRegister,
+        )
     }
 }

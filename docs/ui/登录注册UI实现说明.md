@@ -43,7 +43,7 @@ Repository 将业务失败转换为受控的 `AuthRejectedException`；VM区分�
 | 位置 | 职责 |
 | --- | --- |
 | [AuthFormContent.kt](../../android/biz_user/src/main/java/com/entry/biz/user/ui/AuthFormContent.kt) | 共用布局、外置标签、密码显隐、键盘、品牌区及按钮状态 |
-| [LoginScreen.kt](../../android/biz_user/src/main/java/com/entry/biz/user/ui/LoginScreen.kt)、[RegisterScreen.kt](../../android/biz_user/src/main/java/com/entry/biz/user/ui/RegisterScreen.kt) | 各自收集VM状态，处理Toast/成功导航副作用 |
+| [LoginRoute.kt](../../android/biz_user/src/main/java/com/entry/biz/user/ui/LoginRoute.kt)、[RegisterRoute.kt](../../android/biz_user/src/main/java/com/entry/biz/user/ui/RegisterRoute.kt) | 各自收集VM状态，处理Toast/成功导航副作用 |
 | [AuthActivity.kt](../../android/biz_user/src/main/java/com/entry/biz/user/ui/AuthActivity.kt) | Native认证宿主与浅色系统栏适配 |
 | [UserViewModel.kt](../../android/biz_user/src/main/java/com/entry/biz/user/viewmodel/UserViewModel.kt) | 提交、防重、取消和安全错误提示映射 |
 | [UserRepository.kt](../../android/biz_user/src/main/java/com/entry/biz/user/repository/UserRepository.kt) | 请求、业务失败分类、既有Native会话建立 |

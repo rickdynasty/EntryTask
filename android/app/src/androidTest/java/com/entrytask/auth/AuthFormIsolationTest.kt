@@ -101,8 +101,19 @@ class AuthFormIsolationTest {
         automation.waitForIdle(300, 5000)
     }
     private fun click(text: String) {
-        var node = nodes().first { it.text?.contains(text) == true || it.contentDescription?.toString() == text }
-        while (!node.isClickable) node = node.parent ?: error("缺少表单切换动作")
-        assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+        // 密码语义与图标描述可能分批更新；等待目标出现，不把一次树快照当最终结果。
+        val deadline = SystemClock.elapsedRealtime() + 10000
+        while (SystemClock.elapsedRealtime() < deadline) {
+            var node = nodes().firstOrNull {
+                it.text?.contains(text) == true || it.contentDescription?.toString() == text
+            }
+            while (node != null && !node.isClickable) node = node.parent
+            if (node != null) {
+                assertTrue("认证控件点击失败: $text", node.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+                return
+            }
+            Thread.sleep(50)
+        }
+        fail("认证控件未就绪: $text")
     }
 }

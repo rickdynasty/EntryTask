@@ -21,10 +21,10 @@ class UserRepository(private val userService: UserService) {
     /**
      * 执行登录请求
      */
-    suspend fun login(username: String, pass: String): User {
+    suspend fun login(username: String, password: String): User {
         MLog.d(TAG, "开始执行登录请求: api=user")
         val epoch = UserAuthManager.sessionSnapshot().second
-        val response = userService.login(username, pass)
+        val response = userService.login(username, password)
 
         if (response.code == 200 && response.data != null) {
             val user = response.data
@@ -41,10 +41,10 @@ class UserRepository(private val userService: UserService) {
     /**
      * 执行注册请求
      */
-    suspend fun register(username: String, pass: String): User {
+    suspend fun register(username: String, password: String): User {
         MLog.d(TAG, "开始执行注册请求: api=user")
         val epoch = UserAuthManager.sessionSnapshot().second
-        val response = userService.register(username, pass)
+        val response = userService.register(username, password)
 
         if (response.code == 200 && response.data != null) {
             MLog.d(TAG, "注册成功，建立完整内存会话")

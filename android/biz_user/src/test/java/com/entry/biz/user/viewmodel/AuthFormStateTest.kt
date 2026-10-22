@@ -17,7 +17,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
-/** 使用失败/挂起的 Fake 服务，不建立会话、不读写注册账号。 */
+/** 使用成功/失败/挂起的Fake服务，只操作测试内存会话，不读写注册账号。 */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthFormStateTest {
     private val dispatcher = StandardTestDispatcher()
@@ -32,8 +32,8 @@ class AuthFormStateTest {
     }
     private class Service(private val request: suspend () -> ApiResponse<User>) : UserService {
         var calls = 0
-        override suspend fun login(username: String, pass: String): ApiResponse<User> { calls++; return request() }
-        override suspend fun register(username: String, pass: String): ApiResponse<User> { calls++; return request() }
+        override suspend fun login(username: String, password: String): ApiResponse<User> { calls++; return request() }
+        override suspend fun register(username: String, password: String): ApiResponse<User> { calls++; return request() }
     }
     @Test fun failedLoginAndRegisterHaveSeparateInputsAndLeaveClearsOnlyOwnPassword() = runTest(dispatcher) {
         val service = Service { ApiResponse(401, "演示认证失败", null) }
@@ -152,6 +152,32 @@ class AuthFormStateTest {
         assertFalse(UserAuthManager.isLogin())
         assertTrue(effects.isEmpty())
         assertFalse(vm.uiState.value.isLoading)
+    }
+
+    @Test fun loginAndRegistrationBothEmitAuthSucceededAfterCommittingSession() = runTest(dispatcher) {
+        for (registration in listOf(false, true)) {
+            val user = User(1, "auth-success-only", null, null, "memory-test-only")
+            val vm = model("success-$registration", Service { ApiResponse(200, "success", user) })
+            val effects = mutableListOf<AuthUiEffect>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
+            try {
+                UserAuthManager.logout()
+                fill(vm, user.username, "test-only")
+                vm.handleIntent(if (registration) AuthUiIntent.SubmitRegister else AuthUiIntent.SubmitLogin)
+                runCurrent()
+                val expected = if (registration) {
+                    listOf(AuthUiEffect.ShowToast("注册成功"), AuthUiEffect.AuthSucceeded)
+                } else {
+                    listOf(AuthUiEffect.AuthSucceeded)
+                }
+                assertEquals(expected, effects)
+                assertTrue(UserAuthManager.isLogin())
+                assertEquals("", vm.uiState.value.password)
+                assertFalse(vm.uiState.value.isLoading)
+            } finally {
+                UserAuthManager.logout()
+            }
+        }
     }
 
 }

@@ -37,44 +37,48 @@ class AuthActivity : BaseActivity() {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
         }
-        val result = Intent().apply {
+        val authResultData = Intent().apply {
             if (intent.hasExtra(EXTRA_AUTH_FLOW_ID)) {
                 putExtra(EXTRA_AUTH_FLOW_ID, intent.getLongExtra(EXTRA_AUTH_FLOW_ID, -1))
             }
         }
         // 默认取消也携带关联编号，成功只改变结果码；事实仍由 Native 会话决定。
-        setResult(RESULT_CANCELED, result)
-        //使用 AndroidX OnBackPressedDispatcher 注册返回事件回调
+        setResult(RESULT_CANCELED, authResultData)
+        // 使用AndroidX返回分发器，导航页可优先消费自己的返回事件。
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                handleLoginBack()
+                handleLoginBackPressed()
             }
         })
 
-        MLog.d(TAG, "AuthActivity 创建，初始化 ViewModel 与 Compose 布局")
+        MLog.d(TAG, "AuthActivity 创建，组装认证依赖与 Compose 导航")
 
         // Repository 可复用；表单 VM 由每个导航页面独立创建。
         val userRepository = UserRepository(userService)
         val viewModelFactory = UserViewModel.Factory(userRepository)
 
         setContent {
-            // 3. 渲染导航宿主，并传入 ViewModel 与登录成功回调
+            // 登录和注册共用认证成功通知，由宿主关闭认证页并返回原首页。
             AuthNavHost(
                 viewModelFactory = viewModelFactory,
-                onLoginBack = ::handleLoginBack,
-                onFormChanged = exitPolicy::reset,
-                onLoginSuccess = {
-                    MLog.d(TAG, "登录成功，关闭 AuthActivity 返回首页")
+                onLoginBackPressed = ::handleLoginBackPressed,
+                onAuthPageChanged = exitPolicy::reset,
+                onAuthSuccess = {
+                    MLog.d(TAG, "认证成功，关闭 AuthActivity 返回首页")
                     // 只关闭认证页；singleTask 的 MainActivity 保留在栈底并在恢复时发布会话快照。
-                    setResult(RESULT_OK, result)
+                    setResult(RESULT_OK, authResultData)
                     finish()
-                })
+                },
+            )
         }
     }
 
     /** 未认证时返回不能关闭认证并露出首页；第一次提示，2秒内再次返回结束整个任务。 */
-    private fun handleLoginBack() {
-        if (BackPressHelper.hideKeyboardIfVisible(this)) { exitPolicy.reset(); return }
+    private fun handleLoginBackPressed() {
+        if (BackPressHelper.hideKeyboardIfVisible(this)) {
+            exitPolicy.reset()
+            return
+        }
         if (exitPolicy.shouldExit()) {
             MLog.i(TAG, "authentication.exit.confirmed")
             UserAuthManager.logout() // 递增epoch，拒绝尚未结束的认证请求迟到回写。

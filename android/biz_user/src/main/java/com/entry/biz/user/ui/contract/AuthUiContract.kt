@@ -18,7 +18,8 @@ data class AuthUiState(
  */
 sealed interface AuthUiEffect : IUiEffect {
     data class ShowToast(val message: String) : AuthUiEffect
-    data object NavigateToMain : AuthUiEffect
+    /** Native会话已提交成功；只通知宿主，不指定目的页面或新建Activity。 */
+    data object AuthSucceeded : AuthUiEffect
 }
 
 /**
