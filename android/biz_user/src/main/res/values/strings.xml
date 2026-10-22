@@ -1,0 +1,27 @@
+<resources>
+    <string name="auth_bank_name">中信银行</string>
+    <string name="auth_bank_english">CHINA CITIC BANK</string>
+    <string name="auth_welcome">中信银行欢迎您</string>
+    <string name="auth_login_title">账号登录</string>
+    <string name="auth_register_title">注册新账号</string>
+    <string name="auth_login_subtitle">登录后，开启您的专属金融服务</string>
+    <string name="auth_register_subtitle">创建您的账号，体验便捷金融服务</string>
+    <string name="auth_username">用户名</string>
+    <string name="auth_register_username">设置用户名</string>
+    <string name="auth_username_hint">请输入用户名</string>
+    <string name="auth_register_username_hint">请设置用户名</string>
+    <string name="auth_password">密码</string>
+    <string name="auth_register_password">设置密码</string>
+    <string name="auth_password_hint">请输入密码</string>
+    <string name="auth_register_password_hint">请设置密码</string>
+    <string name="auth_show_password">显示密码</string>
+    <string name="auth_hide_password">隐藏密码</string>
+    <string name="auth_login">登录</string>
+    <string name="auth_register">注册</string>
+    <string name="auth_logging_in">正在登录…</string>
+    <string name="auth_registering">正在注册…</string>
+    <string name="auth_no_account">还没有账号？</string>
+    <string name="auth_has_account">已有账号？</string>
+    <string name="auth_go_register">去注册</string>
+    <string name="auth_go_login">直接登录</string>
+</resources>

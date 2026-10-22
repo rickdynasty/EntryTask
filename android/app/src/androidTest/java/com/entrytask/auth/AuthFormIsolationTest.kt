@@ -34,6 +34,42 @@ class AuthFormIsolationTest {
             assertTrue(fields().all { it.text.isNullOrEmpty() })
         }
     }
+    @Test fun passwordVisibilityResetsWhenSwitchingFormsAndRecreating() {
+        ActivityScenario.launch(AuthActivity::class.java).use { scenario ->
+            awaitPage("账号登录")
+            setText(fields()[1], "visibility-test-only")
+            awaitPasswordVisibility(hidden = true)
+            click("显示密码")
+            automation.waitForIdle(300, 5000)
+            awaitPasswordVisibility(hidden = false)
+            assertEquals("visibility-test-only", fields()[1].text.toString())
+            click("隐藏密码")
+            automation.waitForIdle(300, 5000)
+            awaitPasswordVisibility(hidden = true)
+            click("显示密码")
+            click("去注册")
+            awaitPage("注册新账号")
+            awaitPasswordVisibility(hidden = true)
+            assertTrue(fields()[1].text.isNullOrEmpty())
+            setText(fields()[1], "register-visibility-only")
+            click("显示密码")
+            automation.waitForIdle(300, 5000)
+            awaitPasswordVisibility(hidden = false)
+            scenario.recreate()
+            awaitPage("注册新账号")
+            awaitPasswordVisibility(hidden = true)
+            assertTrue(fields()[1].text.isNullOrEmpty())
+        }
+    }
+    // Accessibility空闲不保证Compose重组已提交；按实际密码语义等待，不靠固定延迟断言。
+    private fun awaitPasswordVisibility(hidden: Boolean) {
+        val deadline = SystemClock.elapsedRealtime() + 10000
+        while (SystemClock.elapsedRealtime() < deadline) {
+            if (fields().getOrNull(1)?.isPassword == hidden) return
+            Thread.sleep(50)
+        }
+        assertEquals("密码显隐状态未更新", hidden, fields()[1].isPassword)
+    }
     private fun nodes(): List<AccessibilityNodeInfo> {
         val result = mutableListOf<AccessibilityNodeInfo>()
         fun visit(node: AccessibilityNodeInfo) {
@@ -65,7 +101,7 @@ class AuthFormIsolationTest {
         automation.waitForIdle(300, 5000)
     }
     private fun click(text: String) {
-        var node = nodes().first { it.text?.contains(text) == true }
+        var node = nodes().first { it.text?.contains(text) == true || it.contentDescription?.toString() == text }
         while (!node.isClickable) node = node.parent ?: error("缺少表单切换动作")
         assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_CLICK))
     }

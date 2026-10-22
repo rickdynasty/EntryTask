@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.entry.biz.user.ui.contract.AuthUiEffect
 import com.entry.biz.user.ui.contract.AuthUiIntent
 import com.entry.biz.user.ui.contract.AuthUiState
+import com.entry.biz.user.repository.AuthRejectedException
 import com.entry.biz.user.repository.UserRepository
+import java.io.IOException
+import java.net.SocketTimeoutException
 import com.entry.lib.base.mvvm.viewmodel.BaseViewModel
 import com.entry.lib.log.MLog
 import kotlinx.coroutines.CancellationException
@@ -75,7 +78,14 @@ class UserViewModel(private val repository: UserRepository) : BaseViewModel<Auth
             } catch (error: Exception) {
                 if (version == requestVersion) {
                     MLog.e(TAG, "request.failed operation=$operation exception=${error.javaClass.simpleName}")
-                    sendEffect { AuthUiEffect.ShowToast(error.message ?: "操作失败，请稍后重试") }
+                    // 失败只走一次性Toast，网络诊断不直接暴露给用户。
+                    val message = when (error) {
+                        is AuthRejectedException -> error.userMessage
+                        is SocketTimeoutException -> "网络请求超时，请稍后重试"
+                        is IOException -> "网络连接失败，请检查网络后重试"
+                        else -> if (isRegistration) "注册失败，请稍后重试" else "登录失败，请稍后重试"
+                    }
+                    sendEffect { AuthUiEffect.ShowToast(message) }
                 }
             } finally {
                 if (version == requestVersion) updateState { copy(isLoading = false) }

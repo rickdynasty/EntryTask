@@ -28,9 +28,9 @@ class UserRepository(private val userService: UserService) {
             UserAuthManager.establishSession(user.username, requireNotNull(user.token))
             return user
         } else {
-            val errorMsg = response.message
-            MLog.w(TAG, "登录请求业务校验失败: $errorMsg")
-            throw Exception(errorMsg)
+            MLog.w(TAG, "request.rejected operation=login code=${response.code}")
+            throw AuthRejectedException(if (response.code == 400 || response.code == 401)
+                "账号或密码错误，请检查后重试" else "登录失败，请稍后重试")
         }
     }
 
@@ -47,9 +47,11 @@ class UserRepository(private val userService: UserService) {
             UserAuthManager.establishSession(user.username, requireNotNull(user.token))
             return user
         } else {
-            val errorMsg = response.message
-            MLog.w(TAG, "注册请求业务校验失败: $errorMsg")
-            throw Exception(errorMsg)
+            MLog.w(TAG, "request.rejected operation=register code=${response.code}")
+            throw AuthRejectedException(if (response.code == 409)
+                "该用户名已注册，请更换用户名或直接登录" else "注册失败，请稍后重试")
         }
     }
 }
+/** 只有经过业务映射的提示可交给UI，不直接展示服务端载荷。 */
+internal class AuthRejectedException(val userMessage: String) : Exception()

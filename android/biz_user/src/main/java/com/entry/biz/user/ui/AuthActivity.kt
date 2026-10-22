@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.biz.user.network.userService
 import com.entry.biz.user.repository.UserRepository
@@ -26,6 +27,11 @@ class AuthActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 认证页使用浅色背景，系统栏保持深色图标，避免白色图标不可读。
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
         val result = Intent().apply {
             if (intent.hasExtra(EXTRA_AUTH_FLOW_ID)) {
                 putExtra(EXTRA_AUTH_FLOW_ID, intent.getLongExtra(EXTRA_AUTH_FLOW_ID, -1))

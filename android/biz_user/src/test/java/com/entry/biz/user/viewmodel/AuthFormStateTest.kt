@@ -94,4 +94,36 @@ class AuthFormStateTest {
         store.clear()
         assertEquals("", vm.uiState.value.password)
     }
+    @Test fun businessFailuresShowToastAndRestoreBothForms() = runTest(dispatcher) {
+        for (registration in listOf(false, true)) {
+            val vm = model("failure-$registration", Service { ApiResponse(401, "untrusted-server-detail", null) })
+            val effects = mutableListOf<AuthUiEffect>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
+            fill(vm, "demo", "test-only")
+            vm.handleIntent(if (registration) AuthUiIntent.SubmitRegister else AuthUiIntent.SubmitLogin)
+            runCurrent()
+            assertFalse(vm.uiState.value.isLoading)
+            assertEquals(listOf(AuthUiEffect.ShowToast(if (registration) "注册失败，请稍后重试"
+                else "账号或密码错误，请检查后重试")), effects)
+        }
+    }
+
+    @Test fun networkAndUnexpectedFailuresUseSafeToastMessages() = runTest(dispatcher) {
+        val cases = listOf(
+            java.io.IOException("private-network-detail") to "网络连接失败，请检查网络后重试",
+            java.net.SocketTimeoutException("private-timeout-detail") to "网络请求超时，请稍后重试",
+            IllegalStateException("private-internal-detail") to "登录失败，请稍后重试",
+        )
+        for ((index, case) in cases.withIndex()) {
+            val vm = model("network-$index", Service { throw case.first })
+            val effects = mutableListOf<AuthUiEffect>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
+            fill(vm, "demo", "test-only")
+            vm.handleIntent(AuthUiIntent.SubmitLogin)
+            runCurrent()
+            assertFalse(vm.uiState.value.isLoading)
+            assertEquals(listOf(AuthUiEffect.ShowToast(case.second)), effects)
+        }
+    }
+
 }
