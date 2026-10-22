@@ -4,6 +4,9 @@ import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.model.User
 import com.entry.biz.user.network.UserService
 import com.entry.lib.log.MLog
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 /**
  * 用户数据仓库
@@ -20,12 +23,13 @@ class UserRepository(private val userService: UserService) {
      */
     suspend fun login(username: String, pass: String): User {
         MLog.d(TAG, "开始执行登录请求: api=user")
+        val epoch = UserAuthManager.sessionSnapshot().second
         val response = userService.login(username, pass)
 
         if (response.code == 200 && response.data != null) {
             val user = response.data
 
-            UserAuthManager.establishSession(user.username, requireNotNull(user.token))
+            commitSession(user, epoch)
             return user
         } else {
             MLog.w(TAG, "request.rejected operation=login code=${response.code}")
@@ -39,12 +43,13 @@ class UserRepository(private val userService: UserService) {
      */
     suspend fun register(username: String, pass: String): User {
         MLog.d(TAG, "开始执行注册请求: api=user")
+        val epoch = UserAuthManager.sessionSnapshot().second
         val response = userService.register(username, pass)
 
         if (response.code == 200 && response.data != null) {
             MLog.d(TAG, "注册成功，建立完整内存会话")
             val user = response.data
-            UserAuthManager.establishSession(user.username, requireNotNull(user.token))
+            commitSession(user, epoch)
             return user
         } else {
             MLog.w(TAG, "request.rejected operation=register code=${response.code}")
@@ -52,6 +57,15 @@ class UserRepository(private val userService: UserService) {
                 "该用户名已注册，请更换用户名或直接登录" else "注册失败，请稍后重试")
         }
     }
+
+    /** 提交前检查取消和会话版本；退出后的旧认证响应不产生会话/成功导航。 */
+    private suspend fun commitSession(user: User, expectedEpoch: Long) {
+        currentCoroutineContext().ensureActive()
+        if (!UserAuthManager.commitAuthentication(user.username, requireNotNull(user.token), expectedEpoch)) {
+            throw CancellationException("AUTH_REQUEST_SUPERSEDED")
+        }
+    }
+
 }
 /** 只有经过业务映射的提示可交给UI，不直接展示服务端载荷。 */
 internal class AuthRejectedException(val userMessage: String) : Exception()

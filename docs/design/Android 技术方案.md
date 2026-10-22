@@ -135,7 +135,7 @@ MainViewModel 保存非敏感 Tab、首次检查标记及认证 UI 阶段/序号
 | 命令 ACK | 成功只表示已受理/无需再次展示，**不代表用户认证成功**；HOST_NOT_READY、INVALID_HOST_COMMAND、HOST_COMMAND_FAILED 分别进入安全诊断 |
 | 认证结果 | 登录/注册 Repository 建立完整会话后 AuthActivity setResult(RESULT_OK) 并 finish 自身；MainActivity 的 Activity Result 回调及 onResume 重读会话并发布 Shell 快照，RN 据此放行 |
 | 未登录 UI | 导航容器允许存在；RootRoute/DetailRoute 在创建受保护 VM/资源订阅前拦截，底栏隐藏，门禁提供登录/帮助入口，仅帮助中心公开 |
-| 取消/失败 | 表单失败留在认证页；返回取消后留在门禁，重新登录由用户显式触发，不反复弹认证页 |
+| 取消/失败 | 表单失败留在认证页；登录根页先收键盘，再2秒双击退出任务，注册页返回登录；系统/程序性取消仍留门禁，不循环弹认证 |
 | 退出登录 | Native 清会话/递增 epoch，根 Tab 回首页、深度归零、底栏隐藏；RN 清旧查询及私有路由，受保护页请求认证一次；当前公开帮助页可继续显示。取消后等待手动重试 |
 
 RN 门禁是页面访问策略，不替代 Native API 鉴权；受保护 API 仍在 Network/Storage Bridge 检查 Native 会话及发起 epoch。公开 fixture/API 的 `requiresAuth=false` 只表示数据接口本身公开，不豁免 RN 默认页面门禁；只有 routeAccess.ts 明确登记的 helpCenter 页面公开。
@@ -404,3 +404,12 @@ TelemetrySink增加有界近期eventId去重（按runtime+eventId，初始1000�
 RnWarmupController为进程级纯状态协调，注入引擎启动、作用域、单调时钟和诊断；不持有Activity/View。AuthWarmupLifecycle拥有可撤销帧回调，暂停即撤销待启动工作；已启动共享引擎不随页面取消销毁。真实Surface请求后不再隔离运行异常。公开TaskInterface用25ms异步有界观察，30秒超时仅停止观察，不破坏共享引擎。
 
 性能使用同Release变体开关A/B、固定认证停留、独立进程和交替顺序，首页可见与Mock数据完成分开统计。可复现命令、原始样本摘要和未验证范围见 [预热性能验证](../development/rn-warmup-performance.md)。
+
+
+## 17. 登录返回与SP认证账号修复（2026-10-22已实施）
+
+登录根页不直接finish返回首页：IME优先，之后2秒双击finishAffinity退出任务；注册页系统返回登录。退出任务前清Native会话/递增epoch、清除Activity Result载荷以满足Android约束；Repository原子核对发起时epoch，拒绝退出后的迟到认证成功。正常成功仍回传flowId并只关闭AuthActivity。系统/程序性取消与singleTask重入继续采用原协调协议。
+
+Native认证Mock改用manifest精确method/path及现有分API JSON；UserService内部错误码为400/401/409/500数字，不改变RN错误契约。注册与登录共用MockAccountStore，SP按用户名哈希索引独立账号，后台原子commit落盘校验记录，重复账号不覆盖；启动不再删除mock_db账号。完整mock_reg/mock_db旧键对在认证后台访问时迁移，成功写入后同事务删除旧明文，不清其他SP。
+
+当前增量实现使用版本化PBKDF2校验值、16字节salt、32字节输出、120000次，优先HMAC-SHA256，旧Provider兼容HMAC-SHA1；未实施§9目标Room/Keystore封装及600000次参数，不能当作目标方案全部验收。账号持久化与内存会话分开，重启仍需Native校验登录。实现、迁移与验证详见 [ADR-013](../adr/013-auth-back-and-mock-persistence.md) 和 [修复记录](../development/认证返回与账号持久化修复.md)。

@@ -70,6 +70,7 @@
 ```
 
 - 测试模块按实际修改替换/补充，确认存在测试且执行了用例；`NO-SOURCE` 不算行为测试通过。设备测试仅在对应场景和设备可用时执行。
+- 已有演示账号的设备用 `assembleDebugAndroidTest`、`adb install -r` 和直接 `am instrument` 验证；Gradle connected 测试可能在清理阶段卸载目标应用，不能在未隔离数据的设备直接使用。不要把测试卸载造成的数据丢失当成普通重启问题。
 - 入口、Bridge、依赖或宿主变化：原生构建 + CLI 启动 + Native 登录到 RN 首页；按风险验证重建、返回、Tab 切换、取消及资源释放。普通 JS Reload 不更新 Native 代码/assets。
 - 资源打包变化必须验证 `./gradlew :app:clean :app:assembleDebug` 和最终 APK `assets/contracts/`、`assets/mock/` 的清单/内容，并检查 Release：`./gradlew :app:assembleRelease`。Release Bundle 内置、不依赖 Metro，必要时离线验证。
 - 可以按设备使用 `-PreactNativeArchitectures=arm64-v8a --max-workers=2` 做定向检查，但注明只覆盖该 ABI，不删默认 ABI 来掩盖链接错误，也不代替交付要求的完整构建。

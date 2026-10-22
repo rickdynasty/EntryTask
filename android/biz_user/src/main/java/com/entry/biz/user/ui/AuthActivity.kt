@@ -1,11 +1,14 @@
 package com.entry.biz.user.ui
 
 import android.os.Bundle
+import android.os.SystemClock
+import android.widget.Toast
 import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
 import com.entry.biz.user.viewmodel.UserViewModel
+import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.network.userService
 import com.entry.biz.user.repository.UserRepository
 import com.entry.biz.user.ui.navigation.AuthNavHost
@@ -25,6 +28,8 @@ class AuthActivity : BaseActivity() {
         private const val TAG = "Rick_tan:AuthActivity"
     }
 
+    private val exitPolicy = AuthExitPolicy(SystemClock::elapsedRealtime)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 认证页使用浅色背景，系统栏保持深色图标，避免白色图标不可读。
@@ -42,8 +47,7 @@ class AuthActivity : BaseActivity() {
         //使用 AndroidX OnBackPressedDispatcher 注册返回事件回调
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (BackPressHelper.hideKeyboardIfVisible(this@AuthActivity)) return
-                finish()
+                handleLoginBack()
             }
         })
 
@@ -56,7 +60,10 @@ class AuthActivity : BaseActivity() {
         setContent {
             // 3. 渲染导航宿主，并传入 ViewModel 与登录成功回调
             AuthNavHost(
-                viewModelFactory = viewModelFactory, onLoginSuccess = {
+                viewModelFactory = viewModelFactory,
+                onLoginBack = ::handleLoginBack,
+                onFormChanged = exitPolicy::reset,
+                onLoginSuccess = {
                     MLog.d(TAG, "登录成功，关闭 AuthActivity 返回首页")
                     // 只关闭认证页；singleTask 的 MainActivity 保留在栈底并在恢复时发布会话快照。
                     setResult(RESULT_OK, result)
@@ -64,4 +71,25 @@ class AuthActivity : BaseActivity() {
                 })
         }
     }
+
+    /** 未认证时返回不能关闭认证并露出首页；第一次提示，2秒内再次返回结束整个任务。 */
+    private fun handleLoginBack() {
+        if (BackPressHelper.hideKeyboardIfVisible(this)) { exitPolicy.reset(); return }
+        if (exitPolicy.shouldExit()) {
+            MLog.i(TAG, "authentication.exit.confirmed")
+            UserAuthManager.logout() // 递增epoch，拒绝尚未结束的认证请求迟到回写。
+            // finishAffinity不允许携带Activity Result；只有退出整个任务时清掉返回载荷。
+            setResult(RESULT_CANCELED)
+            finishAffinity()
+        } else {
+            MLog.i(TAG, "authentication.exit.prompted")
+            Toast.makeText(this, "再按一次返回键退出应用", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onPause() {
+        exitPolicy.reset()
+        super.onPause()
+    }
+
 }

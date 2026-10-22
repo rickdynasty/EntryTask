@@ -27,6 +27,12 @@ object UserAuthManager {
         isUserLoggedIn = true
         sessionEpoch++
     }
+    /** 只接收仍属于发起时会话的认证结果，退出任务后的迟到响应不能重新登录。 */
+    @Synchronized fun commitAuthentication(username: String, token: String, expectedEpoch: Long): Boolean {
+        if (sessionEpoch != expectedEpoch) return false
+        establishSession(username, token)
+        return true
+    }
     @Synchronized fun storageScope(): String? = if (isUserLoggedIn) userScope else null
 
     /** 原子读取登录标记和会话版本，供 Native Bridge 生成一致快照。 */

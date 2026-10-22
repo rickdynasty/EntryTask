@@ -1,6 +1,7 @@
 package com.entry.biz.user.viewmodel
 
 import androidx.lifecycle.ViewModelStore
+import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.model.ApiResponse
 import com.entry.biz.user.model.User
 import com.entry.biz.user.network.UserService
@@ -124,6 +125,33 @@ class AuthFormStateTest {
             assertFalse(vm.uiState.value.isLoading)
             assertEquals(listOf(AuthUiEffect.ShowToast(case.second)), effects)
         }
+    }
+
+    @Test fun duplicateRegistrationUsesAccountExistsToast() = runTest(dispatcher) {
+        val vm = model("duplicate", Service { ApiResponse(409, "untrusted-detail", null) })
+        val effects = mutableListOf<AuthUiEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
+        fill(vm, "demo", "test-only")
+        vm.handleIntent(AuthUiIntent.SubmitRegister)
+        runCurrent()
+        assertEquals(listOf(AuthUiEffect.ShowToast("该用户名已注册，请更换用户名或直接登录")), effects)
+        assertFalse(vm.uiState.value.isLoading)
+    }
+
+    @Test fun exitingWhileLoginIsPendingRejectsLateSessionAndSuccessEffect() = runTest(dispatcher) {
+        val response = CompletableDeferred<ApiResponse<User>>()
+        val vm = model("pending-exit", Service { response.await() })
+        val effects = mutableListOf<AuthUiEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
+        fill(vm, "test-epoch-only", "test-only")
+        vm.handleIntent(AuthUiIntent.SubmitLogin)
+        runCurrent()
+        UserAuthManager.logout() // 模拟双击退出，网络结果仍可能晚于该动作返回。
+        response.complete(ApiResponse(200, "success", User(1, "test-epoch-only", null, null, "memory-test-only")))
+        runCurrent()
+        assertFalse(UserAuthManager.isLogin())
+        assertTrue(effects.isEmpty())
+        assertFalse(vm.uiState.value.isLoading)
     }
 
 }

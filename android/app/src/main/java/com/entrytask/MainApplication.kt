@@ -87,7 +87,8 @@ class MainApplication : Application(), ReactApplication {
         // 初始化 MMKV
         StorageManager.init(this)
         getSharedPreferences("app_default_pref", MODE_PRIVATE).edit()
-            .remove("key_token").remove("mock_db_password").remove("mock_db_username").apply()
+            .remove("key_token").apply()
+        // 旧mock_reg/mock_db账户由认证拦截器在后台原子迁移；启动时不能删除已注册账户。
         NetManager.initMock()
 
         loadReactNative(this)

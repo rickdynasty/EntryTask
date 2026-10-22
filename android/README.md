@@ -17,7 +17,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 
 ## RN 宿主和运行约定
 
-当前采用 Native 提前认证 + RN 默认页面门禁：MainActivity.onCreate 经 VM/Repository 先读 Native 会话，首次游客在 RESUMED 直接拉起认证，不等待 RN；显式启用时在认证首帧提交后预热唯一 RN 引擎和Bundle，不创建业务Surface或请求首页。返回或启动失败后再挂载 RN；RN 经 Session Bridge 校准会话，默认保护业务页面，仅帮助中心公开。后续认证通过 Host Bridge 请求，展示期间重复请求合并。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。取消返回门禁，可显式重试。singleTask 重入使用流程编号及旧空结果消费隔离迟到取消，旧 Activity 清理不影响新流程。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
+当前采用 Native 提前认证 + RN 默认页面门禁：MainActivity.onCreate 经 VM/Repository 先读 Native 会话，首次游客在 RESUMED 直接拉起认证，不等待 RN；显式启用时在认证首帧提交后预热唯一 RN 引擎和Bundle，不创建业务Surface或请求首页。返回或启动失败后再挂载 RN；RN 经 Session Bridge 校准会话，默认保护业务页面，仅帮助中心公开。后续认证通过 Host Bridge 请求，展示期间重复请求合并。AuthActivity 成功设置 Activity Result 后只关闭自身；singleTask MainActivity 通过结果回调及恢复时重读 Native 会话并发布快照。登录根页先收键盘，再按2秒双击退出整个任务；注册页系统返回登录。程序性取消仍保留门禁/重试协调。singleTask 重入使用流程编号及旧空结果消费隔离迟到取消，旧 Activity 清理不影响新流程。完整边界、AppGlobals/Startup 和下载能力现状见 [Android 技术方案 V1.2](../docs/design/Android%20技术方案.md)。
 
 - 根目录 `npx react-native run-android` 是官方 CLI 开发路径；Android Studio 使用同一 `android/` 工程。
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
@@ -25,6 +25,8 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 - `MainApplication` 持有进程内唯一 ReactHost。Native Tab 切换同步给一个 RN Surface；不能在每个 Tab 或 Fragment 各自创建 RN 实例。
 - `HomeFragment.USE_REACT_NATIVE` 保留 RN 首页与 Native-only 首页两条调试路径。常规开发使用 RN 路径；切换开关只影响首页内容，不改变 RN 工程结构。
 - TurboModule TypeScript 契约位于根目录 `specs/Native*.ts`，`package.json` 的 Codegen 扫描 `specs/` 并生成 `com.entrytask.specs` 下的接口；Android Native 实现由 `EntryTaskPackage` 注册。修改契约需同步 JS adapter、Native 实现、注册与 Codegen 构建。
+
+认证账号在Native Mock中写入SP并逐账号保存加盐校验值；进程重启只清内存会话，登录经同一拦截器重读SP校验。旧mock_reg/mock_db账号按需原子迁移，不在启动时删除。详见 [认证返回与账号持久化修复](../docs/development/认证返回与账号持久化修复.md)。
 
 ## 首页 MVVM 与分步迁移
 
