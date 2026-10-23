@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -179,4 +180,49 @@ private fun AuthInput(
         colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE4DEDA),
             focusedBorderColor = BrandRed, unfocusedContainerColor = Color.White,
             focusedContainerColor = Color.White, disabledContainerColor = Color(0xFFF6F4F2)))
+}
+
+// 预览直接构造UI状态，不创建VM、不访问网络或账号存储；业务动作使用空回调。
+@Preview(name = "登录 · 初始", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = true)
+@Composable
+private fun LoginFormPreview() {
+    AuthFormContent(
+        state = AuthUiState(),
+        isRegistration = false,
+        onIntent = {},
+        onSwitchForm = {},
+    )
+}
+
+@Preview(name = "注册 · 初始", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = true)
+@Composable
+private fun RegisterFormPreview() {
+    AuthFormContent(
+        state = AuthUiState(),
+        isRegistration = true,
+        onIntent = {},
+        onSwitchForm = {},
+    )
+}
+
+@Preview(name = "登录 · 提交中", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = false)
+@Composable
+private fun LoginFormLoadingPreview() {
+    AuthFormContent(
+        state = AuthUiState(username = "preview_user", password = "preview_only", isLoading = true),
+        isRegistration = false,
+        onIntent = {},
+        onSwitchForm = {},
+    )
+}
+
+@Preview(name = "注册 · 提交中", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = true)
+@Composable
+private fun RegisterFormLoadingPreview() {
+    AuthFormContent(
+        state = AuthUiState(username = "preview_user", password = "preview_only", isLoading = true),
+        isRegistration = true,
+        onIntent = {},
+        onSwitchForm = {},
+    )
 }

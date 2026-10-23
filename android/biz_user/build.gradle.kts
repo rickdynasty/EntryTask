@@ -44,6 +44,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    // Android Studio预览渲染工具；沿用Compose BOM版本，仅用于Debug。
+    debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
 
