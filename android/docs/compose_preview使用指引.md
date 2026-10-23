@@ -64,13 +64,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.entry.biz.user.ui.contract.AuthUiState
 
 /**
- * 进阶 1：深色模式与全面屏系统 UI 预览
+ * 进阶 1：系统 UI 预览（深色环境需额外设置 uiMode）
  */
 @Preview(
-    name = "2. 沉浸式与深色模式",
+    name = "2. 系统栏预览",
     showBackground = true,
     showSystemUi = true, // 显示状态栏和导航栏，检查 WindowInsets/imePadding
-    backgroundColor = 0xFF121212
+    backgroundColor = 0xFFFFFFFF
 )
 @Composable
 private fun AuthFormContentDarkPreview() {
@@ -219,3 +219,26 @@ private fun AuthFormContentMultiStateBatchPreview(
    * 确保 `@PreviewParameter(XxxProvider::class)` 括号中的类型与被调用的参数类型完全匹配。
 4. **代码运行时异常**：
    * 若 Composable 内部尝试直接获取未初始化的 ViewModel 或进行复杂的网络/数据库初始化，会导致预览渲染失败。请保持纯 UI 组件（如 `AuthFormContent`）的无状态（Stateless）特性。
+
+## 五、当前工程的进阶预览与刷新
+
+源码入口：[AuthFormContent.kt](../biz_user/src/main/java/com/entry/biz/user/ui/AuthFormContent.kt)。前面的代码用于解释写法，当前实现以源码为准，无需重复粘贴。
+
+- **认证 · 状态**：组合注解 `AuthFormThemePreviews` × `AuthFormProvider`，生成登录/注册的初始、已输入、提交中状态，在浅色/深色系统环境各预览一次，共12项。
+- **认证 · 适配**：`AuthFormDevicePreviews` 分别用于登录和注册，覆盖手机系统栏、800×1280dp平板、320×640dp小屏及1.5倍字体，共6项。按预览组筛选，减少同时渲染的开销。
+- Provider只提供合成数据，回调为空，不创建ViewModel、不发请求、不读写账号。显隐按钮是组件内部状态，可在Interactive预览中查看；提交和切页不会执行业务。
+- `AuthFormContent` 内部显式使用 `lightColorScheme`，因此深色系统环境仍显示浅色表单。这是检查环境兼容性，不代表已实现深色主题。`backgroundColor` 只改变预览背景，不能启用深色主题；系统主题参数为 `uiMode`。
+- `showSystemUi` 用于辅助检查系统栏和边距；IME、Activity系统栏图标配置及真实生命周期仍需在设备验证。
+
+### “Out of date”是什么意思
+
+截图的英文是 **Out of date**（预览可能过期），不是“数据用完”。它表示IDE当前显示的预览可能没有反映最新源码或构建结果；仅凭该提示不能判断存在运行时错误，也不能靠增加`@Preview`注解消除。
+
+按顺序处理：
+
+1. 保存文件；若修改过Gradle依赖，先完成Gradle同步，并选择Debug构建变体。
+2. 点击预览工具栏右侧的绿色循环箭头，刷新/构建预览；等待构建和渲染结束。IDE版本不同，动作名称可能为Refresh或Build & Refresh。
+3. 若仍提示过期，查看Build窗口及预览的错误详情，先处理首个编译或渲染异常。可在仓库`android/`目录执行 `./gradlew :biz_user:assembleDebug` 验证模块编译，再回IDE刷新。
+4. 本工程已有`ui-tooling-preview`与Debug专用`ui-tooling`依赖。不要重复添加版本，也不要因为过期提示升级Compose、清应用数据或修改认证流程。
+
+命令行构建成功只证明代码可编译，不会主动刷新Android Studio的预览面板。IDE实际渲染成功需要在Split/Design中确认。

@@ -1,5 +1,6 @@
 package com.entry.biz.user.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +29,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -183,46 +186,102 @@ private fun AuthInput(
 }
 
 // 预览直接构造UI状态，不创建VM、不访问网络或账号存储；业务动作使用空回调。
-@Preview(name = "登录 · 初始", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = true)
-@Composable
-private fun LoginFormPreview() {
-    AuthFormContent(
-        state = AuthUiState(),
-        isRegistration = false,
-        onIntent = {},
-        onSwitchForm = {},
+@Preview(
+    name = "浅色环境",
+    group = "认证 · 状态",
+    widthDp = 360, heightDp = 800, locale = "zh-rCN",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
+@Preview(
+    name = "深色环境（表单固定浅色）",
+    group = "认证 · 状态",
+    widthDp = 360, heightDp = 800, locale = "zh-rCN",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+private annotation class AuthFormThemePreviews
+
+// Provider需供预览工具实例化；仅使用合成数据，不连接认证依赖。
+
+/** 预览测试数据卡片 */
+internal data class AuthFormPreviewData(
+    val title: String,
+    val state: AuthUiState,
+    val isRegistration: Boolean
+) {
+    // 预览项仅展示场景名称，避免默认toString把密码字段带入标签。
+    override fun toString(): String = title
+}
+
+/** 登录/注册各覆盖空表单、已输入、提交中三种视觉状态。 */
+internal class AuthFormProvider : PreviewParameterProvider<AuthFormPreviewData> {
+    override val values: Sequence<AuthFormPreviewData> = sequenceOf(
+        AuthFormPreviewData(
+            title = "登录-初始空状态",
+            state = AuthUiState(),
+            isRegistration = false
+        ),
+        AuthFormPreviewData(
+            title = "登录-已输入状态",
+            state = AuthUiState(username = "preview_user", password = "preview_only"),
+            isRegistration = false
+        ),
+        AuthFormPreviewData(
+            title = "登录-正在提交中",
+            state = AuthUiState(username = "preview_user", password = "preview_only", isLoading = true),
+            isRegistration = false
+        ),
+        AuthFormPreviewData(
+            title = "注册-初始状态",
+            state = AuthUiState(),
+            isRegistration = true
+        ),
+        AuthFormPreviewData(
+            title = "注册-已输入状态",
+            state = AuthUiState(username = "preview_user", password = "preview_only"),
+            isRegistration = true
+        ),
+        AuthFormPreviewData(
+            title = "注册-正在提交中",
+            state = AuthUiState(username = "preview_user", password = "preview_only", isLoading = true),
+            isRegistration = true
+        )
     )
 }
 
-@Preview(name = "注册 · 初始", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = true)
+// 两种系统主题 × 六种表单状态；AuthFormContent内部仍沿用产品的浅色配色。
+@AuthFormThemePreviews
 @Composable
-private fun RegisterFormPreview() {
+private fun AuthFormContentMultiStateBatchPreview(
+    @PreviewParameter(AuthFormProvider::class) previewData: AuthFormPreviewData
+) {
     AuthFormContent(
-        state = AuthUiState(),
-        isRegistration = true,
+        state = previewData.state,
+        isRegistration = previewData.isRegistration,
         onIntent = {},
-        onSwitchForm = {},
+        onSwitchForm = {}
     )
 }
 
-@Preview(name = "登录 · 提交中", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = false)
+
+/** 环境适配单独分组，仅渲染初始态，避免状态与设备组合造成过多预览。 */
+@Preview(name = "手机 · 系统栏", group = "认证 · 适配", widthDp = 360, heightDp = 800,
+    locale = "zh-rCN", showSystemUi = true, showBackground = true)
+@Preview(name = "平板 · 居中限宽", group = "认证 · 适配", widthDp = 800, heightDp = 1280,
+    locale = "zh-rCN", showBackground = true)
+@Preview(name = "小屏 · 大字体", group = "认证 · 适配", widthDp = 320, heightDp = 640,
+    fontScale = 1.5f, locale = "zh-rCN", showBackground = true)
+private annotation class AuthFormDevicePreviews
+
+@AuthFormDevicePreviews
 @Composable
-private fun LoginFormLoadingPreview() {
-    AuthFormContent(
-        state = AuthUiState(username = "preview_user", password = "preview_only", isLoading = true),
-        isRegistration = false,
-        onIntent = {},
-        onSwitchForm = {},
-    )
+private fun LoginFormDevicePreview() {
+    AuthFormContent(state = AuthUiState(), isRegistration = false, onIntent = {}, onSwitchForm = {})
 }
 
-@Preview(name = "注册 · 提交中", group = "认证表单", widthDp = 360, heightDp = 800, locale = "zh-rCN", showBackground = true)
+@AuthFormDevicePreviews
 @Composable
-private fun RegisterFormLoadingPreview() {
-    AuthFormContent(
-        state = AuthUiState(username = "preview_user", password = "preview_only", isLoading = true),
-        isRegistration = true,
-        onIntent = {},
-        onSwitchForm = {},
-    )
+private fun RegisterFormDevicePreview() {
+    AuthFormContent(state = AuthUiState(), isRegistration = true, onIntent = {}, onSwitchForm = {})
 }
