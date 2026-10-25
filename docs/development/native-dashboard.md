@@ -1,5 +1,8 @@
 # Android 双页面模式与 Native 四根页
 
+> 宿主命名已更新：RootContentHostFragment位于app的shell/host目录，承载四Tab而非仅首页；旧文本占位Fragment已删除。类名恢复兼容及清理范围见[重命名记录](根内容宿主重命名与清理.md)。
+
+
 本次需求新增 Native 首页、财富、会员、我的四个根页，前版曾基于旧PRD实现XML；当前按`prd/EntryTask UI PRD.docx`与`prd/UI原型/*.jpg`必做区域，双端同步改版。RN页面及其子页继续保留；iOS不变。原型中的第五个“借钱”Tab仍不增加。
 
 ## 启动方式
@@ -11,7 +14,7 @@
 | Android目录 `./gradlew :app:installDebug` | 无来源属性 | Native Compose |
 | 显式参数 `-PentrytaskUiMode=rn` / `native` | 最高优先级 | 指定模式 |
 
-配置在`android/app/build.gradle`计算，并写入`BuildConfig.USE_REACT_NATIVE_PAGES`；`HomeFragment.usesReactNative()`统一读取。IDE标记`android.injected.invoked.from.ide=true`优先于CLI端口属性。显式覆盖值只允许`rn`或`native`，错误值构建失败。
+配置在`android/app/build.gradle`计算，并写入`BuildConfig.USE_REACT_NATIVE_PAGES`；`RootContentHostFragment.usesReactNative()`统一读取。IDE标记`android.injected.invoked.from.ide=true`优先于CLI端口属性。显式覆盖值只允许`rn`或`native`，错误值构建失败。
 
 这区分的是**生成APK的构建方式**。同一APK安装后从桌面重开仍保持原模式；不是运行时检测是哪个程序发起启动。切换方式必须重新构建、覆盖安装，不能只Reload。当前CLI 20.1.0的默认构建会注入端口属性；`--binary-path`直接安装现有APK不重新选择模式。不要在`gradle.properties`中永久保存`reactNativeDevServerPort`或覆盖参数，否则会改变来源识别。未来升级CLI需复核本约定。
 
@@ -28,7 +31,7 @@ RN与Android四页均按新版16项必做区域组装。Android业务页为Compo
 ### 模块与数据流
 
 ```text
-app / HomeFragment（组装、Shell状态订阅、平台弹层）
+app / RootContentHostFragment（组装、Shell状态订阅、平台弹层）
   → biz_dashboard / DashboardView（XML渲染、动作上报）
   → DashboardViewModel（Tab、加载、错误、资产显隐、分类）
   → domain / DashboardRepository（类型化投影）
@@ -37,7 +40,7 @@ app / HomeFragment（组装、Shell状态订阅、平台弹层）
   → PrototypeMockInterceptor → APK内mock/分API JSON
 ```
 
-ShellRepository是唯一根Tab和会话状态源，Native页面不另建底栏状态。MainActivity仍在挂载内容前认证，RN模式继续执行RN门禁。Native内容由HomeFragment在viewLifecycleOwner的STARTED区间收集；无会话清空页面数据，重试走现有foreground认证协调器。对话框随View销毁或会话失效关闭。
+ShellRepository是唯一根Tab和会话状态源，Native页面不另建底栏状态。MainActivity仍在挂载内容前认证，RN模式继续执行RN门禁。Native内容由RootContentHostFragment在viewLifecycleOwner的STARTED区间收集；无会话清空页面数据，重试走现有foreground认证协调器。对话框随View销毁或会话失效关闭。
 
 Repository只读manifest路由配置，响应必须经过OkHttp请求及Mock拦截器，普通随机延迟1000～3000ms沿用现有实现。加载使用可取消Call，失败不切换通路；校验会话epoch和scope，VM另以请求代次拒绝旧响应。失败刷新保留旧内容，首次失败展示重试。资产默认隐藏，会话变化恢复隐藏；不新增凭证或持久查询缓存。
 

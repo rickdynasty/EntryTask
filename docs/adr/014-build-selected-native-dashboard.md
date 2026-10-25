@@ -4,7 +4,7 @@
 
 ## 背景
 
-此前四域页面由RN实现、HomeFragment用源码常量保留Native占位。新增要求是官方CLI命令直接运行RN，而Android Studio运行XML Native原型，认证和根底栏继续共用。
+此前四域页面由RN实现、RootContentHostFragment用源码常量保留Native占位。新增要求是官方CLI命令直接运行RN，而Android Studio运行XML Native原型，认证和根底栏继续共用。
 
 ## 决策
 

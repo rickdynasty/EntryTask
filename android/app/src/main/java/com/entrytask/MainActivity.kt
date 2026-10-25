@@ -18,14 +18,14 @@ import com.entry.biz.user.ui.AuthActivity
 import com.entry.lib.base.mvvm.BaseActivity
 import com.entry.lib.log.MLog
 import com.entry.lib.ui.BackPressHelper
-import com.entrytask.home.HomeFragment
 import com.entrytask.shell.domain.RootBackAction
+import com.entrytask.shell.host.RootContentFragmentFactory
+import com.entrytask.shell.host.RootContentHostFragment
 import com.entrytask.shell.host.HostFragmentHandle
 import com.entrytask.shell.presentation.AuthLaunchState
 import com.entrytask.shell.presentation.MainShellView
 import com.entrytask.shell.presentation.MainViewModel
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
-import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import kotlinx.coroutines.launch
 
 /** 静态宿主槽与Compose底栏的平台执行入口；状态、认证防重和根返回策略由 MainViewModel 管理。 */
@@ -57,12 +57,12 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
+        supportFragmentManager.fragmentFactory = RootContentFragmentFactory()
         super.onCreate(savedInstanceState)
         legacyTab = savedInstanceState?.takeIf { it.containsKey("root_tab") }?.getInt("root_tab")
         setContentView(R.layout.activity_home)
         // 框架可能早于门禁恢复旧Fragment；它已属于真实页面需求，不能按无Surface预热隔离异常。
-        if (HomeFragment.usesReactNative() && supportFragmentManager.findFragmentByTag(ROOT_TAG) != null) {
+        if (RootContentHostFragment.usesReactNative() && supportFragmentManager.findFragmentByTag(ROOT_TAG) != null) {
             (application as MainApplication).rnWarmup.surfaceWillAttach()
         }
         viewModel.onHostCreated()
@@ -127,9 +127,9 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     /** 复用框架恢复的根片段；稳定 tag/容器保持原 XML 版本的恢复约定。 */
     private fun bindRootHost() {
         val restored = supportFragmentManager.findFragmentByTag(ROOT_TAG)
-        check(restored == null || restored is HomeFragment)
-        if (HomeFragment.usesReactNative()) (application as MainApplication).rnWarmup.surfaceWillAttach()
-        val host = restored as? HomeFragment ?: HomeFragment().also {
+        check(restored == null || restored is RootContentHostFragment)
+        if (RootContentHostFragment.usesReactNative()) (application as MainApplication).rnWarmup.surfaceWillAttach()
+        val host = restored as? RootContentHostFragment ?: RootContentHostFragment().also {
             check(!supportFragmentManager.isStateSaved)
             supportFragmentManager.beginTransaction().add(R.id.fragmentContainer, it, ROOT_TAG).commitNow()
         }

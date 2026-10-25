@@ -82,7 +82,7 @@ P-02 在 PRD 中名为 `AssetAndIncomeCard`，但视觉稿实际由数张独立�
 
 | 当前源码证据 | 差距 | 方案处理 |
 | --- | --- | --- |
-| `HomeFragment` 依据 BuildConfig 选择 RN 或 Native | 双模式已有，不能为新版重建第二个运行时 | 保留模式入口及安装身份 |
+| `RootContentHostFragment` 依据 BuildConfig 选择 RN 或 Native | 双模式已有，不能为新版重建第二个运行时 | 保留模式入口及安装身份 |
 | `MainActivity` + `MainShellView` + XML 外壳 | 原计划延期的 Compose 阶段现在成为新版要求 | 单独迁移 Shell View 层，保留认证/导航事实源 |
 | `biz_dashboard/ui/DashboardView.kt`、四份 XML | 区域与新版不同，会员仍有旧欢迎卡、营销拼图 | 以四个 Compose Screen 替代 Native 渲染路径 |
 | `BankComponents.kt` | 营销卡复用过宽，身份卡、资产卡和权益不是同一种结构 | 复用视觉原语，业务区域分别封装 |
@@ -293,7 +293,7 @@ type AssetPrivacyCardProps = Readonly<{
 
 ```text
 android/app
-  MainActivity / HomeFragment              平台生命周期、模式选择与组装
+  MainActivity / RootContentHostFragment              平台生命周期、模式选择与组装
   shell/presentation/compose/              RootTabBar、BottomChrome与Compose绑定
   shell/host/                              静态容器/恢复与ShellInsetsAdapter
   shell/domain + data + host/              既有Tab/会话/认证/返回状态机
@@ -409,7 +409,7 @@ RN 继续保留默认受保护页面门禁；未登录经 HostPort 发 authentic
 MainActivity singleTask
   activity_home.xml（仅静态宿主结构，不含银行业务UI）
     R.id.fragmentContainer：稳定FrameLayout
-      HomeFragment，tag仍为 entrytask-root-hub
+      RootContentHostFragment，tag仍为 entrytask-root-hub
         RN模式：原ReactFragment / EntryTask Surface
         Native模式：ComposeView / NativeDashboardRoute
     bottomChrome：保留承载槽，内部ComposeView绘制RootTabBar及分割线
@@ -421,10 +421,10 @@ MainActivity仍在原有时机setContentView，使稳定容器在Fragment视图�
 
 ### 6.2 必须保留的恢复约定
 
-1. `RNScreensFragmentFactory`仍在`super.onCreate`前配置。
+1. `RootContentFragmentFactory`在`super.onCreate`前配置，负责旧宿主类名恢复映射，并委托`RNScreensFragmentFactory`保留RN Screens恢复策略。
 2. 容器继续使用`R.id.fragmentContainer`，外层`entrytask-root-hub`，内层`R.id.rn_content` / `entrytask-rn-root`；不使用临时生成ID替代恢复标识。
 3. Fragment查找、复用/挂载仍由Activity平台适配器在生命周期允许且未保存状态时执行，不在Composable body或每次重组中`add/replace`。
-4. Compose重组、切根Tab、认证往返均不创建第二个HomeFragment或ReactHost。不通过state loss提交掩盖时序问题。
+4. Compose重组、切根Tab、认证往返均不创建第二个RootContentHostFragment或ReactHost。不通过state loss提交掩盖时序问题。
 5. Native ComposeView使用`DisposeOnViewTreeLifecycleDestroyed`，底栏ComposeView随宿主View树生命周期清理；两处ComposeView设置不同的稳定资源ID以支持保存恢复。页面VM跨View重建保留，销毁Fragment时取消所属工作。该互操作和释放策略见[Android官方ComposeView说明](https://developer.android.com/develop/ui/compose/migrate/interoperability-apis/compose-in-views)。
 6. 保留BuildConfig模式选择、包名`com.entrytask`、组件名`EntryTask`、入口`src/index.js`、RN插件和Codegen。
 7. 切换APK模式可能遇到旧SavedState恢复。对现有Fragment按固定tag校验/复用，按当前构建渲染器恢复View；旧Native控件状态不作为新Compose业务数据来源，不用删除应用数据解决。
@@ -612,7 +612,7 @@ RN 通过签到 Repository 调用同一 apiId 和生成校验器；写后由资�
 | --- | --- |
 | MainViewModel、ShellRepository、认证状态机、ForegroundHostConnection | 复用；仅提供必要的Compose平台适配，不重写已验证业务语义 |
 | XML MainShellView / BottomTabBar | 将绘制层替换成Compose底栏；提取唯一Insets适配，保留静态宿主容器及状态/点击契约 |
-| HomeFragment、BaseFragment的RN挂载路径 | 保留注册名、tag和单实例；Native视图分支改ComposeView |
+| RootContentHostFragment、BaseFragment的RN挂载路径 | 保留注册名、tag和单实例；Native视图分支改ComposeView |
 | DashboardView及四份Native业务XML | 新版Compose验收后退出Native渲染路径，任务内清理不再使用的专用文件；不删除其他页面使用的布局 |
 | BankComponents里的通用绘制素材/asset映射 | 可作为资源参考；不直接把旧View包装成新版业务组件 |
 | DashboardViewModel / DashboardPage / MockDashboardRepository | 按四域拆分；复用可取消请求、DTO格式化、会话校验思路，不保留万能状态/整页一锅失败模式 |

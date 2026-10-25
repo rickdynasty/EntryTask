@@ -4,7 +4,7 @@ import android.app.Application
 import android.app.ActivityManager
 import android.content.ComponentCallbacks2
 import android.os.SystemClock
-import com.entrytask.home.HomeFragment
+import com.entrytask.shell.host.RootContentHostFragment
 import com.entrytask.shell.runtime.AuthFrameTiming
 import com.entrytask.shell.runtime.AuthWarmupLifecycle
 import com.entrytask.shell.runtime.RnWarmupController
@@ -108,7 +108,7 @@ class MainApplication : Application(), ReactApplication {
 
         loadReactNative(this)
         registerActivityLifecycleCallbacks(AuthWarmupLifecycle(authFrameTiming) {
-            if (HomeFragment.usesReactNative()) {
+            if (RootContentHostFragment.usesReactNative()) {
                 val lowRam = getSystemService(ActivityManager::class.java).isLowRamDevice
                 rnWarmup.afterAuthFrame(lowRam || memoryPressure)
             }

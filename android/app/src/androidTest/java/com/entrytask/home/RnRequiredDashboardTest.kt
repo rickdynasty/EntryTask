@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import com.entrytask.shell.host.RootContentHostFragment
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -130,7 +131,7 @@ class RnRequiredDashboardTest {
                     scenario.onActivity { activity ->
                         val host =
                             activity.supportFragmentManager.findFragmentByTag(MainActivity.ROOT_TAG)
-                                as HomeFragment
+                                as RootContentHostFragment
                         assertNotNull(
                             host.childFragmentManager.findFragmentByTag("entrytask-rn-root")
                         )

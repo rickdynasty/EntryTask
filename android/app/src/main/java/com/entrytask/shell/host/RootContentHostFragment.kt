@@ -1,4 +1,4 @@
-package com.entrytask.home
+package com.entrytask.shell.host
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -27,8 +27,8 @@ import com.entrytask.R
 import com.entrytask.base.BaseFragment
 import kotlinx.coroutines.launch
 
-/** 稳定根Fragment：CLI复用唯一RN Surface，IDE分支绘制四个Compose页面。 */
-class HomeFragment : BaseFragment() {
+/** 四Tab共用的稳定内容宿主：负责模式选择与组装，不代表首页业务页面。 */
+class RootContentHostFragment : BaseFragment() {
     companion object {
         fun usesReactNative(): Boolean = BuildConfig.USE_REACT_NATIVE_PAGES
     }

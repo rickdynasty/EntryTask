@@ -10,7 +10,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 
 | 模块 | 当前职责 |
 | --- | --- |
-| `app` | 应用入口与组装、唯一 ReactHost、HomeFragment/RN Surface、Native 根 Tab、Codegen Bridge 适配、Mock/contract 资源打包 |
+| `app` | 应用入口与组装、唯一 ReactHost、RootContentHostFragment/RN Surface、Native 根 Tab、Codegen Bridge 适配、Mock/contract 资源打包 |
 | `biz_user` | Native 登录注册 UI、用户业务 MVVM、Repository 与会话实现 |
 | `biz_dashboard` | Compose四根页、可复用组件、MVVM及Mock数据适配 |
 | `lib_base` | AppGlobals/AndroidX Startup 应用信息代理、基础能力及现有 UI/MVVM 封装 |
@@ -28,14 +28,14 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
 - React Native JS 入口为仓库根下 `src/index.js`。Gradle RN 插件显式配置 `../../src/index.js`，Metro 与 Codegen 配置在仓库根目录。
 - `MainApplication` 持有进程内唯一 ReactHost。Native Tab 切换同步给一个 RN Surface；不能在每个 Tab 或 Fragment 各自创建 RN 实例。
-- `HomeFragment.usesReactNative()`读取构建期配置：官方CLI使用RN页面，Android Studio使用Compose Native四根页。显式覆盖及限制见文末双页面模式说明。
+- `RootContentHostFragment.usesReactNative()`读取构建期配置：官方CLI使用RN页面，Android Studio使用Compose Native四根页。显式覆盖及限制见文末双页面模式说明。
 - TurboModule TypeScript 契约位于根目录 `specs/Native*.ts`，`package.json` 的 Codegen 扫描 `specs/` 并生成 `com.entrytask.specs` 下的接口；Android Native 实现由 `EntryTaskPackage` 注册。修改契约需同步 JS adapter、Native 实现、注册与 Codegen 构建。
 
 认证账号在Native Mock中通过lib_storage的Room封装持久化，注册和登录读取同一个entrytask_auth.db；进程重启只清内存会话。旧SP加盐记录及mock_reg/mock_db完整旧键对在后台按需迁移，先提交Room、再清理对应SP，不清其他偏好。详见 [Room认证存储实施说明](../docs/development/Room认证存储实施说明.md) 和 [lib_storage用法](lib_storage/README.md)。
 
 ## 首页 MVVM 与分步迁移
 
-MainActivity.setContentView保留activity_home.xml的稳定宿主槽，MainShellView使用Compose底栏渲染MainViewModel的只读MainUiState；Native四页通过HomeFragment的ComposeView实现。Activity仍在STARTED区间收集状态，在RESUMED区间执行认证展示。认证Compose页面保持既有流程。
+MainActivity.setContentView保留activity_home.xml的稳定宿主槽，MainShellView使用Compose底栏渲染MainViewModel的只读MainUiState；Native四页通过RootContentHostFragment的ComposeView实现。Activity仍在STARTED区间收集状态，在RESUMED区间执行认证展示。认证Compose页面保持既有流程。
 
 ```text
 Compose点击 → MainViewModel → ShellRepository ← ShellBridgeAdapter ← HostModule ← RN
@@ -45,7 +45,7 @@ Compose点击 → MainViewModel → ShellRepository ← ShellBridgeAdapter ← H
 
 - `app/.../shell/domain` 定义 Shell/会话契约和返回策略；`data` 适配 Native 会话；`presentation` 放 VM 和Compose渲染；`host` 管宿主句柄与前台端点；`di/ShellGraph` 在 Application 组装。
 - Repository 是 Tab/depth/revision 唯一来源，UserAuthManager 是会话权威。BottomTabBar 点击只上报动作，选中外观由 UiState 回写。
-- MainActivity 复用 `entrytask-root-hub` 对应的 HomeFragment；首次认证返回/失败后不存在才添加（系统恢复既有片段仍按框架时序），内层保持 `entrytask-rn-root` / `R.id.rn_content`，Tab 与认证不替换宿主。
+- MainActivity 复用 `entrytask-root-hub` 对应的 RootContentHostFragment；首次认证返回/失败后不存在才添加（系统恢复既有片段仍按框架时序），内层保持 `entrytask-rn-root` / `R.id.rn_content`，Tab 与认证不替换宿主。
 - XML 根预留系统底部安全区，RN 容器预留顶部/侧边，RN 按裁剪后的视口计算剩余 Insets；游客/子页隐藏分割线与底栏，始终保留 XML 内容槽，首次认证结束后挂载 RN 门禁容器。
 - 认证展示使用 VM 防重状态、前台端点和 Activity Result；结果通知后重读 Native 会话，不根据 RESULT_OK 直接设置登录。
 - 返回路径为 IME → RN 子栈 → Native 根 Tab → 首页500ms双击退出。深度冲突先同步，以 RN 实际栈纠正。

@@ -19,7 +19,7 @@ npx react-native run-android
 
 2026-10-19 登录基线：冷启动先通过 NativeSession Bridge 读取 Native 内存会话。未登录时 RN 不挂载首页或任何业务子页，并经 NativeHost Bridge 拉起认证；MainActivity 保持在栈内，登录成功只关闭 AuthActivity，宿主恢复后发布快照并放行 RN 首页。取消认证停留在登录门禁，可显式重试。会话仅进程内保存，杀进程后重新认证；当前使用本地注册账号。详见 [登录门禁 ADR](../adr/011-required-native-authentication.md)。
 
-Android Studio与CLI使用同一`com.entrytask`。官方CLI构建挂载RN，Android Studio构建挂载XML Native四根页；由`HomeFragment.usesReactNative()`读取BuildConfig选择，常规开发无需修改源码常量。显式参数、APK模式和验证方法见[双页面模式](native-dashboard.md)。
+Android Studio与CLI使用同一`com.entrytask`。官方CLI构建挂载RN，Android Studio构建挂载Compose Native四根页；由`RootContentHostFragment.usesReactNative()`读取BuildConfig选择，常规开发无需修改源码常量。显式参数、APK模式和验证方法见[双页面模式](native-dashboard.md)。
 
 ## 入口与宿主
 
@@ -33,7 +33,7 @@ Android Studio与CLI使用同一`com.entrytask`。官方CLI构建挂载RN，Andr
 | Codegen | `specs/Native*.ts`、`jsSrcsDir=specs`、`com.entrytask.specs` |
 | Host 运行契约 | `contracts/bridge/runtime.json`，版本1.1；增加宿主快照、事件及受控命令 |
 
-MainApplication 的唯一 ReactHost → MainActivity 的一个 HomeFragment → 一个 ReactFragment / RootHub Surface。四个 Native Tab 只改变 ShellRepository 选中状态（XML/VM 与 Bridge 共用），再由 `onHostEvent` 通知 RN；不创建四个 RN Fragment。首次 bootstrap 返回完整 Shell 快照，事件带递增 revision 以丢弃旧消息。
+MainApplication 的唯一 ReactHost → MainActivity 的一个 RootContentHostFragment → 一个 ReactFragment / RootHub Surface。四个 Native Tab 只改变 ShellRepository 选中状态（XML/VM 与 Bridge 共用），再由 `onHostEvent` 通知 RN；不创建四个 RN Fragment。首次 bootstrap 返回完整 Shell 快照，事件带递增 revision 以丢弃旧消息。
 
 RN 根页首次访问才挂载，切 Tab 后保留已访问根页的滚动和分段，暂停非活跃查询。React Navigation native-stack 负责公共子页；RN 上报深度，Native 隐藏/恢复底栏。系统返回优先子页栈，其次回首页，再走原有退出提示。
 

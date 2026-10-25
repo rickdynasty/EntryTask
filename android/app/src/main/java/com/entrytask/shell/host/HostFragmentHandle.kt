@@ -1,12 +1,11 @@
 package com.entrytask.shell.host
 
-import com.entrytask.home.HomeFragment
 import com.facebook.react.ReactFragment
 
 /** Activity/View 作用域的当前宿主句柄，不进入 VM 或进程单例。 */
 class HostFragmentHandle {
-    private var fragment: HomeFragment? = null
-    fun bind(value: HomeFragment) { fragment = value }
+    private var fragment: RootContentHostFragment? = null
+    fun bind(value: RootContentHostFragment) { fragment = value }
     fun clear() { fragment = null }
     fun dispatchBack(): Boolean {
         val host = fragment?.takeIf { it.isAdded && it.isResumed } ?: return false

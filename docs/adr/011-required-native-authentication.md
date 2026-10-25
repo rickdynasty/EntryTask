@@ -10,7 +10,7 @@
 
 ## 决策
 
-1. MainActivity.onCreate → MainViewModel.onHostCreated → ShellRepository.refreshSession 读取 Native 内存权威；初次游客产生 Requested。Activity 仅在 RESUMED 确认并启动 AuthActivity。首次认证不经过 Bridge，也不创建新的 HomeFragment/ReactFragment。
+1. MainActivity.onCreate → MainViewModel.onHostCreated → ShellRepository.refreshSession 读取 Native 内存权威；初次游客产生 Requested。Activity 仅在 RESUMED 确认并启动 AuthActivity。首次认证不经过 Bridge，也不创建新的 RootContentHostFragment/ReactFragment。
 2. 首次认证返回或启动失败后，允许挂载唯一 RN Surface；成功进入业务，取消显示门禁和帮助入口。已有 Fragment 按稳定 tag 恢复复用，不主动拆除。系统恢复的片段可能早于校验重建，因此 RN 页面门禁始终独立生效。
 3. onResume 每次校准会话，不无条件发起认证。Requested/InFlight/Failed/Canceled 与首次检查标记、流程序号保存于 SavedStateHandle，只表示 UI 协调，不持久化登录事实。取消不自动重弹，手动重试建立新流程。已认证的受保护页面失去会话时，RN 请求认证；公开帮助页不会因此强制登录。
 4. RN 导航容器可在游客态存在。RootRoute 在业务模型创建前门禁；DetailRoute 通过 routeAccess.ts 的集中策略默认鉴权，仅 helpCenter 公开。历史 Target.requiresAuth=false 不能绕过页面策略。受保护子页进入时经 HostPort/Bridge 请求一次认证，取消后停留门禁，成功后依 Native 会话放行原目标；不自动重放写操作。

@@ -1,5 +1,8 @@
 # RN 引擎预热实施全过程与变更记录
 
+> 文中宿主类名/源码链接已跟随本次HomeFragment→RootContentHostFragment重命名更新，历史执行命令和验证结论不变。
+
+
 记录日期：2026-10-21。对应任务：第二步“RN 引擎预热并验证性能”。
 
 实现基线为 `4518d2c`（第一步：Native 提前认证、RN 默认页面门禁及取消/重入协调），第二步完成提交为 `85af06c9876dd16213e6b0f5ebb35aa4b733661e`，提交说明为“RN 引擎预热”，共18个文件、677行新增、12行删除。本文是该实现与实验的补充记录，不属于该提交原有内容。
@@ -31,7 +34,7 @@
 
 ### 2.1 修改前核查
 
-先检查 Git 状态与根、Android、RN 协作规则，再阅读 MainApplication、MainActivity、HomeFragment、认证 Activity、宿主协调以及入口组装代码。重点确认：当前 Host 的所有权、认证后何时挂载根 Fragment、入口求值是否提前创建业务依赖，以及恢复 Fragment 的路径。
+先检查 Git 状态与根、Android、RN 协作规则，再阅读 MainApplication、MainActivity、RootContentHostFragment、认证 Activity、宿主协调以及入口组装代码。重点确认：当前 Host 的所有权、认证后何时挂载根 Fragment、入口求值是否提前创建业务依赖，以及恢复 Fragment 的路径。
 
 同时检查安装版本 RN 的 `ReactHost`、`ReactHostImpl`、`DefaultReactHost`、`TaskInterface` 实现与 Android 帧提交接口，得到以下设计依据：
 
@@ -95,7 +98,7 @@ sequenceDiagram
 2. 懒加载 `rnWarmup`，注入开关、时钟、日志、实际启动引擎的适配函数。
 3. 适配函数调用现有 `reactHost.start()`，把公开任务状态映射为 `READY/FAILED/CANCELED`；未完成返回空状态。
 4. `onCreate()` 保留既有日志、存储、网络和 `loadReactNative(this)`，随后注册认证生命周期观察器。注册观察器本身不会调用 `reactHost.start()`。
-5. 回调先检查 `HomeFragment.usesReactNative()`；Native-only 路径不预热。
+5. 回调先检查 `RootContentHostFragment.usesReactNative()`；Native-only 路径不预热。
 6. 判断 `ActivityManager.isLowRamDevice` 与进程已观察到的内存压力，传给控制器。
 7. `onLowMemory`、`onTrimMemory` 记录压力；`TRIM_MEMORY_UI_HIDDEN` 只表示后台，不计为内存不足。标记在该进程内保持，不主动销毁已启动的引擎。
 
@@ -133,7 +136,7 @@ READY 表示 RN 公开 start 任务完成，实例初始化、Bundle 已调度�
 
 ### 3.4 真实页面接管与失败隔离
 
-[MainActivity.kt](../../android/app/src/main/java/com/entrytask/MainActivity.kt) 的 `bindRootHost()` 在创建或复用 HomeFragment 之前调用 `surfaceWillAttach()`。另外 `onCreate()` 在设置布局后检查框架是否已恢复根 Fragment；存在则立即标记真实页面需求，避免恢复路径仍被当成“无 Surface 预热”。
+[MainActivity.kt](../../android/app/src/main/java/com/entrytask/MainActivity.kt) 的 `bindRootHost()` 在创建或复用 RootContentHostFragment 之前调用 `surfaceWillAttach()`。另外 `onCreate()` 在设置布局后检查框架是否已恢复根 Fragment；存在则立即标记真实页面需求，避免恢复路径仍被当成“无 Surface 预热”。
 
 `MainApplication.reactHost` 的异常回调只有在 `attempted && !surfaceRequested` 时隔离可选预热异常，记录 `RN_PRELOAD_FAILED` 和异常类名。真实页面接管后重新抛出，保持原宿主错误语义。控制器不自行实现引擎销毁/重建，由 RN 框架处理失败实例；这不构成对所有故障可恢复的承诺。
 
@@ -357,7 +360,7 @@ adb -s emulator-5554 logcat -d -s EntryTask.RNStartup EntryTask.MainActivity
 | `android/app/src/main/java/com/entrytask/shell/runtime/AuthWarmupLifecycle.kt` | 新增 | ActivityLifecycleCallbacks、FrameRegistration、AuthFrameTiming | 认证首帧后触发，处理附着/线程/暂停清理；有界诊断数据 |
 | `android/app/src/main/java/com/entrytask/MainApplication.kt` | 修改 | runtimeScope、rnWarmup、reactHost异常适配、onCreate注册、内存回调 | 在组装根复用唯一Host；日志与内存策略不依赖RN业务初始化 |
 | `android/app/src/main/java/com/entrytask/MainActivity.kt` | 修改 | onCreate恢复检查、bindRootHost前置需求标记 | 真实页面接管后禁止推测启动与预热错误隔离；保留原认证/MVVM/XML结构 |
-| `android/app/src/main/java/com/entrytask/home/HomeFragment.kt` | 修改 | companion usesReactNative() | 对外只读查询已有Native-only开关，不改变开关默认路径 |
+| `android/app/src/main/java/com/entrytask/shell/host/RootContentHostFragment.kt` | 修改 | companion usesReactNative() | 对外只读查询已有Native-only开关，不改变开关默认路径 |
 | `android/app/build.gradle` | 修改 | RN_WARMUP_ENABLED、testBuildType、条件benchmark源集 | 同变体A/B、默认关闭；性能测试不影响日常设备回归，无新增产品flavor |
 | `android/app/src/test/java/com/entrytask/shell/RnWarmupControllerTest.kt` | 新增 | 5项控制器行为测试 | 一次启动、禁用/已有页面、低内存、失败隔离、超时不重试/不销毁 |
 | `android/app/src/benchmark/java/com/entrytask/shell/RnWarmupPerformanceTest.kt` | 新增 | coldLoginToHomeSample、await | 新进程/固定停留、首页未预挂载断言、帧与PSS采样、同Host校验 |

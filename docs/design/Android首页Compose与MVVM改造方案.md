@@ -54,9 +54,9 @@ MainActivity 在 STARTED 区间收集 uiState 并调用 MainShellView.render；�
 
 ### 3.1 Fragment 与 RN
 
-MainActivity.setContentView 后查找 entrytask-root-hub；已有 HomeFragment 直接复用，缺失才在允许事务的 onCreate 阶段添加到 R.id.fragmentContainer。保留旧 XML 的外层 tag，不引入或迁移 Compose 的自动 tag；当前未发布的 Compose 工作区实现不作为安装恢复基线。
+MainActivity.setContentView 后查找 entrytask-root-hub；已有 RootContentHostFragment 直接复用，缺失才在允许事务的 onCreate 阶段添加到 R.id.fragmentContainer。保留旧 XML 的外层 tag，不引入或迁移 Compose 的自动 tag；当前未发布的 Compose 工作区实现不作为安装恢复基线。
 
-BaseFragment 使用稳定 R.id.rn_content / entrytask-rn-root 复用内层 ReactFragment；RNScreensFragmentFactory 在 super.onCreate 前设置。Tab 和认证不替换 Fragment，不创建第二个 runtime。HomeFragment.usesReactNative()读取构建期模式并保留Native四根页分支，VM 不持有宿主句柄。
+BaseFragment 使用稳定 R.id.rn_content / entrytask-rn-root 复用内层 ReactFragment；RootContentFragmentFactory 在 super.onCreate 前设置，旧类名映射后委托 RNScreensFragmentFactory。Tab 和认证不替换 Fragment，不创建第二个 runtime。RootContentHostFragment.usesReactNative()读取构建期模式并保留Native四根页分支，VM 不持有宿主句柄。
 
 ### 3.2 认证与返回
 

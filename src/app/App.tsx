@@ -14,7 +14,7 @@ import { normalizeError } from '@shared/domain/AppError';
 import { createApplication } from './CompositionRoot';
 
 // The single registered component creates one application graph per mounted Surface.
-// Android owns a single ReactHost; Native-only HomeFragment doesn't mount this graph.
+// Android owns a single ReactHost; Native-only RootContentHostFragment doesn't mount this graph.
 export default function App() {
   const [application] = useState(createApplication);
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');

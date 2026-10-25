@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.entry.biz.user.manager.UserAuthManager
 import com.entrytask.BuildConfig
 import com.entrytask.MainActivity
+import com.entrytask.shell.host.RootContentHostFragment
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -21,7 +22,7 @@ class RnDashboardSmokeTest {
                 var ready = false
                 while (SystemClock.elapsedRealtime() < deadline && !ready) {
                     scenario.onActivity { activity ->
-                        val host = activity.supportFragmentManager.findFragmentByTag(MainActivity.ROOT_TAG) as? HomeFragment
+                        val host = activity.supportFragmentManager.findFragmentByTag(MainActivity.ROOT_TAG) as? RootContentHostFragment
                         val react = host?.childFragmentManager?.findFragmentByTag("entrytask-rn-root")
                         assertTrue(host == null || host.childFragmentManager.fragments.size <= 1)
                         ready = react != null

@@ -1,12 +1,15 @@
 # 新版四Tab双端实施记录
 
+> 宿主当前名为RootContentHostFragment；本文源码名称按重命名同步，历史验证结果不变。命名与旧占位清理见[重命名记录](根内容宿主重命名与清理.md)。
+
+
 日期：2026-10-25。依据[双端技术方案](../design/新版首页与四Tab必做UI技术方案.md)，用户已授权编码。初版实现新版PRD的16个必做区域（首页后续增量见下文），保留四个Native根Tab、singleTask主Activity和唯一RN实例。iOS原生对等能力仍延期。
 
 ## 源码与职责
 
 | 层 | RN | Android |
 | --- | --- | --- |
-| 组装/宿主 | CompositionRoot、AppNavigator | HomeFragment、MainShellView |
+| 组装/宿主 | CompositionRoot、AppNavigator | RootContentHostFragment、MainShellView |
 | 页面绑定 | features四域的*Route，管理资源订阅及动作绑定 | NativeDashboardRoute，生命周期感知收集状态 |
 | 业务状态 | 四域VM、RTK Query资源与PageUiStatePort | 四域RootPageViewModel，独立PageResource区域状态 |
 | 页面展示 | 四个*Screen及域内MemberRegions/ProfileRegions | RootScreens中的四页和业务区域 |
@@ -14,7 +17,7 @@
 | IO | Repository/ResourceClient→TransportRouter→NativeTransport | 领域Repository→RootPageRepositories→NativeApiClient |
 | 最终数据源 | Native Bridge→同一prototypeNetwork | prototypeNetwork→PrototypeMockInterceptor |
 
-MainActivity的XML只保留稳定Fragment槽与Compose底栏槽。HomeFragment Native分支返回带稳定ID的ComposeView，RN分支沿用ReactFragment挂载逻辑，入口/注册名/包名不变。Compose编译器版本在根Gradle与Kotlin统一，biz_user/lib_base取消重复版本声明，没有升级Kotlin或RN。
+MainActivity的XML只保留稳定Fragment槽与Compose底栏槽。RootContentHostFragment Native分支返回带稳定ID的ComposeView，RN分支沿用ReactFragment挂载逻辑，入口/注册名/包名不变。Compose编译器版本在根Gradle与Kotlin统一，biz_user/lib_base取消重复版本声明，没有升级Kotlin或RN。
 
 RN只挂载当前Tab，VM与轻量会话UI状态保留；分类由Wealth VM通过ClientState Port更新，查询响应仍只保留在RTK Query缓存。页面关闭释放订阅与轮播计时器。Android各区域独立失败/重试，旧会话/分类请求不能回写新状态；同一会话共享资产快照。
 
@@ -38,7 +41,7 @@ PNG仍以src/shared/assets为单份源。线性图标新增同目录icons.json�
 
 页尾银行标志当前沿用工程线稿并组合银行中英文名/标语，会员蓝卡用组件绘制；尚未获得独立正式品牌Logo和完整VIP纹理。不能把这些实现声称为正式品牌素材或原型像素级验收。最终视觉需按原型在360/390/412dp及1.0/1.3倍字体下人工对照。
 
-旧Native XML渲染类暂保留为前版实现参考，但HomeFragment不再调用；完成最终视觉确认后可单独删除，避免在用户未提交基线上直接销毁旧文件。
+旧Native XML渲染类暂保留为前版实现参考，但RootContentHostFragment不再调用；完成最终视觉确认后可单独删除，避免在用户未提交基线上直接销毁旧文件。
 
 ## 本次验证
 

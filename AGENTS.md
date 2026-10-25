@@ -50,7 +50,7 @@ npm run logs:android
 - JS 入口固定为 `src/index.js`，根组件 `src/app/App.tsx`；不恢复根目录 `index.js` 或另建入口兜底。
 - 注册组件名为 `EntryTask`；Android `applicationId` / namespace 为 `com.entrytask`，Application 为 `.MainApplication`。不得在目录整理中误改安装身份或组件名。
 - Android 开发入口为 `src/index`，Bundle 入口为 `../../src/index.js`；iOS 开发入口为 `src/index`，构建 `ENTRY_FILE=src/index.js`。涉及入口调整时核对 Metro、原生配置、Codegen 和组件注册的一致性。
-- `HomeFragment.usesReactNative()` 读取构建期 `USE_REACT_NATIVE_PAGES`，保留 Native四根页路径；常规 RN 修改不切换该开关来掩盖错误。
+- `RootContentHostFragment.usesReactNative()` 读取构建期 `USE_REACT_NATIVE_PAGES`，保留 Native四根页路径；常规 RN 修改不切换该开关来掩盖错误。
 
 ## 共享契约和运行资源
 

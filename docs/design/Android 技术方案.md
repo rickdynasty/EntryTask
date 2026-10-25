@@ -13,7 +13,7 @@
 | 领域 | 当前源码事实 | 后续边界/未完成项 |
 | --- | --- | --- |
 | 工程模块 | `app`、`biz_user`、`lib_base`、`lib_net`、`lib_storage`、`demo_engine` | 下文 contract/ui/host/bridge/user_api 是渐进拆分目标，尚未全部创建 |
-| RN 宿主 | MainApplication 单 ReactHost；MainActivity 单 HomeFragment/ReactFragment，Native 四 Tab | 完整返回 ACK、runtime 恢复、预测返回与性能验收未完成 |
+| RN 宿主 | MainApplication 单 ReactHost；MainActivity 单 RootContentHostFragment/ReactFragment，Native 四 Tab | 完整返回 ACK、runtime 恢复、预测返回与性能验收未完成 |
 | 认证门禁 | MainActivity 提前检查 + Activity Result；RN 默认页面门禁；NativeSession/Host Bridge 校准会话 | 完整 SessionCoordinator/可恢复认证任务尚未完成；Native-only 文本页是开发分支，不作为 RN 登录业务验收路径 |
 | Bridge | 五模块实现位于 `app/src/main/java/com/entrytask/bridge/`，继承 `specs/` 生成接口 | 抽 lib_bridge/lib_rn_host 需迁移依赖，不假定现已独立成库 |
 | 应用信息代理 | `AppGlobals` + `AppContextInitializer` + Startup Provider；已替代旧稿 AppProxy 空类 | 未实现不可变 AppConfig、重复初始化冲突检查；不再新增并行 AppProxy 单例 |
@@ -98,7 +98,7 @@ MainApplication 懒加载 ShellGraph，构造 DefaultShellRepository、UserAuthS
 
 Repository 是 tabId/depth/revision 的唯一事实源，UserAuthManager 是认证权威。真实变化发布 revision，恢复和显式同步允许强制发布，旧 epoch 不回退。Bridge 与 VM 使用同一来源，移除旧 ShellCoordinator。
 
-MainActivity.setContentView 后调用 MainViewModel.onHostCreated 检查会话；首次游客先启动认证，不新建 HomeFragment。认证成功、取消或启动失败后，在 RESUMED 且 FragmentManager 未保存状态时按 entrytask-root-hub 查找 HomeFragment，缺失才添加到稳定 R.id.fragmentContainer；复用原 XML 版本的恢复约定。BaseFragment 保留 entrytask-rn-root / R.id.rn_content 的内层 ReactFragment。Tab/认证不替换片段，Activity 重建可重建 Surface，但不新建 Application 的 ReactHost。
+MainActivity.setContentView 后调用 MainViewModel.onHostCreated 检查会话；首次游客先启动认证，不新建 RootContentHostFragment。认证成功、取消或启动失败后，在 RESUMED 且 FragmentManager 未保存状态时按 entrytask-root-hub 查找 RootContentHostFragment，缺失才添加到稳定 R.id.fragmentContainer；复用原 XML 版本的恢复约定。BaseFragment 保留 entrytask-rn-root / R.id.rn_content 的内层 ReactFragment。Tab/认证不替换片段，Activity 重建可重建 Surface，但不新建 Application 的 ReactHost。
 
 ### 4.2 XML渲染、导航与布局
 
@@ -391,7 +391,7 @@ TelemetrySink增加有界近期eventId去重（按runtime+eventId，初始1000�
 
 - RN：typecheck、lint、architecture:check 通过；Jest 8套/25项通过（使用 `--watchman=false` 避开本机 Watchman 状态目录限制）。覆盖默认保护、公开帮助、取消后revision刷新不重弹、ACK不放行、Native会话确认及失效清理。
 - Native：`:app:testDebugUnitTest` 17项、`:biz_user:testDebugUnitTest` 5项，零失败/跳过；Codegen、Debug构建、Lint及设备测试编译通过。构建使用 `-PreactNativeArchitectures=arm64-v8a --max-workers=2`，本轮仅验证该ABI。
-- 设备：API37 Pixel_10模拟器，StartupAuthenticationTest两项 + ShellHostTest四项共6项通过。验证首次认证前没有HomeFragment、重复Bridge合并、取消/帮助/重试、singleTask重入空结果隔离、认证返回原MainActivity、根Tab/返回与Activity重建。成功分支用测试内存会话，不提交账号注册/密码认证、不改已有账号。
+- 设备：API37 Pixel_10模拟器，StartupAuthenticationTest两项 + ShellHostTest四项共6项通过。验证首次认证前没有RootContentHostFragment、重复Bridge合并、取消/帮助/重试、singleTask重入空结果隔离、认证返回原MainActivity、根Tab/返回与Activity重建。成功分支用测试内存会话，不提交账号注册/密码认证、不改已有账号。
 - 官方CLI：根目录 `npx react-native run-android --no-packager --active-arch-only`，使用已运行的Metro完成构建、安装和启动。
 
 首轮设备测试发现并修复两处竞态：singleTask清除认证页的空data取消结果覆盖新请求；旧MainActivity销毁清除新流程防重状态。修复后完整重跑6项设备用例通过。

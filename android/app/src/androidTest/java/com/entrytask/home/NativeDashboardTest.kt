@@ -8,6 +8,7 @@ import com.entry.biz.user.manager.UserAuthManager
 import com.entrytask.BuildConfig
 import com.entrytask.MainActivity
 import com.entrytask.MainApplication
+import com.entrytask.shell.host.RootContentHostFragment
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +41,7 @@ class NativeDashboardTest {
                     scenario.onActivity { activity ->
                         val host =
                             activity.supportFragmentManager.findFragmentByTag(MainActivity.ROOT_TAG)
-                                as HomeFragment
+                                as RootContentHostFragment
                         assertNull(host.childFragmentManager.findFragmentByTag("entrytask-rn-root"))
                     }
                     if (tab == 1) {

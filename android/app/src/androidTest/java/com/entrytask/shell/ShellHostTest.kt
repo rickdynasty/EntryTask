@@ -13,7 +13,7 @@ import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.ui.AuthActivity
 import com.entrytask.MainActivity
 import com.entrytask.MainApplication
-import com.entrytask.home.HomeFragment
+import com.entrytask.shell.host.RootContentHostFragment
 import com.entrytask.shell.domain.ShellCommand
 import com.facebook.react.ReactFragment
 import org.junit.After
@@ -39,7 +39,7 @@ class ShellHostTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             awaitRoot(scenario)
             val reactHost = app.reactHost
-            var original: HomeFragment? = null
+            var original: RootContentHostFragment? = null
             scenario.onActivity { original = root(it) }
             repeat(20) { index ->
                 scenario.onActivity { app.shellGraph.repository.selectTab(index % 4 + 1) }
@@ -52,7 +52,7 @@ class ShellHostTest {
             scenario.recreate()
             awaitRoot(scenario)
             scenario.onActivity {
-                assertEquals(1, it.supportFragmentManager.fragments.filterIsInstance<HomeFragment>().size)
+                assertEquals(1, it.supportFragmentManager.fragments.filterIsInstance<RootContentHostFragment>().size)
                 assertEquals(3, app.shellGraph.repository.snapshots.value.tabId)
                 assertSame(reactHost, app.reactHost)
                 val rn = root(it)!!.childFragmentManager.fragments.filterIsInstance<ReactFragment>()
@@ -67,7 +67,7 @@ class ShellHostTest {
             // Fragment 恢复成功不等于 JS 已重新渲染；等待真实业务文本，防止白屏被误报通过。
             awaitCondition {
                 instrumentation.uiAutomation.rootInActiveWindow
-                    ?.findAccessibilityNodeInfosByText("已领权益")?.isNotEmpty() == true
+                    ?.findAccessibilityNodeInfosByText("会员专属活动")?.isNotEmpty() == true
             }
             // 无障碍树先于合成帧更新，等页面事件稳定后再抓取像素，避免抓到重建过渡白帧。
             instrumentation.uiAutomation.waitForIdle(1000, 10000)
@@ -79,7 +79,7 @@ class ShellHostTest {
         }
     }
 
-    @Test fun xmlRootTagIsReusedAfterActivityRestoration() {
+    @Test fun rootTagIsReusedAfterActivityRestoration() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             awaitRoot(scenario)
             scenario.onActivity {
@@ -89,7 +89,7 @@ class ShellHostTest {
             awaitRoot(scenario)
             scenario.onActivity {
                 assertSame(root(it), it.supportFragmentManager.findFragmentByTag(MainActivity.ROOT_TAG))
-                assertEquals(1, it.supportFragmentManager.fragments.filterIsInstance<HomeFragment>().size)
+                assertEquals(1, it.supportFragmentManager.fragments.filterIsInstance<RootContentHostFragment>().size)
             }
         }
     }
@@ -158,8 +158,8 @@ class ShellHostTest {
         }
     }
 
-    private fun root(activity: MainActivity): HomeFragment? =
-        activity.supportFragmentManager.fragments.filterIsInstance<HomeFragment>().singleOrNull()
+    private fun root(activity: MainActivity): RootContentHostFragment? =
+        activity.supportFragmentManager.fragments.filterIsInstance<RootContentHostFragment>().singleOrNull()
 
     private fun awaitRoot(scenario: ActivityScenario<MainActivity>) {
         awaitCondition {
