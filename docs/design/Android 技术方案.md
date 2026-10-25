@@ -414,9 +414,16 @@ RnWarmupController为进程级纯状态协调，注入引擎启动、作用域�
 
 Native认证Mock改用manifest精确method/path及现有分API JSON；UserService内部错误码为400/401/409/500数字，不改变RN错误契约。注册与登录共用MockAccountStore，SP按用户名哈希索引独立账号，后台原子commit落盘校验记录，重复账号不覆盖；启动不再删除mock_db账号。完整mock_reg/mock_db旧键对在认证后台访问时迁移，成功写入后同事务删除旧明文，不清其他SP。
 
-当前增量实现使用版本化PBKDF2校验值、16字节salt、32字节输出、120000次，优先HMAC-SHA256，旧Provider兼容HMAC-SHA1；未实施§9目标Room/Keystore封装及600000次参数，不能当作目标方案全部验收。账号持久化与内存会话分开，重启仍需Native校验登录。实现、迁移与验证详见 [ADR-013](../adr/013-auth-back-and-mock-persistence.md) 和 [修复记录](../development/认证返回与账号持久化修复.md)。
+当前增量实现使用版本化PBKDF2校验值、16字节salt、32字节输出、120000次，优先HMAC-SHA256，旧Provider兼容HMAC-SHA1；该阶段未实施§9目标Room/Keystore封装及600000次参数（Room认证部分已由下文2026-10-25增量替代），不能当作目标方案全部验收。账号持久化与内存会话分开，重启仍需Native校验登录。实现、迁移与验证详见 [ADR-013](../adr/013-auth-back-and-mock-persistence.md) 和 [修复记录](../development/认证返回与账号持久化修复.md)。
 
 
 ## 2026-10-24：Native四根页补充
 
 按新增需求，Android Studio构建使用XML及自定义View实现四根页，官方CLI构建保留单RN Surface。新增biz_dashboard实际业务模块，MVVM/Repository及共用View见[双页面模式设计](../development/native-dashboard.md)。Shell、认证、底栏、Mock会话权威不变。仅新增Native根页，Native子页及写操作未在本轮实施。
+
+
+## 2026-10-25：lib_storage Room认证存储（已实施）
+
+根据本轮需求在lib_storage新增RoomStorage/StorageDatabase/CredentialStore与auth_credentials表，app持有单实例并注入认证Mock。注册/登录仍经网络拦截器，账号权威从SP迁入entrytask_auth.db；SQL唯一主键阻止覆盖、批量事务支持旧数据导入。lib_net移除对lib_storage的直接依赖。
+
+此增量覆盖§17的SP账号持久化部分，§9中完整demo_server/会员/消息等Room目标仍延期；不是将全部Demo数据迁入数据库。KDF格式/参数保留，Token和登录态仍只在内存；没有声称完成Keystore或生产认证。SP与Room分两阶段迁移，可重试、Room优先，不能声称跨介质同一事务。详见[ADR-015](../adr/015-room-auth-credential-storage.md)及[实施与验证](../development/Room认证存储实施说明.md)。

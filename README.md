@@ -6,7 +6,9 @@ EntryTask 是一个基于 React Native Community CLI 创建的银行业务教学
 
 本仓库采用 Android Native + React Native 的当前交付路径：Native 负责登录注册、应用外壳、根 Tab、会话与设备能力；RN 在同一个 React Native 实例中实现首页、财富、会员、我的四个业务域及其子页面。Android Studio构建另提供Compose Native四根页以对照学习与演示，详细边界见[双页面模式说明](docs/development/native-dashboard.md)。iOS 工程保留 React Native CLI 集成入口，业务 Native 能力尚未实施，详细范围见 iOS 技术方案。
 
-第一次阅读本工程、尚无 Kotlin/Android 基础时，建议先看 [登录注册功能新手指南](docs/development/登录注册功能新手指南.md)：从语法、MVVM 和 Compose/XML 对比开始，沿当前源码讲解注册、登录、Mock 网络、SP、会话、调试和练习。
+第一次阅读本工程、尚无 Kotlin/Android 基础时，建议先看 [登录注册功能新手指南](docs/development/登录注册功能新手指南.md)：从语法、MVVM 和 Compose/XML 对比开始，沿当前源码讲解注册、登录、Mock 网络、Room账号存储、会话、调试和练习。
+
+数据库入门见 [Room新手使用指南](docs/development/Room新手使用指南.md)：基础概念、分层架构、封装思想、业务接入、迁移与测试。
 
 ## 工程架构
 
