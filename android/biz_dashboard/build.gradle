@@ -1,0 +1,56 @@
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+android {
+    buildFeatures { compose true }
+    namespace 'com.entry.biz.dashboard'
+    compileSdk 36
+    defaultConfig { minSdk 24 }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    kotlinOptions { jvmTarget = '17' }
+}
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.04.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.7'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    implementation project(':lib_base')
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
+}
+// 装饰素材共用RN源码，生成到构建目录；不手工维护Android副本。
+abstract class DashboardArtTask extends DefaultTask {
+    @InputDirectory abstract DirectoryProperty getSourceDirectory()
+    @OutputDirectory abstract DirectoryProperty getOutputDirectory()
+    @javax.inject.Inject abstract org.gradle.api.file.FileSystemOperations getFileSystemOperations()
+    @TaskAction void generate() {
+        fileSystemOperations.sync {
+            from(sourceDirectory) { include '*.png'; rename { 'dashboard_' + it.replace('-', '_') } }
+            into(outputDirectory.dir('drawable-nodpi'))
+        }
+        // SVG路径为两端单份源；生成Android vector，不复制到src/main/res。
+        def catalog = new groovy.json.JsonSlurper().parse(sourceDirectory.file('icons.json').get().asFile)
+        def target = outputDirectory.dir('drawable-nodpi').get().asFile
+        catalog.each { name, path ->
+            def file = new File(target, 'dashboard_icon_' + name.replace('-', '_') + '.xml')
+            file.text = '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:pathData="' + path + '" android:fillColor="#00000000" android:strokeColor="#FF292623" android:strokeWidth="1.4" android:strokeLineJoin="round" android:strokeLineCap="round" /></vector>'
+        }
+    }
+}
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def art = tasks.register("generate${variant.name.capitalize()}DashboardArt", DashboardArtTask) {
+            sourceDirectory.set(layout.projectDirectory.dir('../../src/shared/assets'))
+            outputDirectory.set(layout.buildDirectory.dir("generated/dashboardArt/${variant.name}"))
+        }
+        variant.sources.res.addGeneratedSourceDirectory(art) { it.outputDirectory }
+    }
+}

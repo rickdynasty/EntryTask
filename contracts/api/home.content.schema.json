@@ -10,7 +10,8 @@
     "banners",
     "categories",
     "searchPlaceholder",
-    "isDemo"
+    "isDemo",
+    "sections"
   ],
   "properties": {
     "title": {
@@ -370,6 +371,137 @@
     },
     "isDemo": {
       "type": "boolean"
+    },
+    "sections": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "style",
+          "entries"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "style": {
+            "enum": [
+              "banner",
+              "cards",
+              "menu",
+              "news"
+            ]
+          },
+          "entries": {
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "title",
+                "subtitle",
+                "icon",
+                "assetKey",
+                "tone",
+                "target"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 180
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 180
+                },
+                "subtitle": {
+                  "type": "string",
+                  "maxLength": 180
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 180
+                },
+                "assetKey": {
+                  "type": "string",
+                  "maxLength": 180
+                },
+                "tone": {
+                  "type": "string",
+                  "maxLength": 180
+                },
+                "target": {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "title",
+                    "requiresAuth"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "products",
+                        "product",
+                        "assets",
+                        "accounts",
+                        "transactions",
+                        "article",
+                        "articles",
+                        "activity",
+                        "activities",
+                        "benefit",
+                        "benefits",
+                        "claims",
+                        "energy",
+                        "checkin",
+                        "profile",
+                        "items",
+                        "services",
+                        "search",
+                        "messages",
+                        "message",
+                        "settings",
+                        "demo",
+                        "account",
+                        "transaction",
+                        "claim",
+                        "item"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "requiresAuth": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": true

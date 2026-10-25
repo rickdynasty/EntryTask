@@ -19,13 +19,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="#FFDDDDDD" />
-        <com.entry.lib.ui.BottomTabBar
+        <androidx.compose.ui.platform.ComposeView
             android:id="@+id/bottomTabBar"
             android:layout_width="match_parent"
-            android:layout_height="56dp" />
+            android:layout_height="wrap_content" />
     </LinearLayout>
 </LinearLayout>

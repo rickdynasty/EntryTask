@@ -10,6 +10,23 @@
     "coupons": 0,
     "points": 0,
     "energy": 0,
-    "isDemo": true
+    "isDemo": true,
+    "tierName": "中信红会员",
+    "carbonLabel": "低碳",
+    "tierProgress": {
+      "metricCode": "monthlyAverageFinancialAssets",
+      "asOf": "2026-10",
+      "current": {
+        "currency": "CNY",
+        "minorUnit": 2,
+        "amountMinor": "0"
+      },
+      "nextThreshold": {
+        "currency": "CNY",
+        "minorUnit": 2,
+        "amountMinor": "5000000"
+      },
+      "isTopTier": false
+    }
   }
 }

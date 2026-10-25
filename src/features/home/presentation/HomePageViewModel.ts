@@ -1,4 +1,5 @@
 /** EntryTask RN：首页业务域模块：负责页面呈现与 ViewModel 状态流转，不跨域持有页面私有实现。 */
+import type { PageUiStatePort } from '@shared/domain/PageUiState';
 import { ResourceViewModel } from '@shared/presentation/ResourceViewModel';
 import type { ResourceSource } from '@shared/domain/Resource';
 import type { HomePage } from '../domain/Home';
@@ -14,6 +15,7 @@ export class HomePageViewModel {
   readonly products: ResourceViewModel<Page<Product>>;
   constructor(
     sources: HomePageViewModelSources,
+    readonly ui: PageUiStatePort,
     private readonly productSource: (
       category: string,
     ) => ResourceSource<Page<Product>>,
@@ -22,6 +24,8 @@ export class HomePageViewModel {
     this.products = new ResourceViewModel(sources.products);
   }
   selectCategory(category: string): void {
+    if (this.ui.getSnapshot().category === category) return;
+    this.ui.update({ category });
     this.products.replace(this.productSource(category));
   }
   dispose(): void {

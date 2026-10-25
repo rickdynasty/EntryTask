@@ -100,6 +100,15 @@ export type Identity = {
   coupons: number;
   points: number;
   energy: number;
+  tierName: string;
+  carbonLabel: string;
+  tierProgress: {
+    metricCode: 'monthlyAverageFinancialAssets';
+    asOf: string;
+    current: Money;
+    nextThreshold: Money;
+    isTopTier: boolean;
+  };
   isDemo: boolean;
 };
 export type Checkin = {
@@ -110,4 +119,6 @@ export type Checkin = {
   awardedEnergy: number;
   alreadyChecked: boolean;
   rewardDays: number[];
+  calendar: { date: string; checked: boolean }[];
+  rewardRule: string;
 };

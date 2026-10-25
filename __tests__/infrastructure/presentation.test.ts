@@ -38,3 +38,10 @@ test('claim list retains the protected detail route and stable claim identity', 
   });
   expect(page.rows[0]?.value).toBe('已领取');
 });
+
+test('display proportions preserve units, tolerate zero and never overflow large balances', () => {
+  const { displayMoneyRatio } = require('@shared/formatting/numbers');
+  expect(displayMoneyRatio({ amountMinor: '0', minorUnit: 2 }, { amountMinor: '0', minorUnit: 2 })).toBeNull();
+  expect(displayMoneyRatio({ amountMinor: '100', minorUnit: 2 }, { amountMinor: '2', minorUnit: 0 })).toBe(0.5);
+  expect(displayMoneyRatio({ amountMinor: '9'.repeat(400), minorUnit: 2 }, { amountMinor: '9'.repeat(400), minorUnit: 2 }, true)).toBe(0.5);
+});

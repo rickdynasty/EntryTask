@@ -375,6 +375,17 @@
       "timeoutMs": 10000,
       "policyRevision": 2,
       "responseSchema": "search.query.schema.json"
+    },
+    {
+      "apiId": "profile.financialOverview",
+      "method": "GET",
+      "path": "/api/profile/financial-overview",
+      "transport": "nativeMock",
+      "exposure": "jsAllowed",
+      "authScope": "nativeBank",
+      "timeoutMs": 10000,
+      "policyRevision": 2,
+      "responseSchema": "profile.financialOverview.schema.json"
     }
   ]
 }

@@ -2,7 +2,7 @@
 import type { ResourceClient } from '@infra/state/ResourceClient';
 import * as validators from '@infra/network/generated/validators';
 import { ProfileViewModel } from '../presentation/ProfileViewModel';
-import type { Marketing } from '../domain/Profile';
+import type { Marketing, FinancialOverview } from '../domain/Profile';
 import type { Asset, Identity } from '@features/services/public';
 
 export function createProfileViewModel(
@@ -11,6 +11,11 @@ export function createProfileViewModel(
 ): ProfileViewModel {
   // 公开营销区可独立加载，身份与资产资源由 Screen 按认证态订阅。
   return new ProfileViewModel({
+    financial: client.source<FinancialOverview>(
+      { apiId: 'profile.financialOverview' },
+      validators.profile_financialOverview,
+      epoch,
+    ),
     content: client.source<Marketing>(
       { apiId: 'profile.marketing' },
       validators.profile_marketing,

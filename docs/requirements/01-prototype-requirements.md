@@ -375,3 +375,8 @@ LOG-01：RN 必须有自己的日志入口、分级、模块标签和本地调�
 | --- | --- | --- |
 | 1.1 | 2026-10-18 | 采纳五项优化：明确Mock随包、RN/Native网络双通路、RN独立及跨端关联日志、前端库封装/开发前整理、单RN instance。 |
 | 1.0 | 2026-10-17 | 基于四图、当前源码和 Android 文档初稿建立 RN 业务 + Native 能力需求基线，明确 Android 本期/iOS 延期及本地 Mock 约束；补充默认待评审。 |
+
+
+## 2026-10-24 增补：Android Native四根页
+
+用户新增要求：根目录官方RN CLI构建使用RN页面，Android Studio运行使用Native页面；后者以旧XML/自定义View和MVVM实现四张PRD可见根页。本增补覆盖B-03/B-04中Android根页仅RN实现的限制，保留原有RN业务子页、Native认证和单实例约定。切换语义、已实现范围及限制见[双页面模式说明](../development/native-dashboard.md)。

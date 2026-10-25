@@ -1,5 +1,7 @@
 # EtryTask 项目设计方案
 
+> 2026-10-25：新版必做UI已进入RN与Android Compose双端实施；当前根页与宿主变更、验证及视觉限制见[实施记录](../development/新版四Tab实施记录.md)，旧XML根页描述以该记录为准。
+
 版本：1.1 · 日期：2026-10-18 · 状态：待评审技术设计  
 工程名称：EntryTask（本文文件名按交付要求保留 EtryTask）  
 2026-10-19 认证修订：全应用 RN 页面必须登录，替代本文 V1.1 游客浏览默认；实现边界见 [ADR-011](../adr/011-required-native-authentication.md) 与 [Android方案 §5](Android%20技术方案.md)。其余目标设计不因此自动视为已实施。
@@ -403,3 +405,8 @@ RTK Query可接自定义baseQuery并在React Hook之外订阅调用，适合把�
 T00-F/RN-P0（开发前整理）依赖G0兼容PoC，必须先于T04/RN02和任何正式业务页；T01补descriptor策略与日志span schema，T03/AND04加APK资产验收，T04/RN01补双Transport/RTK/Logger；iOS对应任务保持延期。
 
 选型参考核查2026-10-18：[RN0.86网络能力](https://reactnative.dev/docs/0.86/network)、[Axios实例](https://axios-http.com/docs/instance)、[Axios拦截器](https://axios-http.com/docs/interceptors)、[Axios取消](https://axios-http.com/docs/cancellation)、[Redux按feature组织](https://redux.js.org/style-guide/)。官方能力事实与本项目的模块边界/选型决策分开，未安装/构建不表示已兼容。
+
+
+## 2026-10-24 Android渲染模式增补
+
+官方CLI构建保留RN四域页面；Android Studio构建新增XML Native四根页，由biz_dashboard按MVVM实现并共用Shell、认证、Mock。选择依据写入BuildConfig，单RN实例及跨端契约不变；Native业务子页本轮不迁移。详见[ADR-014](../adr/014-build-selected-native-dashboard.md)与[实施说明](../development/native-dashboard.md)。

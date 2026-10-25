@@ -32,3 +32,4 @@ export function message_detail(data: unknown): boolean;
 export function message_read(data: unknown): boolean;
 export function message_unread(data: unknown): boolean;
 export function search_query(data: unknown): boolean;
+export function profile_financialOverview(data: unknown): boolean;

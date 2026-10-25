@@ -48,31 +48,18 @@ export class ShellViewModel {
     }
     this.state = {
       ...value,
-      assetsVisible: changed ? false : this.state.assetsVisible,
+      assetsVisible:
+        changed || !value.authenticated ? false : this.state.assetsVisible,
     };
     if (changed) {
       this.clearSessionQueries();
     }
     this.emit();
-    if (value.authenticated && changed) {
-      const epoch = value.sessionEpoch;
-      void this.host
-        .readVisibility()
-        .then(visible => {
-          if (epoch === this.state.sessionEpoch) {
-            this.state = { ...this.state, assetsVisible: visible };
-            this.emit();
-          }
-        })
-        .catch(() =>
-          this.logger.log('warn', 'storage', 'visibility.read.failed', {
-            code: 'STORAGE_ERROR',
-          }),
-        );
-    }
   };
   /** Session Bridge 不携带 Shell revision，只更新同代或更新一代的会话字段。 */
-  acceptSession(value: Pick<ShellSnapshot, 'authenticated' | 'sessionEpoch'>): void {
+  acceptSession(
+    value: Pick<ShellSnapshot, 'authenticated' | 'sessionEpoch'>,
+  ): void {
     if (value.sessionEpoch < this.state.sessionEpoch) return;
     this.accept({
       ...this.state,
@@ -103,27 +90,12 @@ export class ShellViewModel {
       this.command({ type: 'authenticate' });
       return;
     }
-    const epoch = this.state.sessionEpoch;
-    const next = !this.state.assetsVisible;
-    this.logger.log('info', 'storage', 'visibility.write.started', {
-      pageId: 'asset-preference',
+    // 会话内同步更新，快速连点也基于最新值；不删除旧Native偏好键。
+    this.state = { ...this.state, assetsVisible: !this.state.assetsVisible };
+    this.emit();
+    this.logger.log('info', 'privacy', 'visibility.toggled', {
+      pageId: 'root-shell',
     });
-    void this.host
-      .writeVisibility(next)
-      .then(() => {
-        if (epoch === this.state.sessionEpoch) {
-          this.state = { ...this.state, assetsVisible: next };
-          this.emit();
-          this.logger.log('info', 'storage', 'visibility.write.completed', {
-            pageId: 'asset-preference',
-          });
-        }
-      })
-      .catch(() =>
-        this.logger.log('warn', 'storage', 'visibility.write.failed', {
-          code: 'STORAGE_ERROR',
-        }),
-      );
   };
   dispose(): void {
     this.stop?.();

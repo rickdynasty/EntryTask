@@ -1,5 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: "com.facebook.react"
 
 /**
@@ -73,7 +74,17 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// 页面模式属于构建输入，绝不按Metro是否在线或运行时Intent切换。
+// 当前CLI默认注入devServerPort；Android Studio通过IDE属性构建。
+def explicitMode = providers.gradleProperty('entrytaskUiMode').orNull
+if (explicitMode != null && !(explicitMode in ['rn', 'native'])) {
+    throw new GradleException('entrytaskUiMode must be rn or native')
+}
+def fromIde = providers.gradleProperty('android.injected.invoked.from.ide').getOrElse('false').toBoolean()
+def useRnPages = explicitMode != null ? explicitMode == 'rn' : (!fromIde && providers.gradleProperty('reactNativeDevServerPort').isPresent())
+logger.lifecycle("EntryTask page renderer: ${useRnPages ? 'rn' : 'native'}")
 android {
+    buildFeatures { compose true }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -88,6 +99,7 @@ android {
     namespace "com.entrytask"
     defaultConfig {
         applicationId "com.entrytask"
+        buildConfigField 'boolean', 'USE_REACT_NATIVE_PAGES', useRnPages.toString()
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -126,6 +138,19 @@ android {
 }
 
 dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.04.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.7'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    androidTestImplementation platform('androidx.compose:compose-bom:2024.04.01')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    // 旧Espresso 3.5在Android 17调用已移除的InputManager.getInstance。仅升级测试侧。
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
     // 外壳直接声明所用能力；沿用已解析的工具链，不依赖业务模块的传递导出。
     implementation('androidx.activity:activity-ktx:1.8.2')
     implementation('androidx.appcompat:appcompat:1.6.1')
@@ -138,8 +163,8 @@ dependencies {
     testImplementation('org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1')
     testImplementation('org.json:json:20240303')
     androidTestImplementation('androidx.test.ext:junit:1.1.5')
-    androidTestImplementation('androidx.test:runner:1.5.2')
-    androidTestImplementation('androidx.test:core-ktx:1.5.0')
+    androidTestImplementation('androidx.test:runner:1.7.0')
+    androidTestImplementation('androidx.test:core-ktx:1.7.0')
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
@@ -150,6 +175,7 @@ dependencies {
     }
 
     implementation(project(":biz_user"))
+    implementation(project(":biz_dashboard"))
     implementation(project(":demo_engine"))
     implementation(project(":lib_net"))
     implementation(project(":lib_base"))

@@ -1,8 +1,8 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    // Kotlin 2.1.20 专属的 Compose 编译器插件，直接指定版本且不写 apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
+    // Compose编译器版本由根工程与Kotlin统一，避免多模块重复加载。
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {

@@ -11,6 +11,37 @@
     "rewardDays": [
       3,
       7
-    ]
+    ],
+    "calendar": [
+      {
+        "date": "2026-10-19",
+        "checked": false
+      },
+      {
+        "date": "2026-10-20",
+        "checked": false
+      },
+      {
+        "date": "2026-10-21",
+        "checked": false
+      },
+      {
+        "date": "2026-10-22",
+        "checked": false
+      },
+      {
+        "date": "2026-10-23",
+        "checked": false
+      },
+      {
+        "date": "2026-10-24",
+        "checked": false
+      },
+      {
+        "date": "2026-10-25",
+        "checked": false
+      }
+    ],
+    "rewardRule": "连续签到第3天奖励30能量值，第7天奖励100能量值，其余日无奖励"
   }
 }

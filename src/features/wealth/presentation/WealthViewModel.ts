@@ -1,3 +1,4 @@
+import type { PageUiStatePort } from '@shared/domain/PageUiState';
 /** EntryTask RN：财富业务域模块：负责页面呈现与 ViewModel 状态流转，不跨域持有页面私有实现。 */
 import { ResourceViewModel } from '@shared/presentation/ResourceViewModel';
 import type { ResourceSource } from '@shared/domain/Resource';
@@ -18,6 +19,7 @@ export class WealthViewModel {
   readonly articles: ResourceViewModel<Page<ContentItem>>;
   constructor(
     sources: WealthViewModelSources,
+    readonly ui: PageUiStatePort,
     private readonly productSource: (
       category: string,
     ) => ResourceSource<Page<Product>>,
@@ -28,6 +30,8 @@ export class WealthViewModel {
     this.articles = new ResourceViewModel(sources.articles);
   }
   selectCategory(category: string): void {
+    if (this.ui.getSnapshot().category === category) return;
+    this.ui.update({ category });
     this.products.replace(this.productSource(category));
   }
   dispose(): void {

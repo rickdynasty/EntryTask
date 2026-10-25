@@ -1,8 +1,10 @@
 # EntryTask
 
+> 新版必做 UI：RN 与 Android Compose 双端实现及验证见[实施记录](docs/development/新版四Tab实施记录.md)；旧 XML 根页说明属于前一版实现。
+
 EntryTask 是一个基于 React Native Community CLI 创建的银行业务教学原型，用于验证 Android Native 宿主与 RN 业务页面协作、分层架构和本地模拟业务流程。项目没有真实后端，不连接真实银行服务；页面中的账户、资产、收益、活动和操作结果均为演示数据。
 
-本仓库采用 Android Native + React Native 的当前交付路径：Native 负责登录注册、应用外壳、根 Tab、会话与设备能力；RN 在同一个 React Native 实例中实现首页、财富、会员、我的四个业务域及其子页面。iOS 工程保留 React Native CLI 集成入口，业务 Native 能力尚未实施，详细范围见 iOS 技术方案。
+本仓库采用 Android Native + React Native 的当前交付路径：Native 负责登录注册、应用外壳、根 Tab、会话与设备能力；RN 在同一个 React Native 实例中实现首页、财富、会员、我的四个业务域及其子页面。Android Studio构建另提供Compose Native四根页以对照学习与演示，详细边界见[双页面模式说明](docs/development/native-dashboard.md)。iOS 工程保留 React Native CLI 集成入口，业务 Native 能力尚未实施，详细范围见 iOS 技术方案。
 
 第一次阅读本工程、尚无 Kotlin/Android 基础时，建议先看 [登录注册功能新手指南](docs/development/登录注册功能新手指南.md)：从语法、MVVM 和 Compose/XML 对比开始，沿当前源码讲解注册、登录、Mock 网络、SP、会话、调试和练习。
 
@@ -13,6 +15,7 @@ EntryTask
 ├── Android Native
 │   ├── app             应用组装、单 RN Host、根 Tab、Native Bridge、Mock 资源打包
 │   ├── biz_user        登录注册与会话相关 Native 业务
+│   ├── biz_dashboard   Compose Native四根页、共用View、MVVM与Mock适配
 │   ├── lib_base        基础能力与 UI/MVVM 封装
 │   ├── lib_net         Native 网络基础设施
 │   ├── lib_storage     Native 存储封装
@@ -49,7 +52,7 @@ npx react-native run-android
 
 CLI 会构建、安装并启动 `com.entrytask`。Metro 若未运行会由 CLI 启动；也可以在一个终端先运行 `npm start`，再在另一个终端运行 `npx react-native run-android`。Native 代码、Codegen、Android 配置或 Mock 资源变化后需要重新构建安装；纯 JS 改动可使用 Fast Refresh。
 
-Android Studio 方式：用 Android Studio 打开仓库的 `android/` 目录，等待 Gradle Sync，选择 `app` 的 `debug` 配置并运行。两种方式共用同一个 Gradle 工程、Application 和应用包名。Android 详细说明见 [Android 项目 README](android/README.md)。
+Android Studio 方式：用 Android Studio 打开仓库的 `android/` 目录，等待 Gradle Sync，选择 `app` 的 `debug` 配置并运行。两种方式共用同一个 Gradle 工程、Application 和应用包名；官方CLI构建使用RN页面，Android Studio构建使用Compose Native四根页。模式写入APK，切换需重新构建覆盖安装。完整约定、组件及Native范围见[双页面模式说明](docs/development/native-dashboard.md)。Android 详细说明见 [Android 项目 README](android/README.md)。
 
 ### iOS
 

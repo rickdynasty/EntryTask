@@ -26,7 +26,7 @@ export function ProductCard({
         <Text style={styles.tag}>{product.distribution}</Text>
       </View>
       <View style={[ui.row, styles.metricsRow]}>
-        <View>
+        <View style={styles.metric}>
           <Text
             style={[
               styles.value,
@@ -37,7 +37,7 @@ export function ProductCard({
           </Text>
           <Text style={ui.muted}>{product.indicatorLabel}</Text>
         </View>
-        <View>
+        <View style={styles.metric}>
           <Text style={styles.term}>{product.term}</Text>
           <Text style={ui.muted}>{product.minimum}</Text>
         </View>
@@ -47,7 +47,8 @@ export function ProductCard({
   );
 }
 const styles = StyleSheet.create({
-  metricsRow: { gap: 28, marginTop: 15 },
+  metric: { flex: 1, minWidth: 0 },
+  metricsRow: { gap: 16, marginTop: 15 },
   negativeValue: { color: '#268262' },
   card: { backgroundColor: '#FFF', borderRadius: 10, padding: 17, gap: 8 },
   name: { flex: 1, fontSize: 16, color: '#242321' },

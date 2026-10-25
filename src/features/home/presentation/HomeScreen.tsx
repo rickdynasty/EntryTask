@@ -1,165 +1,168 @@
-/** EntryTask RN：首页业务域模块：负责页面呈现与 ViewModel 状态流转，不跨域持有页面私有实现。 */
-import React, { useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import type { HomePageViewModel } from './HomePageViewModel';
-import type { PageActions, PageSession } from '@features/services/public';
-import { ProductCard } from '@features/wealth/public';
-import { useResource } from '@shared/presentation/useResource';
+/** 首页按视觉稿组合完整内容，资源与分类动作由Route注入。 */
+import React from 'react';
+import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native';
+import type { Page } from '@features/services/public';
+import { ProductCard, type Product } from '@features/wealth/public';
+import { HomeEditorialSection } from './components/HomeEditorialSection';
+import type { PageActions } from '@features/services/public';
+import type { PageUiStatePort } from '@shared/domain/PageUiState';
 import { ChannelHeader } from '@shared/ui/ChannelHeader';
 import { ServiceGrid } from '@shared/ui/ServiceGrid';
-import { CampaignCard } from '@shared/ui/CampaignCard';
 import {
-  Artwork,
-  ChoiceRail,
-  DemoFootnote,
-  SectionHeading,
   StatePanel,
   Surface,
+  SectionHeading,
+  ChoiceRail,
   ui,
 } from '@shared/ui/Primitives';
-/** 订阅当前可见资源并将点击动作交给页面路由。 */
+import { PageFrame, BannerCarousel } from '@shared/ui/DashboardComponents';
+import type { ResourceState } from '@shared/domain/Resource';
+import type { HomePage } from '../domain/Home';
 export function HomeScreen({
-  model,
+  content,
+  products,
+  category,
+  onCategory,
+  retryProducts,
   active,
   actions,
   unread,
+  pageState,
+  retry,
+  notificationError,
+  onRetryNotifications,
 }: {
-  model: HomePageViewModel;
   active: boolean;
   actions: PageActions;
-  session: PageSession;
-  unread: number;
+  pageState: PageUiStatePort;
+  content: ResourceState<HomePage>;
+  products: ResourceState<Page<Product>>;
+  category: string;
+  onCategory: (id: string) => void;
+  retryProducts: () => void;
+  unread: number | undefined;
+  retry: () => void;
+  notificationError: string | null;
+  onRetryNotifications: () => void;
 }) {
-  // 页面只订阅当前可见资源，滚动、筛选等短期交互状态保留在视图层。
-  const content = useResource(model.content, active);
-  const products = useResource(model.products, active);
-  const [category, setCategory] = useState('all');
-  const data = content.data;
-  const refresh = () => {
-    model.content.refresh();
-    model.products.refresh();
-  };
   return (
-    <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={content.loading && !!data}
-            onRefresh={refresh}
-            tintColor="#BC8D58"
-          />
-        }
-      >
-        <View style={styles.hero}>
-          <ChannelHeader
-            mode="home"
-            actions={actions.header}
-            placeholder={data?.searchPlaceholder ?? '证券服务'}
-            unread={unread}
-          />
-          {data && (
-            <ServiceGrid
-              items={data.quickServices}
-              columns={4}
-              gold
-              onSelect={item => actions.open(item.target)}
+    <PageFrame
+      ready={
+        (!content.loading || !!content.data) &&
+        (!products.loading || !!products.data)
+      }
+      state={pageState}
+      active={active}
+      regions={[
+        {
+          id: 'home-top',
+          content: (
+            <ChannelHeader
+              mode="home"
+              actions={actions.header}
+              placeholder={content.data?.searchPlaceholder ?? '搜索产品、服务'}
+              unread={unread}
             />
-          )}
-          <Pressable
-            accessibilityLabel="金彩秋冬活动"
-            onPress={() =>
-              actions.open(
-                data?.banners[0]?.target ?? {
-                  kind: 'activities',
-                  title: '金彩秋冬',
-                  requiresAuth: false,
-                },
-              )
-            }
-            style={styles.heroCampaign}
-          >
-            <Artwork name="hero-ginkgo" style={styles.heroArt} />
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroTitle}>金彩秋冬</Text>
-              <Text style={styles.heroSubtitle}>私人银行 · 精选产品</Text>
-              <Text style={styles.heroRisk}>
-                理财、基金非存款，产品有风险，投资需谨慎
-              </Text>
-            </View>
-          </Pressable>
-        </View>
-        <View style={styles.body}>
-          <StatePanel
-            loading={content.loading && !data}
-            error={content.error}
-            onRetry={refresh}
-          />
-          {data && (
+          ),
+        },
+        ...(notificationError
+          ? [
+              {
+                id: 'home-notifications',
+                content: (
+                  <StatePanel
+                    loading={false}
+                    error={notificationError}
+                    onRetry={onRetryNotifications}
+                  />
+                ),
+              },
+            ]
+          : []),
+        {
+          id: 'home-quick',
+          content: (
             <>
-              <ServiceGrid
-                items={data.services}
-                onSelect={item => actions.open(item.target)}
+              <StatePanel
+                loading={content.loading && !content.data}
+                error={content.error}
+                onRetry={retry}
               />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.shortcuts}
-              >
-                {data.shortcuts.map(item => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => actions.open(item.target)}
-                    style={styles.shortcut}
-                  >
-                    <Text style={ui.body}>{item.title}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              {data.banners[1] && (
-                <CampaignCard
-                  {...data.banners[1]}
-                  onPress={() => actions.open(data.banners[1]!.target)}
+              {content.data && (
+                <ServiceGrid
+                  items={content.data.quickServices}
+                  columns={4}
+                  gold
+                  onSelect={item => actions.open(item.target)}
                 />
               )}
             </>
-          )}
-          <Surface style={styles.selection}>
-            <SectionHeading
-              title="财富精选"
-              subtitle="把握市场动向 优中选优"
-              onMore={() =>
-                actions.open({
-                  kind: 'products',
-                  title: '财富精选',
-                  category,
-                  requiresAuth: false,
-                })
-              }
+          ),
+        },
+        {
+          id: 'home-banner',
+          content: (
+            <BannerCarousel
+              items={content.data?.banners ?? []}
+              onSelect={item => actions.open(item.target)}
             />
-            <ChoiceRail
-              items={data?.categories ?? []}
-              selected={category}
-              onChange={value => {
-                setCategory(value);
-                actions.track('home', 'product.category.selected', value);
-                model.selectCategory(value);
-              }}
-            />
-            <StatePanel
-              loading={products.loading && !products.data}
-              error={products.error}
-              empty={products.data?.items.length === 0}
-              onRetry={model.products.refresh}
+          ),
+        },
+        {
+          id: 'home-services',
+          content: content.data && (
+            <Surface>
+              <ServiceGrid
+                items={content.data.services}
+                onSelect={item => actions.open(item.target)}
+              />
+            </Surface>
+          ),
+        },
+        {
+          id: 'home-shortcuts',
+          content: (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.shortcuts}
             >
+              {content.data?.shortcuts.map(item => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  onPress={() => actions.open(item.target)}
+                  style={styles.shortcut}
+                >
+                  <Text style={ui.muted}>{item.title}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ),
+        },
+        ...(content.data?.sections.slice(0, 1).map(section => ({
+          id: `home-section-${section.id}`,
+          content: <HomeEditorialSection section={section} actions={actions} />,
+        })) ?? []),
+        {
+          id: 'home-products',
+          content: (
+            <Surface style={styles.products}>
+              <SectionHeading
+                title="财富精选"
+                subtitle="把握市场动向 优中选优"
+              />
+              <ChoiceRail
+                items={content.data?.categories ?? []}
+                selected={category}
+                onChange={onCategory}
+              />
+              <StatePanel
+                loading={products.loading && !products.data}
+                error={products.error}
+                empty={products.data?.items.length === 0}
+                onRetry={retryProducts}
+              />
               {products.data?.items.map(product => (
                 <ProductCard
                   key={product.id}
@@ -168,76 +171,49 @@ export function HomeScreen({
                     actions.open({
                       kind: 'product',
                       title: product.name,
+                      requiresAuth: true,
                       id: product.id,
-                      requiresAuth: false,
                     })
                   }
                 />
               ))}
-            </StatePanel>
-          </Surface>
-          <DemoFootnote />
-        </View>
-      </ScrollView>
-      <Pressable
-        accessibilityLabel="前往财富广场"
-        onPress={() => actions.switchTab(2)}
-        style={styles.floating}
-      >
-        <Text style={styles.floatingText}>财富{'\n'}广场</Text>
-      </Pressable>
-    </View>
+              <View style={styles.moreRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() =>
+                    actions.open({
+                      kind: 'products',
+                      title: '查看更多产品',
+                      requiresAuth: true,
+                    })
+                  }
+                  style={styles.more}
+                >
+                  <Text style={ui.muted}>查看更多产品 ›</Text>
+                </Pressable>
+              </View>
+            </Surface>
+          ),
+        },
+        ...(content.data?.sections.slice(1).map(section => ({
+          id: `home-section-${section.id}`,
+          content: <HomeEditorialSection section={section} actions={actions} />,
+        })) ?? []),
+      ]}
+    />
   );
 }
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F5F7F8' },
-  scroll: { paddingBottom: 12 },
-  hero: { backgroundColor: '#FCF0E5' },
-  heroCampaign: { height: 133, overflow: 'hidden' },
-  heroArt: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: '64%',
-    height: 119,
-  },
-  heroCopy: { paddingLeft: 26, paddingTop: 12 },
-  heroTitle: {
-    fontSize: 28,
-    fontFamily: 'serif',
-    fontWeight: '700',
-    color: '#915319',
-    letterSpacing: 2,
-  },
-  heroSubtitle: { fontSize: 15, color: '#985C2B', marginTop: 6 },
-  heroRisk: { fontSize: 8, color: '#B08061', marginTop: 36 },
-  body: {
-    marginTop: -1,
-    paddingHorizontal: 12,
-    gap: 14,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    backgroundColor: '#F5F7F8',
-    paddingTop: 3,
-  },
-  shortcuts: { gap: 9, paddingVertical: 3 },
+  shortcuts: { gap: 8 },
   shortcut: {
-    borderWidth: 1,
-    borderColor: '#E1E5E8',
+    minHeight: 42,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
     borderRadius: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
   },
-  selection: { backgroundColor: '#F6EFEB', gap: 12 },
-  floating: {
-    position: 'absolute',
-    right: 0,
-    top: '61%',
-    backgroundColor: '#F5484C',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-  },
-  floatingText: { color: '#FFF', fontSize: 13, lineHeight: 20 },
+  products: { backgroundColor: '#FFF9F3' },
+  moreRow: { alignItems: 'center' },
+  more: { padding: 12 },
 });

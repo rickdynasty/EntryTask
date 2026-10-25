@@ -17,3 +17,6 @@ export type { Document, DocumentRow } from '../domain/Document';
 export { projectDocument } from '../data/projectDocument';
 export { DocumentViewModel } from '../presentation/DocumentViewModel';
 export { DocumentScreen } from '../presentation/DocumentScreen';
+
+export type { CheckinRepository } from '../domain/CheckinRepository';
+export { createCheckinRepository } from '../data/createCheckinRepository';

@@ -1,3 +1,4 @@
 <resources>
     <item name="rn_content" type="id" />
+    <item name="native_dashboard" type="id" />
 </resources>

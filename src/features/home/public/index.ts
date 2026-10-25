@@ -2,3 +2,5 @@
 export { createHomePageViewModel } from '../di/createHomePageViewModel';
 export type { HomePageViewModel } from '../presentation/HomePageViewModel';
 export { HomeScreen } from '../presentation/HomeScreen';
+
+export { HomeRoute } from '../presentation/HomeRoute';

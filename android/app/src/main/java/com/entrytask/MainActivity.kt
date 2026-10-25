@@ -28,7 +28,7 @@ import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import kotlinx.coroutines.launch
 
-/** XML Shell 的平台执行入口；状态、认证防重和根返回策略由 MainViewModel 管理。 */
+/** 静态宿主槽与Compose底栏的平台执行入口；状态、认证防重和根返回策略由 MainViewModel 管理。 */
 class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private val graph get() = (application as MainApplication).shellGraph
     private val hostHandle = HostFragmentHandle()
@@ -83,7 +83,7 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
                 viewModel.uiState.collect(shellView::render)
             }
         }
-        MLog.i(TAG, "shell.created renderer=xml")
+        MLog.i(TAG, "shell.created renderer=compose-chrome")
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 viewModel.authLaunch.collect { launch ->

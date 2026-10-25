@@ -1,5 +1,7 @@
 # EntryTask RN 工程说明
 
+> 新版必做 UI：RN 与 Android Compose 双端实现及验证见[实施记录](../docs/development/新版四Tab实施记录.md)；旧 XML 根页说明属于前一版实现。
+
 EntryTask 是由 React Native Community CLI 创建的原生宿主银行业务原型。RN 承载首页、财富、会员、我的四个业务域及其详情子页；Android 原生宿主持有唯一 React Native 实例、底部 Tab、登录注册、会话、网络 Mock、存储和 Native 日志能力。iOS 保留工程入口，业务桥接尚未实施。
 
 ## 工程架构
@@ -19,6 +21,8 @@ contracts/api/                     API 路由和响应 Schema
 contracts/bridge/                  Native/RN Runtime 协议
 mock/                              仅供 Android Native Mock 拦截器读取的逐 API JSON
 ```
+
+四根页由各业务域的`*Route`管理资源订阅与生命周期，`*Screen`只接收展示状态和动作；公共列表/轮播/隐私卡/页尾在`shared/ui/DashboardComponents`，分类与滚动状态通过`PageUiStatePort`连接同一Redux Store的客户端slice。
 
 业务页面采用 MVVM。Screen 负责 UI 呈现和事件转发；ViewModel 负责视图状态、选择和动作流程；Domain 定义模型及 Port；Data/基础设施访问 Native 或 RN HTTP 能力；`di/` 与 `CompositionRoot` 负责依赖组装；`public/` 是跨域入口。共享 UI 不引入业务规则，跨域依赖只能通过公开接口。
 
@@ -88,7 +92,7 @@ npm test -- --runInBand
 npm run logs:android         # 查看 Native/ReactNativeJS 日志
 ```
 
-Android 也可在 Android Studio 打开 `../android`。普通 RN 热更新不会更新 Native Codegen、Android 资源或 Manifest；Native Bridge/API 资源变化后须重新构建安装。业务包名为 `com.entrytask`，注册组件名为 `EntryTask`。`HomeFragment.USE_REACT_NATIVE` 保留原生首页与 RN 首页两种运行路径。
+Android 也可在 Android Studio 打开 `../android`。普通 RN 热更新不会更新 Native Codegen、Android 资源或 Manifest；Native Bridge/API 资源变化后须重新构建安装。业务包名为 `com.entrytask`，注册组件名为 `EntryTask`。`HomeFragment.usesReactNative()`读取构建期配置：官方CLI使用RN页面，Android Studio使用Compose Native四根页；切换需重新构建安装，详见[双页面模式](../docs/development/native-dashboard.md)。
 
 Mock API、数据规则、设备截图和已知差异见 [四 Tab 实现与验证记录](../docs/ui/四Tab实现与验证记录.md)；逐页原型拆解见 [四 Tab 页面设计](../docs/ui/四Tab原型分析与RN页面设计.md)；运行及日志排障见 [RN 工程说明](../docs/development/rn-foundation.md)。
 

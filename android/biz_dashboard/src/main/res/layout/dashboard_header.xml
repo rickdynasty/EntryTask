@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:id="@+id/headerTitle" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:minHeight="48dp" android:gravity="center_vertical" android:textSize="22sp" android:textStyle="bold" android:textColor="#242222" android:fontFamily="serif"/>
+    <TextView android:id="@+id/headerSecondary" android:layout_width="wrap_content" android:layout_height="48dp" android:gravity="center" android:paddingHorizontal="8dp" android:textSize="17sp" android:textColor="#514C48"/>
+    <Space android:id="@+id/headerSpacer" android:layout_width="0dp" android:layout_weight="1" android:layout_height="1dp"/>
+    <ImageView android:id="@+id/headerMessages" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/dashboard_message" android:contentDescription="@string/native_messages"/>
+    <ImageView android:id="@+id/headerAdvisor" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/dashboard_advisor_avatar" android:scaleType="fitCenter" android:contentDescription="@string/native_advisor"/>
+</merge>

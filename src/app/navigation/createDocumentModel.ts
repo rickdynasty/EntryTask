@@ -1,3 +1,4 @@
+import { createCheckinRepository } from '@features/services/public';
 /** EntryTask RN：详情页模型工厂：将受控业务目标映射到 API、Schema 和通用详情 ViewModel。 */
 import type { ResourceClient } from '@infra/state/ResourceClient';
 import * as generated from '@infra/network/generated/validators';
@@ -90,8 +91,15 @@ export function createDocumentModel(
   const write =
     target.kind === 'checkin' || target.kind === 'benefit'
       ? async (date: string, signal: AbortSignal) => {
-          const mutation =
-            target.kind === 'checkin' ? 'checkin.submit' : 'benefit.claim';
+          if (target.kind === 'checkin') {
+            await createCheckinRepository(client).submit(
+              date,
+              idempotencyKey,
+              signal,
+            );
+            return;
+          }
+          const mutation = 'benefit.claim';
           const guard = validators[mutation.replaceAll('.', '_')];
           if (!guard) throw new Error('MISSING_SCHEMA');
           await client.mutate(
@@ -100,9 +108,6 @@ export function createDocumentModel(
               ...(target.id ? { params: { id: target.id } } : {}),
               body: {
                 idempotencyKey,
-                ...(target.kind === 'checkin'
-                  ? { expectedBusinessDate: date }
-                  : {}),
               },
             },
             guard,

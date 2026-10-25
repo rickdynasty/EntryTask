@@ -1,6 +1,8 @@
 # Android 项目说明
 
-Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登录注册、应用外壳与根 Tab、Native 会话和平台能力；四个业务 Tab 及其子页面由共享 RN 工程实现。工程是无后端的教学原型，业务 API 使用本地 Mock，不代表真实银行服务或生产级认证。
+> 新版必做 UI：RN 与 Android Compose 双端实现及验证见[实施记录](../docs/development/新版四Tab实施记录.md)；旧 XML 根页说明属于前一版实现。
+
+Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登录注册、应用外壳与根 Tab、Native 会话和平台能力；RN模式的四个业务Tab及子页面由共享RN工程实现；Android Studio模式由biz_dashboard提供Compose Native四根页。工程是无后端的教学原型，业务 API 使用本地 Mock，不代表真实银行服务或生产级认证。
 
 ## 模块与职责
 
@@ -8,10 +10,11 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 | --- | --- |
 | `app` | 应用入口与组装、唯一 ReactHost、HomeFragment/RN Surface、Native 根 Tab、Codegen Bridge 适配、Mock/contract 资源打包 |
 | `biz_user` | Native 登录注册 UI、用户业务 MVVM、Repository 与会话实现 |
+| `biz_dashboard` | Compose四根页、可复用组件、MVVM及Mock数据适配 |
 | `lib_base` | AppGlobals/AndroidX Startup 应用信息代理、基础能力及现有 UI/MVVM 封装 |
 | `lib_net` | Native 网络基础设施及进程内下载初版（可靠性边界见技术方案） |
 | `lib_storage` | Native 存储封装 |
-| `demo_engine` | RN 原型 API 专用 Mock 拦截与演示业务状态，与 Native 登录认证 Mock 分离 |
+| `demo_engine` | RN与Native根页共用的原型API Mock拦截与演示业务状态，与 Native 登录认证 Mock 分离 |
 
 模块依赖由 `app` 组装，基础库不新增对业务 UI、`app` 或 RN 的反向依赖。架构目标与模块演进边界见 [Android 技术方案](../docs/design/Android%20技术方案.md)；当前已实施的 Native 设计说明见 [Android 架构文档](docs/01-architecture-design.md)。
 
@@ -23,22 +26,22 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 - `applicationId` / `namespace` 为 `com.entrytask`，Application 注册的 RN 根组件为 `EntryTask`。
 - React Native JS 入口为仓库根下 `src/index.js`。Gradle RN 插件显式配置 `../../src/index.js`，Metro 与 Codegen 配置在仓库根目录。
 - `MainApplication` 持有进程内唯一 ReactHost。Native Tab 切换同步给一个 RN Surface；不能在每个 Tab 或 Fragment 各自创建 RN 实例。
-- `HomeFragment.USE_REACT_NATIVE` 保留 RN 首页与 Native-only 首页两条调试路径。常规开发使用 RN 路径；切换开关只影响首页内容，不改变 RN 工程结构。
+- `HomeFragment.usesReactNative()`读取构建期配置：官方CLI使用RN页面，Android Studio使用Compose Native四根页。显式覆盖及限制见文末双页面模式说明。
 - TurboModule TypeScript 契约位于根目录 `specs/Native*.ts`，`package.json` 的 Codegen 扫描 `specs/` 并生成 `com.entrytask.specs` 下的接口；Android Native 实现由 `EntryTaskPackage` 注册。修改契约需同步 JS adapter、Native 实现、注册与 Codegen 构建。
 
 认证账号在Native Mock中写入SP并逐账号保存加盐校验值；进程重启只清内存会话，登录经同一拦截器重读SP校验。旧mock_reg/mock_db账号按需原子迁移，不在启动时删除。详见 [认证返回与账号持久化修复](../docs/development/认证返回与账号持久化修复.md)。
 
 ## 首页 MVVM 与分步迁移
 
-当前首页保持 XML：MainActivity.setContentView 加载 activity_home.xml，MainShellView 只渲染 MainViewModel 的只读 MainUiState。Activity 在 STARTED 区间收集状态，在 RESUMED 区间执行认证展示。后续再单独转换 Compose；认证模块已有的 Compose 保持原状。
+MainActivity.setContentView保留activity_home.xml的稳定宿主槽，MainShellView使用Compose底栏渲染MainViewModel的只读MainUiState；Native四页通过HomeFragment的ComposeView实现。Activity仍在STARTED区间收集状态，在RESUMED区间执行认证展示。认证Compose页面保持既有流程。
 
 ```text
-XML 点击 → MainViewModel → ShellRepository ← ShellBridgeAdapter ← HostModule ← RN
+Compose点击 → MainViewModel → ShellRepository ← ShellBridgeAdapter ← HostModule ← RN
                                   ↓ StateFlow
-                      XML 渲染 + HostModule.onHostEvent → RN
+                      Compose渲染 + HostModule.onHostEvent → RN
 ```
 
-- `app/.../shell/domain` 定义 Shell/会话契约和返回策略；`data` 适配 Native 会话；`presentation` 放 VM 和 XML 渲染；`host` 管宿主句柄与前台端点；`di/ShellGraph` 在 Application 组装。
+- `app/.../shell/domain` 定义 Shell/会话契约和返回策略；`data` 适配 Native 会话；`presentation` 放 VM 和Compose渲染；`host` 管宿主句柄与前台端点；`di/ShellGraph` 在 Application 组装。
 - Repository 是 Tab/depth/revision 唯一来源，UserAuthManager 是会话权威。BottomTabBar 点击只上报动作，选中外观由 UiState 回写。
 - MainActivity 复用 `entrytask-root-hub` 对应的 HomeFragment；首次认证返回/失败后不存在才添加（系统恢复既有片段仍按框架时序），内层保持 `entrytask-rn-root` / `R.id.rn_content`，Tab 与认证不替换宿主。
 - XML 根预留系统底部安全区，RN 容器预留顶部/侧边，RN 按裁剪后的视口计算剩余 Insets；游客/子页隐藏分割线与底栏，始终保留 XML 内容槽，首次认证结束后挂载 RN 门禁容器。
@@ -96,7 +99,7 @@ npm test -- --runInBand
 ./gradlew :app:assembleDebug
 ./gradlew :app:installDebug
 ./gradlew :app:testDebugUnitTest :app:lintDebug
-# 连接设备并启动 Metro 后运行XML/宿主集成测试
+# 连接设备并启动 Metro 后运行Compose/宿主集成测试
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
@@ -138,7 +141,7 @@ Android Studio Logcat 可按 `package:com.entrytask` 过滤；排查 RN JS Conso
 - [RN 项目 README](../src/README.md)
 - [全工程总体设计](../docs/design/EtryTask%20项目设计方案.md)
 - [Android 技术方案](../docs/design/Android%20技术方案.md)
-- [首页 MVVM、混合宿主与后续 Compose 分步方案](../docs/design/Android首页Compose与MVVM改造方案.md)（当前XML+MVVM，Compose延期；验证见方案第5节）
+- [首页 MVVM、混合宿主与后续 Compose 分步方案](../docs/design/Android首页Compose与MVVM改造方案.md)（历史分步方案；当前实施以新版四Tab方案为准）
 - [RN 技术方案](../docs/design/前端RN技术方案.md)
 - [iOS 技术方案与延期范围](../docs/design/iOS技术方案.md)
 - [Android 架构文档](docs/01-architecture-design.md)、[Android 工程规范](docs/02-engineering-standards.md)、[实施路线图](docs/03-implementation-roadmap.md)
@@ -146,3 +149,8 @@ Android Studio Logcat 可按 `package:com.entrytask` 过滤；排查 RN JS Conso
 - [启动与登录全链路源码详解](../docs/development/启动与登录全链路源码详解.md)：从 attachBaseContext、Startup 到 RN Bridge 登录与首页请求，逐步对应方法和源码行号。
 
 预热默认关闭（当前模拟器未证明稳定收益）；用 `-PentrytaskRnWarmup=true` 显式启用。配置、Release A/B复现与实测限制见 [RN预热性能验证](../docs/development/rn-warmup-performance.md)。
+
+
+## Native四根页与运行模式
+
+官方CLI构建运行RN页面，Android Studio运行Compose Native四根页；由BuildConfig编译期配置控制，不能只Reload切换。新增biz_dashboard模块承载原型页面及MVVM，共用现有Shell、认证和Mock。详见[双页面模式及验证说明](../docs/development/native-dashboard.md)。

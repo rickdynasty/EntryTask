@@ -24,6 +24,7 @@ export type WealthContent = {
   services: Service[];
   categories: Category[];
   market: ContentItem;
+  marketItems: ContentItem[];
   banner: Campaign;
   isDemo: boolean;
 };

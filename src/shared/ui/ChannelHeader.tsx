@@ -20,7 +20,7 @@ export function ChannelHeader({
   selected = '',
   onSelect,
   placeholder = '搜索产品、服务',
-  unread = 0,
+  unread,
   authenticated = false,
 }: {
   mode: 'home' | 'channel' | 'profile';
@@ -29,7 +29,7 @@ export function ChannelHeader({
   selected?: string;
   onSelect?: (value: string) => void;
   placeholder?: string;
-  unread?: number;
+  unread?: number | undefined;
   authenticated?: boolean;
 }) {
   return (
@@ -37,6 +37,7 @@ export function ChannelHeader({
       {mode === 'home' ? (
         <>
           <Pressable
+            style={styles.action}
             accessibilityLabel="扫一扫"
             onPress={actions.scan}
             hitSlop={8}
@@ -80,6 +81,7 @@ export function ChannelHeader({
       )}
       {mode !== 'home' && (
         <Pressable
+          style={styles.action}
           accessibilityLabel={mode === 'profile' ? '设置' : '搜索'}
           onPress={mode === 'profile' ? actions.settings : actions.search}
           hitSlop={8}
@@ -88,28 +90,40 @@ export function ChannelHeader({
         </Pressable>
       )}
       <Pressable
-        accessibilityLabel={`消息，${unread}条未读`}
+        accessibilityLabel={
+          unread === undefined ? '消息未读数暂不可用' : `消息，${unread}条未读`
+        }
         onPress={actions.messages}
-        style={styles.message}
+        style={[styles.message, styles.action]}
       >
         <Icon name="message" size={25} />
-        {unread > 0 && (
+        {unread !== undefined && unread > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
           </View>
         )}
       </Pressable>
-      <Pressable accessibilityLabel="在线客服" onPress={actions.advisor}>
+      <Pressable
+        style={styles.action}
+        accessibilityLabel="在线客服"
+        onPress={actions.advisor}
+      >
         <Artwork name="advisor-avatar" style={styles.avatar} />
       </Pressable>
     </View>
   );
 }
 const styles = StyleSheet.create({
+  action: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 8,
     paddingHorizontal: 13,
     height: 64,
   },

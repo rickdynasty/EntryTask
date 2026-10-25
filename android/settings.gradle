@@ -10,3 +10,5 @@ include ':lib_storage'
 include ':biz_user'
 
 include ':demo_engine'
+
+include ':biz_dashboard'

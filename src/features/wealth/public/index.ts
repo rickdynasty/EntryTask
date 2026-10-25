@@ -5,3 +5,5 @@ export type { Product, WealthContent } from '../domain/Wealth';
 export { ProductCard } from '../presentation/ProductCard';
 export { AssetSummary } from '../presentation/AssetSummary';
 export { WealthScreen } from '../presentation/WealthScreen';
+
+export { WealthRoute } from '../presentation/WealthRoute';

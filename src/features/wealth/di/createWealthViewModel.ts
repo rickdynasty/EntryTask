@@ -1,3 +1,4 @@
+import type { PageUiStatePort } from '@shared/domain/PageUiState';
 /** EntryTask RN：财富业务域模块：负责业务域依赖组装，不跨域持有页面私有实现。 */
 import type { ResourceClient } from '@infra/state/ResourceClient';
 import * as validators from '@infra/network/generated/validators';
@@ -9,6 +10,7 @@ import type { Product } from '../domain/Wealth';
 export function createWealthViewModel(
   client: ResourceClient,
   epoch: number,
+  ui: PageUiStatePort,
 ): WealthViewModel {
   // 财富、资产和资讯分别绑定契约校验器，并共享调用方会话 epoch。
   const productSource = (category: string) =>
@@ -30,7 +32,12 @@ export function createWealthViewModel(
       products: client.source<Page<Product>>(
         {
           apiId: 'product.list',
-          params: { category: 'fund', page: 1, pageSize: 3, scene: 'wealth' },
+          params: {
+            category: ui.getSnapshot().category,
+            page: 1,
+            pageSize: 3,
+            scene: 'wealth',
+          },
         },
         validators.product_list,
         epoch,
@@ -46,6 +53,7 @@ export function createWealthViewModel(
         epoch,
       ),
     },
+    ui,
     productSource,
   );
 }

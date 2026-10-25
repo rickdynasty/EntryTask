@@ -32,18 +32,28 @@ export function createApplication() {
   );
   const runtime = createAppStore(network);
   const client = createResourceClient(runtime);
-  const shell = new ShellViewModel(nativeGateway, logger, client.reset);
+  const shell = new ShellViewModel(nativeGateway, logger, () => {
+    client.reset();
+    runtime.resetPages();
+  });
   return {
     logger,
     shell,
     createChannels(epoch: number) {
+      const pageStates = {
+        1: runtime.pageState(epoch, 1),
+        2: runtime.pageState(epoch, 2),
+        3: runtime.pageState(epoch, 3),
+        4: runtime.pageState(epoch, 4),
+      };
       // 同一会话共用一份客户端资源缓存，各业务域按需订阅和释放。
-      const home = createHomePageViewModel(client, epoch),
-        wealth = createWealthViewModel(client, epoch),
+      const home = createHomePageViewModel(client, epoch, pageStates[1]),
+        wealth = createWealthViewModel(client, epoch, pageStates[2]),
         member = createMemberViewModel(client, epoch),
         profile = createProfileViewModel(client, epoch),
         messaging = createMessaging(client, epoch, logger);
       return {
+        pageStates,
         home,
         wealth,
         member,

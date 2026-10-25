@@ -90,6 +90,16 @@ export function createResourceClient(runtime: AppStateStore) {
         },
       };
     },
+    async read<T>(
+      request: ApiRequest,
+      validate: (value: unknown) => boolean,
+      signal: AbortSignal,
+    ): Promise<T> {
+      const data = await runtime.network.execute(request, signal);
+      if (!validate(data))
+        throw new AppError('INVALID_RESPONSE', '接口数据格式无效');
+      return data as T;
+    },
     async mutate<T>(
       request: ApiRequest,
       validate: (value: unknown) => boolean,

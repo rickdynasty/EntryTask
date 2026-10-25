@@ -2,3 +2,5 @@
 export { createProfileViewModel } from '../di/createProfileViewModel';
 export type { ProfileViewModel } from '../presentation/ProfileViewModel';
 export { ProfileScreen } from '../presentation/ProfileScreen';
+
+export { ProfileRoute } from '../presentation/ProfileRoute';

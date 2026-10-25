@@ -2,3 +2,5 @@
 export { createMemberViewModel } from '../di/createMemberViewModel';
 export type { MemberViewModel } from '../presentation/MemberViewModel';
 export { MemberScreen } from '../presentation/MemberScreen';
+
+export { MemberRoute } from '../presentation/MemberRoute';

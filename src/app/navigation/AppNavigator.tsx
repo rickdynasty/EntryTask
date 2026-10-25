@@ -27,14 +27,15 @@ import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-import { HomeScreen } from '@features/home/public';
-import { WealthScreen } from '@features/wealth/public';
-import { MemberScreen } from '@features/member/public';
-import { ProfileScreen } from '@features/profile/public';
+import { HomeRoute } from '@features/home/public';
+import { WealthRoute } from '@features/wealth/public';
+import { MemberRoute } from '@features/member/public';
+import { ProfileRoute } from '@features/profile/public';
 import type { PageActions, Target } from '@features/services/public';
 import { DocumentScreen } from '@features/services/public';
 import { createId } from '@infra/logging/Logger';
 import { useResource } from '@shared/presentation/useResource';
+import { DemoActionSheet } from '@shared/ui/DashboardComponents';
 import { Icon } from '@shared/ui/Icon';
 import {
   DemoFootnote,
@@ -159,7 +160,6 @@ export function AppNavigator({ application }: { application: Application }) {
 /** 根页挂载前检查会话；Native 首次认证取消后不再自动请求。 */
 function RootRoute({
   navigation,
-  route,
 }: NativeStackScreenProps<StackParams, 'Root'>) {
   const application = useApplication();
   const shell = useSyncExternalStore(
@@ -176,25 +176,16 @@ function RootRoute({
         }
       />
     );
-  return <RootHub navigation={navigation} route={route} />;
+  return <RootHub />;
 }
 
-function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
+function RootHub() {
   const application = useApplication();
   const shell = useSyncExternalStore(
     application.shell.subscribe,
     application.shell.getSnapshot,
   );
-  const [visited, setVisited] = useState<ReadonlySet<number>>(
-    () => new Set([shell.tabId]),
-  );
-  useEffect(() => {
-    setVisited(previous =>
-      previous.has(shell.tabId)
-        ? previous
-        : new Set([...previous, shell.tabId]),
-    );
-  }, [shell.tabId]);
+  const [demoTitle, setDemoTitle] = useState<string | null>(null);
   const channels = useMemo(
     () => application.createChannels(shell.sessionEpoch),
     [application, shell.sessionEpoch],
@@ -206,12 +197,9 @@ function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
       application.logger.log('info', 'navigation', 'target.opened', {
         pageId: target.kind,
       });
-      // 先进入目标路由，统一边界在挂载业务模型前鉴权；登录成功留在原目标。
-      const state = navigation.getState();
-      if (state.routes.at(-1)?.name === 'Detail') return;
-      navigation.navigate('Detail', { target });
+      setDemoTitle(target.title);
     },
-    [application, navigation],
+    [application],
   );
   const demo = (title: string): Target => ({
     kind: 'demo',
@@ -245,49 +233,49 @@ function RootHub({ navigation }: NativeStackScreenProps<StackParams, 'Root'>) {
   const common = {
     actions,
     session: shell,
-    unread: unread.data?.unreadCount ?? 0,
+    unread: unread.data?.unreadCount,
   };
   return (
     <View style={styles.fill}>
-      <View style={[styles.fill, shell.tabId !== 1 && styles.hidden]}>
-        {(visited.has(1) || shell.tabId === 1) && (
-          <HomeScreen
-            model={channels.home}
-            active={shell.tabId === 1}
-            {...common}
-          />
-        )}
-      </View>
-      <View style={[styles.fill, shell.tabId !== 2 && styles.hidden]}>
-        {(visited.has(2) || shell.tabId === 2) && (
-          <WealthScreen
-            model={channels.wealth}
-            active={shell.tabId === 2}
-            {...common}
-          />
-        )}
-      </View>
-      <View style={[styles.fill, shell.tabId !== 3 && styles.hidden]}>
-        {(visited.has(3) || shell.tabId === 3) && (
-          <MemberScreen
-            model={channels.member}
-            active={shell.tabId === 3}
-            {...common}
-          />
-        )}
-      </View>
-      <View style={[styles.fill, shell.tabId !== 4 && styles.hidden]}>
-        {(visited.has(4) || shell.tabId === 4) && (
-          <ProfileScreen
-            model={channels.profile}
-            active={shell.tabId === 4}
-            {...common}
-          />
-        )}
-      </View>
+      {shell.tabId === 1 && (
+        <HomeRoute
+          model={channels.home}
+          notificationError={unread.error}
+          onRetryNotifications={channels.messaging.unread.refresh}
+          active={shell.depth === 0 && demoTitle === null}
+          pageState={channels.pageStates[1]}
+          {...common}
+        />
+      )}
+      {shell.tabId === 2 && (
+        <WealthRoute
+          model={channels.wealth}
+          active={shell.depth === 0 && demoTitle === null}
+          pageState={channels.pageStates[2]}
+          {...common}
+        />
+      )}
+      {shell.tabId === 3 && (
+        <MemberRoute
+          model={channels.member}
+          active={shell.depth === 0 && demoTitle === null}
+          pageState={channels.pageStates[3]}
+          {...common}
+        />
+      )}
+      {shell.tabId === 4 && (
+        <ProfileRoute
+          model={channels.profile}
+          active={shell.depth === 0 && demoTitle === null}
+          pageState={channels.pageStates[4]}
+          {...common}
+        />
+      )}
+      <DemoActionSheet title={demoTitle} onClose={() => setDemoTitle(null)} />
     </View>
   );
 }
+
 function PageHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <View style={styles.header}>
@@ -448,7 +436,7 @@ function LocalPage({ target, onBack }: { target: Target; onBack: () => void }) {
               />
             </View>
             <Text style={ui.muted}>
-              个人偏好由 Native 按用户保存；默认隐藏资产。
+              资产显隐仅在当前会话生效；新会话默认隐藏。
             </Text>
             <Text style={ui.body}>关于 EntryTask</Text>
             <Text style={ui.muted}>

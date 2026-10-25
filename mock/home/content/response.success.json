@@ -259,6 +259,311 @@
       }
     ],
     "searchPlaceholder": "证券服务",
-    "isDemo": true
+    "isDemo": true,
+    "sections": [
+      {
+        "id": "space",
+        "title": "",
+        "subtitle": "",
+        "style": "banner",
+        "entries": [
+          {
+            "id": "space",
+            "title": "开启耀钻空间",
+            "subtitle": "耀星钻积分 兑换缤纷权益",
+            "icon": "diamond",
+            "assetKey": "certification-gift",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "开启耀钻空间",
+              "requiresAuth": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "features",
+        "title": "特色单品",
+        "subtitle": "",
+        "style": "cards",
+        "entries": [
+          {
+            "id": "trust",
+            "title": "全权委托",
+            "subtitle": "您身边的定制投资服务专家",
+            "icon": "shield",
+            "assetKey": "",
+            "tone": "rose",
+            "target": {
+              "kind": "demo",
+              "title": "全权委托",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "family",
+            "title": "家族传承",
+            "subtitle": "信托架构，守护家族财富，助力代代传承",
+            "icon": "family",
+            "assetKey": "",
+            "tone": "blue",
+            "target": {
+              "kind": "demo",
+              "title": "家族传承",
+              "requiresAuth": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "private",
+        "title": "",
+        "subtitle": "",
+        "style": "banner",
+        "entries": [
+          {
+            "id": "private",
+            "title": "私行增值服务",
+            "subtitle": "甄选礼遇更丰富 专属服务更贴心",
+            "icon": "diamond",
+            "assetKey": "seasonal-gifts",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "私行增值服务",
+              "requiresAuth": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "exclusive",
+        "title": "尊享服务",
+        "subtitle": "璀璨心意 为您私属",
+        "style": "menu",
+        "entries": [
+          {
+            "id": "cloud",
+            "title": "云企会",
+            "subtitle": "",
+            "icon": "city",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "云企会",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "youth",
+            "title": "少年行",
+            "subtitle": "",
+            "icon": "family",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "少年行",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "club",
+            "title": "私享会",
+            "subtitle": "",
+            "icon": "diamond",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "私享会",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "advisor",
+            "title": "信投顾",
+            "subtitle": "",
+            "icon": "user",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "信投顾",
+              "requiresAuth": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "rights",
+        "title": "",
+        "subtitle": "",
+        "style": "cards",
+        "entries": [
+          {
+            "id": "popular",
+            "title": "热门权益",
+            "subtitle": "机场专车 · 名医就诊 · 法律咨询",
+            "icon": "wallet",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "热门权益",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "exclusive-rights",
+            "title": "专属权益",
+            "subtitle": "甄选礼遇更丰富 专属服务更贴心",
+            "icon": "diamond",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "专属权益",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "diamond-space",
+            "title": "耀钻空间",
+            "subtitle": "报名兑享 缤纷权益",
+            "icon": "gift",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "耀钻空间",
+              "requiresAuth": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "research",
+        "title": "投研论道",
+        "subtitle": "",
+        "style": "news",
+        "entries": [
+          {
+            "id": "strategy",
+            "title": "2026年策略报告",
+            "subtitle": "中信私行策略 · 模拟资讯",
+            "icon": "ledger",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "2026年策略报告",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "allocation",
+            "title": "如何应对权益分化",
+            "subtitle": "把握投资脉络 · 模拟资讯",
+            "icon": "fund",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "如何应对权益分化",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "logic",
+            "title": "读懂国家队运作逻辑：高净值客户可以习得的配置智慧",
+            "subtitle": "私行原创 · 模拟资讯",
+            "icon": "ledger",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "读懂国家队运作逻辑：高净值客户可以习得的配置智慧",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "bond",
+            "title": "困境债务：风险出清中的特殊机会",
+            "subtitle": "私行原创 · 模拟资讯",
+            "icon": "ledger",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "困境债务：风险出清中的特殊机会",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "market",
+            "title": "跳出短期市场波动，客观看待各类资产配置逻辑",
+            "subtitle": "私行原创 · 模拟资讯",
+            "icon": "fund",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "跳出短期市场波动，客观看待各类资产配置逻辑",
+              "requiresAuth": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "citic",
+        "title": "",
+        "subtitle": "",
+        "style": "menu",
+        "entries": [
+          {
+            "id": "citic-trust",
+            "title": "中信私行",
+            "subtitle": "",
+            "icon": "diamond",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "中信私行",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "awards",
+            "title": "私行荣誉",
+            "subtitle": "",
+            "icon": "crown",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "私行荣誉",
+              "requiresAuth": true
+            }
+          },
+          {
+            "id": "center",
+            "title": "私行中心",
+            "subtitle": "",
+            "icon": "city",
+            "assetKey": "",
+            "tone": "gold",
+            "target": {
+              "kind": "demo",
+              "title": "私行中心",
+              "requiresAuth": true
+            }
+          }
+        ]
+      }
+    ]
   }
 }

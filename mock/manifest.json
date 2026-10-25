@@ -322,6 +322,15 @@
       "exposure": "jsAllowed",
       "requiresAuth": false,
       "response": "services/search/response.success.json"
+    },
+    {
+      "apiId": "profile.financialOverview",
+      "method": "GET",
+      "path": "/api/profile/financial-overview",
+      "handler": "financialOverview",
+      "exposure": "jsAllowed",
+      "requiresAuth": true,
+      "response": "profile/financialOverview/response.success.json"
     }
   ]
 }

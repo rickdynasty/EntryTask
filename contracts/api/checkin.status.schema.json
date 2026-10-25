@@ -8,7 +8,9 @@
     "energy",
     "awardedEnergy",
     "alreadyChecked",
-    "rewardDays"
+    "rewardDays",
+    "calendar",
+    "rewardRule"
   ],
   "properties": {
     "businessDate": {
@@ -34,6 +36,30 @@
       "items": {
         "type": "integer"
       }
+    },
+    "calendar": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": [
+          "date",
+          "checked"
+        ],
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "rewardRule": {
+      "type": "string"
     }
   },
   "additionalProperties": true

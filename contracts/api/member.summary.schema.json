@@ -10,7 +10,10 @@
     "coupons",
     "points",
     "energy",
-    "isDemo"
+    "isDemo",
+    "tierName",
+    "carbonLabel",
+    "tierProgress"
   ],
   "properties": {
     "nickname": {
@@ -39,6 +42,80 @@
     },
     "isDemo": {
       "type": "boolean"
+    },
+    "tierName": {
+      "type": "string"
+    },
+    "carbonLabel": {
+      "type": "string"
+    },
+    "tierProgress": {
+      "type": "object",
+      "required": [
+        "metricCode",
+        "asOf",
+        "current",
+        "nextThreshold",
+        "isTopTier"
+      ],
+      "properties": {
+        "metricCode": {
+          "const": "monthlyAverageFinancialAssets"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "current": {
+          "type": "object",
+          "required": [
+            "currency",
+            "minorUnit",
+            "amountMinor"
+          ],
+          "properties": {
+            "currency": {
+              "const": "CNY"
+            },
+            "minorUnit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "amountMinor": {
+              "type": "string",
+              "pattern": "^-?[0-9]+$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "nextThreshold": {
+          "type": "object",
+          "required": [
+            "currency",
+            "minorUnit",
+            "amountMinor"
+          ],
+          "properties": {
+            "currency": {
+              "const": "CNY"
+            },
+            "minorUnit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "amountMinor": {
+              "type": "string",
+              "pattern": "^-?[0-9]+$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "isTopTier": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

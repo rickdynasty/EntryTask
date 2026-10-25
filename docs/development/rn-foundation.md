@@ -1,5 +1,7 @@
 # RN 工程与四 Tab 运行说明
 
+> 2026-10-25：新版必做UI已进入RN与Android Compose双端实施；当前根页与宿主变更、验证及视觉限制见[实施记录](新版四Tab实施记录.md)，旧XML根页描述以该记录为准。
+
 更新：2026-10-18。视觉及页面设计见 [四 Tab 设计](../ui/四Tab原型分析与RN页面设计.md)，验收证据见 [实现与验证记录](../ui/四Tab实现与验证记录.md)。
 
 ## 启动与诊断
@@ -17,7 +19,7 @@ npx react-native run-android
 
 2026-10-19 登录基线：冷启动先通过 NativeSession Bridge 读取 Native 内存会话。未登录时 RN 不挂载首页或任何业务子页，并经 NativeHost Bridge 拉起认证；MainActivity 保持在栈内，登录成功只关闭 AuthActivity，宿主恢复后发布快照并放行 RN 首页。取消认证停留在登录门禁，可显式重试。会话仅进程内保存，杀进程后重新认证；当前使用本地注册账号。详见 [登录门禁 ADR](../adr/011-required-native-authentication.md)。
 
-Android Studio 与 CLI 使用同一 `com.entrytask`。`HomeFragment.USE_REACT_NATIVE=true` 挂载 RN；改为 false 保留原 Native 文本首页。常规业务开发不修改此开关。
+Android Studio与CLI使用同一`com.entrytask`。官方CLI构建挂载RN，Android Studio构建挂载XML Native四根页；由`HomeFragment.usesReactNative()`读取BuildConfig选择，常规开发无需修改源码常量。显式参数、APK模式和验证方法见[双页面模式](native-dashboard.md)。
 
 ## 入口与宿主
 

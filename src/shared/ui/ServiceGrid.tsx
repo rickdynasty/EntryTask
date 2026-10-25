@@ -11,11 +11,13 @@ export function ServiceGrid<
   onSelect,
   columns = 5,
   gold = false,
+  tone = 'default',
 }: {
   items: readonly T[];
   onSelect: (item: T) => void;
-  columns?: 4 | 5;
+  columns?: 3 | 4 | 5;
   gold?: boolean;
+  tone?: 'default' | 'blue';
 }) {
   return (
     <View style={styles.grid}>
@@ -35,7 +37,11 @@ export function ServiceGrid<
             {gold ? (
               <Artwork name={`quick-${index}`} style={styles.quick} />
             ) : (
-              <Icon name={item.icon} size={31} />
+              <Icon
+                name={item.icon}
+                size={31}
+                color={tone === 'blue' ? '#23A9D8' : '#292623'}
+              />
             )}
             {item.badge && (
               <View style={styles.badge}>

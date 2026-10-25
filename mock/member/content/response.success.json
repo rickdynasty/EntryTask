@@ -38,6 +38,74 @@
     "checkinTitle": "连续签到赢好礼",
     "cardTitle": "定制你的专属卡号",
     "cardSubtitle": "给财富加个幸运Buff",
-    "isDemo": true
+    "isDemo": true,
+    "benefitEntries": [
+      {
+        "id": "benefit-0",
+        "title": "200能量值",
+        "icon": "energy",
+        "badge": "火爆",
+        "target": {
+          "kind": "demo",
+          "title": "200能量值",
+          "requiresAuth": true
+        }
+      },
+      {
+        "id": "benefit-1",
+        "title": "生日礼",
+        "icon": "gift",
+        "badge": "火爆",
+        "target": {
+          "kind": "demo",
+          "title": "生日礼",
+          "requiresAuth": true
+        }
+      },
+      {
+        "id": "benefit-2",
+        "title": "2元学习金",
+        "icon": "fund",
+        "badge": "",
+        "target": {
+          "kind": "demo",
+          "title": "2元学习金",
+          "requiresAuth": true
+        }
+      },
+      {
+        "id": "benefit-3",
+        "title": "幸福咖啡",
+        "icon": "gift",
+        "badge": "",
+        "target": {
+          "kind": "demo",
+          "title": "幸福咖啡",
+          "requiresAuth": true
+        }
+      },
+      {
+        "id": "benefit-4",
+        "title": "信用卡权益",
+        "icon": "card",
+        "badge": "",
+        "target": {
+          "kind": "demo",
+          "title": "信用卡权益",
+          "requiresAuth": true
+        }
+      },
+      {
+        "id": "benefit-5",
+        "title": "9分享兑",
+        "icon": "gift",
+        "badge": "",
+        "target": {
+          "kind": "demo",
+          "title": "9分享兑",
+          "requiresAuth": true
+        }
+      }
+    ]
   }
 }

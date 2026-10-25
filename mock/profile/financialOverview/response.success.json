@@ -1,0 +1,32 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "month": "2026-10",
+    "monthlyIncome": {
+      "currency": "CNY",
+      "minorUnit": 2,
+      "amountMinor": "0"
+    },
+    "monthlyExpense": {
+      "currency": "CNY",
+      "minorUnit": 2,
+      "amountMinor": "0"
+    },
+    "creditBill": {
+      "hasCard": false,
+      "unpaid": null,
+      "dueDate": null
+    },
+    "loanOffer": {
+      "marketingOnly": true,
+      "limit": {
+        "currency": "CNY",
+        "minorUnit": 2,
+        "amountMinor": "50000000"
+      },
+      "annualRate": "0.0300"
+    },
+    "isDemo": true
+  }
+}

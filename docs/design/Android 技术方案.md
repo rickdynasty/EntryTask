@@ -1,5 +1,7 @@
 # Android 技术方案
 
+> 2026-10-25：新版必做UI已进入RN与Android Compose双端实施；当前根页与宿主变更、验证及视觉限制见[实施记录](../development/新版四Tab实施记录.md)，旧XML根页描述以该记录为准。
+
 版本：1.2 · 日期：2026-10-19 · 状态：当前实现核查 + 后续目标设计
 
 输入：[总体方案](EtryTask%20项目设计方案.md)、[RN方案](前端RN技术方案.md)、[需求](../requirements/01-prototype-requirements.md)
@@ -413,3 +415,8 @@ RnWarmupController为进程级纯状态协调，注入引擎启动、作用域�
 Native认证Mock改用manifest精确method/path及现有分API JSON；UserService内部错误码为400/401/409/500数字，不改变RN错误契约。注册与登录共用MockAccountStore，SP按用户名哈希索引独立账号，后台原子commit落盘校验记录，重复账号不覆盖；启动不再删除mock_db账号。完整mock_reg/mock_db旧键对在认证后台访问时迁移，成功写入后同事务删除旧明文，不清其他SP。
 
 当前增量实现使用版本化PBKDF2校验值、16字节salt、32字节输出、120000次，优先HMAC-SHA256，旧Provider兼容HMAC-SHA1；未实施§9目标Room/Keystore封装及600000次参数，不能当作目标方案全部验收。账号持久化与内存会话分开，重启仍需Native校验登录。实现、迁移与验证详见 [ADR-013](../adr/013-auth-back-and-mock-persistence.md) 和 [修复记录](../development/认证返回与账号持久化修复.md)。
+
+
+## 2026-10-24：Native四根页补充
+
+按新增需求，Android Studio构建使用XML及自定义View实现四根页，官方CLI构建保留单RN Surface。新增biz_dashboard实际业务模块，MVVM/Repository及共用View见[双页面模式设计](../development/native-dashboard.md)。Shell、认证、底栏、Mock会话权威不变。仅新增Native根页，Native子页及写操作未在本轮实施。

@@ -8,6 +8,7 @@
 | --- | --- |
 | `app` | MainApplication、MainActivity、根 Tab、Fragment / RN 宿主、五个 Bridge 适配和资源打包组装 |
 | `biz_user` | Native 认证 UI、MVVM、Repository 与会话实现 |
+| `biz_dashboard` | Compose四根页、共用组件、分域MVVM及共享Mock适配 |
 | `lib_base` | 既有基础能力及 UI/MVVM 封装；不继续加入业务/RN 代码 |
 | `lib_net` | 现有 OkHttp / Retrofit 与过渡 Mock 实现；新增通用网络不识别业务 UI |
 | `lib_storage` | 现有 Native 存储封装；禁止向 RN 开放任意 key/path 或凭证 |
@@ -15,7 +16,7 @@
 
 设计中的 `lib_contract`、`lib_ui`、`biz_user_api`、`lib_rn_host`、`lib_bridge`等尚未全部创建。按任务需要迁移到目标职责，不能假定存在，也不能为了单个修复一次拆完所有模块。
 
-- app 是组装入口，不增加银行业务规则和 DAO；四域业务页面及子页由 RN 实现。认证和 Native Shell 使用 MVVM。
+- app 是组装入口，不增加银行业务规则和 DAO；四域业务页面及子页由 RN 实现；Android Studio模式的Compose四根页由biz_dashboard实现，见docs/development/native-dashboard.md。认证和 Native Shell 使用 MVVM。
 - 新代码遵循 View → VM → domain 契约 → data 实现，按业务域组织。技术库不新增对 app、biz、RN 的反向依赖；已有 `lib_net → lib_storage` 等偏差不作为新依赖范例，相关迁移通过接口注入解除。
 - 跨业务实现不直接依赖，使用公开契约；默认 `implementation`，只有公开签名确有需要才用 `api`。不要借偶然传递依赖省略实际使用模块的声明。
 - 保持现有 `com.entrytask`、`com.entry.biz.user`、`com.entry.lib.*` 路径。`com.entry.lib.stroage` 为现有拼写遗留；只有范围明确的迁移任务才整体改名并验证 import/存储兼容，不零散“纠错”。
@@ -32,8 +33,8 @@
 ## 单 RN 宿主与 Codegen
 
 - `MainApplication.reactHost` 是进程内唯一 Host，沿用 `getDefaultReactHost`、RN 新架构和 Hermes。不要在 Fragment、Tab 或认证 Activity 创建第二个 Host / runtime。
-- MainActivity 保留 XML，通过 MainShellView 渲染 MainViewModel；HostModule 使用同一进程级 ShellRepository。外层按稳定 tag `entrytask-root-hub` 查找/复用 HomeFragment，缺失才添加；内层 BaseFragment 使用稳定 `R.id.rn_content` / `entrytask-rn-root` 恢复 RN，不重复 add/attach。首页 Compose 属于后续独立阶段，不与本轮 MVVM 混改。不使用 `commitAllowingStateLoss` 掩盖生命周期错误。
-- 保留 `HomeFragment.USE_REACT_NATIVE` 的两种模式。修改 RN 默认路径不得破坏 Native-only 内容；测试时临时修改开关必须恢复并说明验证范围。
+- MainActivity 保留静态 XML 宿主容器，通过 MainShellView 的 Compose 底栏渲染 MainViewModel；HostModule 使用同一进程级 ShellRepository。外层按稳定 tag `entrytask-root-hub` 查找/复用 HomeFragment，缺失才添加；内层 BaseFragment 使用稳定 `R.id.rn_content` / `entrytask-rn-root` 恢复 RN，不重复 add/attach。Native四页使用ComposeView，组合随viewLifecycleOwner释放；可见业务UI不再新增XML，详见新版四Tab方案。不使用 `commitAllowingStateLoss` 掩盖生命周期错误。
+- 保留 `HomeFragment.usesReactNative()` 的两种构建模式。修改 RN 默认路径不得破坏 Native-only 内容；测试时临时修改开关必须恢复并说明验证范围。
 - 当前原生适配在 `app/src/main/java/com/entrytask/bridge/`，继承根 `specs/` 生成的 `com.entrytask.specs.Native*Spec`，由 `EntryTaskPackage` 注册。未来抽模块需按设计完整迁移，不能新增旧桥双实现绕过 Codegen。
 - 改签名联动 `specs/`、package.json Codegen 配置、RN adapter、Native 实现/注册及测试；生成源码留 build 目录。bootstrap 返回实际支持的能力，不宣称尚未实现的方法。
 - Bridge 边界验证 JSON、长度、apiId/exposure、key 和数据形状；协议错误结构化返回。Promise 终态不能重复，runtime invalidate 时取消请求并释放监听/宿主引用。

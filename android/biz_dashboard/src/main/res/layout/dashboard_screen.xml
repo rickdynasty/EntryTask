@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#F5F5F5">
+    <LinearLayout android:id="@+id/dashboardStateRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="12dp">
+        <ProgressBar android:id="@+id/dashboardLoading" android:layout_width="24dp" android:layout_height="24dp" android:visibility="gone"/>
+        <TextView android:id="@+id/dashboardStatus" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:padding="12dp" android:textSize="14sp" android:visibility="gone"/>
+        <Button android:id="@+id/dashboardRetry" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/native_refresh" android:minHeight="48dp"/>
+    </LinearLayout>
+    <ScrollView android:id="@+id/dashboardScroll" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true" android:clipToPadding="false">
+        <FrameLayout android:id="@+id/dashboardPage" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    </ScrollView>
+</LinearLayout>

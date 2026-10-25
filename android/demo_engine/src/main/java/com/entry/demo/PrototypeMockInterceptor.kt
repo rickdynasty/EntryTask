@@ -111,7 +111,10 @@ class PrototypeMockInterceptor(context: Context) : Interceptor {
                 getJSONArray("categories").let { array -> objects(array).forEach { it.put("amountMinor", "0") } }
             }
             "summary" -> (data as JSONObject).put("bankCards", 0).put("todos", 0).put("points", 0)
-                .put("coupons", state.optJSONArray("claims")?.length() ?: 0).put("energy", state.optInt("energy"))
+                .put("coupons", state.optJSONArray("claims")?.length() ?: 0).put("energy", state.optInt("energy")).apply {
+                    optJSONObject("tierProgress")?.put("asOf", date().take(7))
+                }
+            "financialOverview" -> (data as JSONObject).put("month", date().take(7))
             "accountDetail", "transactionDetail", "itemDetail" -> throw DemoFailure("RESOURCE_NOT_FOUND", 404)
             "transactions", "items" -> page(emptyList(), chain)
             "checkin" -> checkin(state)

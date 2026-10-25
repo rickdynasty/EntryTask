@@ -27,7 +27,13 @@ test('Native revisions order tab events and epochs clear private queries once', 
   expect(shell.getSnapshot().tabId).toBe(3);
   expect(clear).toHaveBeenCalledTimes(1);
   await Promise.resolve();
+  expect(shell.getSnapshot().assetsVisible).toBe(false);
+  expect(host.readVisibility).not.toHaveBeenCalled();
+  shell.toggleVisibility();
   expect(shell.getSnapshot().assetsVisible).toBe(true);
+  shell.toggleVisibility();
+  expect(shell.getSnapshot().assetsVisible).toBe(false);
+  expect(host.writeVisibility).not.toHaveBeenCalled();
   shell.accept({
     tabId: 3,
     depth: 0,
@@ -39,18 +45,8 @@ test('Native revisions order tab events and epochs clear private queries once', 
   expect(clear).toHaveBeenCalledTimes(2);
   shell.dispose();
 });
-test('late visibility reads cannot disclose a previous user preference', async () => {
-  let resolve: (value: boolean) => void = () => {};
-  const local = {
-    ...host,
-    readVisibility: jest.fn(
-      () =>
-        new Promise<boolean>(r => {
-          resolve = r;
-        }),
-    ),
-  };
-  const shell = new ShellViewModel(local, { log: jest.fn() }, jest.fn());
+test('session-only visibility stays synchronized across tabs and resets on a new epoch', () => {
+  const shell = new ShellViewModel(host, { log: jest.fn() }, jest.fn());
   shell.accept({
     tabId: 2,
     depth: 0,
@@ -58,29 +54,47 @@ test('late visibility reads cannot disclose a previous user preference', async (
     sessionEpoch: 1,
     revision: 1,
   });
+  shell.toggleVisibility();
   shell.accept({
-    tabId: 2,
+    tabId: 4,
     depth: 0,
-    authenticated: false,
-    sessionEpoch: 2,
+    authenticated: true,
+    sessionEpoch: 1,
     revision: 2,
   });
-  resolve(true);
-  await Promise.resolve();
+  expect(shell.getSnapshot().assetsVisible).toBe(true);
+  shell.accept({
+    tabId: 4,
+    depth: 0,
+    authenticated: true,
+    sessionEpoch: 2,
+    revision: 3,
+  });
   expect(shell.getSnapshot().assetsVisible).toBe(false);
 });
 
 test('late Session snapshots and host events cannot roll back a newer login epoch', () => {
   const shell = new ShellViewModel(host, { log: jest.fn() }, jest.fn());
   shell.accept({
-    tabId: 4, depth: 0, authenticated: false, sessionEpoch: 2, revision: 6,
+    tabId: 4,
+    depth: 0,
+    authenticated: false,
+    sessionEpoch: 2,
+    revision: 6,
   });
   shell.acceptSession({ authenticated: true, sessionEpoch: 1 });
   shell.accept({
-    tabId: 1, depth: 0, authenticated: true, sessionEpoch: 1, revision: 7,
+    tabId: 1,
+    depth: 0,
+    authenticated: true,
+    sessionEpoch: 1,
+    revision: 7,
   });
   expect(shell.getSnapshot()).toMatchObject({
-    tabId: 4, authenticated: false, sessionEpoch: 2, revision: 6,
+    tabId: 4,
+    authenticated: false,
+    sessionEpoch: 2,
+    revision: 6,
   });
   shell.acceptSession({ authenticated: false, sessionEpoch: 3 });
   expect(shell.getSnapshot().sessionEpoch).toBe(3);

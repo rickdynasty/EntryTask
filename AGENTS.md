@@ -26,11 +26,11 @@
 | `tools/`、`__tests__/` | 资源与架构检查、校验器生成、JS 测试 |
 | `docs/` | 需求、设计、开发及验证说明 |
 
-当前已落地四个 RN 根页、共用组件和通用子页模板；Native 底栏驱动单个 RN Surface。RN 暴露34个本地演示API，不能据此声称37API全部场景或完整生产会话协议已验收。Android 模块为 `app`、`biz_user`、`lib_base`、`lib_net`、`lib_storage` 和 `demo_engine`，不为满足目录示意创建空模块。
+当前已落地四个 RN 根页、共用组件和通用子页模板；Native 底栏驱动单个 RN Surface。RN 暴露35个本地演示API，不能据此声称37API全部场景或完整生产会话协议已验收。Android 模块为 `app`、`biz_user`、`biz_dashboard`、`lib_base`、`lib_net`、`lib_storage` 和 `demo_engine`，不为满足目录示意创建空模块。
 
 ## 跨端架构不变量
 
-1. 每进程只使用一个 RN instance。Native 负责宿主、根 Tab、认证及会话权威；RN 负责四域页面和业务子页，优先复用 RN 控件。不能为页面、Tab 或登录创建第二个 runtime，也不能另建 RN 根底栏复制 Native 导航状态。
+1. 每进程只使用一个 RN instance。Native 负责宿主、根 Tab、认证及会话权威；RN 负责四域页面和业务子页，Android Studio模式另有XML Native四根页（见 docs/development/native-dashboard.md），优先复用 RN 控件。不能为页面、Tab 或登录创建第二个 runtime，也不能另建 RN 根底栏复制 Native 导航状态。
 2. View 渲染，VM 生产状态和处理动作，领域契约定义业务，Repository 管数据，适配器实现 IO，组装根构造依赖。跨域只使用公开契约，禁止导入其他域的私有实现；按复杂度引入 UseCase，不机械添加空层。
 3. RN 可以使用 Native 网络或自己的 HTTP 能力，由 EndpointRegistry 按 API 显式选择；禁止失败后自动切换通路。当前无后端的演示 API 使用 Native Mock，RN 不直接读取响应 fixture 冒充请求。
 4. Native 持有银行凭证及持久化权威；RN 不复制凭证、持久账户库或另一套持久查询缓存。RN 查询缓存与客户端状态遵守 RN 子规则，跨端交互通过受控 Port / Codegen 适配。
@@ -50,7 +50,7 @@ npm run logs:android
 - JS 入口固定为 `src/index.js`，根组件 `src/app/App.tsx`；不恢复根目录 `index.js` 或另建入口兜底。
 - 注册组件名为 `EntryTask`；Android `applicationId` / namespace 为 `com.entrytask`，Application 为 `.MainApplication`。不得在目录整理中误改安装身份或组件名。
 - Android 开发入口为 `src/index`，Bundle 入口为 `../../src/index.js`；iOS 开发入口为 `src/index`，构建 `ENTRY_FILE=src/index.js`。涉及入口调整时核对 Metro、原生配置、Codegen 和组件注册的一致性。
-- `HomeFragment.USE_REACT_NATIVE` 保留 Native-only 首页路径；常规 RN 修改不切换该开关来掩盖错误。
+- `HomeFragment.usesReactNative()` 读取构建期 `USE_REACT_NATIVE_PAGES`，保留 Native四根页路径；常规 RN 修改不切换该开关来掩盖错误。
 
 ## 共享契约和运行资源
 

@@ -11,3 +11,17 @@ export type Marketing = {
   loanRate: string;
   isDemo: boolean;
 };
+
+/** 财务概览是受保护接口的展示契约；营销额度不代表授信。 */
+export type FinancialOverview = {
+  month: string;
+  monthlyIncome: Money;
+  monthlyExpense: Money;
+  creditBill: {
+    hasCard: boolean;
+    unpaid: Money | null;
+    dueDate: string | null;
+  };
+  loanOffer: { marketingOnly: true; limit: Money; annualRate: string };
+  isDemo: true;
+};
