@@ -1,6 +1,5 @@
 package com.entry.lib.net
 
-import com.entry.lib.base.AppGlobals
 import okhttp3.Call
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
@@ -19,8 +18,9 @@ import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 object NetManager {
-    fun initMock() {
+    fun initMock(interceptor: Interceptor) {
         baseUrl = "https://entrytask.invalid/"
+        addInterceptor(interceptor)
     }
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
@@ -80,7 +80,6 @@ object NetManager {
             .callTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .dispatcher(Dispatcher().apply { maxRequests = 8; maxRequestsPerHost = 8 })
-            .addInterceptor(MockInterceptor(AppGlobals.context)) // 统一挂载 Mock 拦截器
 
         // 1. 动态挂载所有已注册的拦截器
         interceptors.forEach { builder.addInterceptor(it) }

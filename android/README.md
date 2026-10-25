@@ -4,6 +4,8 @@
 
 Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登录注册、应用外壳与根 Tab、Native 会话和平台能力；RN模式的四个业务Tab及子页面由共享RN工程实现；Android Studio模式由biz_dashboard提供Compose Native四根页。工程是无后端的教学原型，业务 API 使用本地 Mock，不代表真实银行服务或生产级认证。
 
+学习数据库接入可从 [Room新手使用指南](../docs/development/Room新手使用指南.md) 开始，结合当前认证存储理解 Entity、DAO、Repository 和 MVVM。
+
 ## 模块与职责
 
 | 模块 | 当前职责 |
@@ -13,7 +15,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 | `biz_dashboard` | Compose四根页、可复用组件、MVVM及Mock数据适配 |
 | `lib_base` | AppGlobals/AndroidX Startup 应用信息代理、基础能力及现有 UI/MVVM 封装 |
 | `lib_net` | Native 网络基础设施及进程内下载初版（可靠性边界见技术方案） |
-| `lib_storage` | Native 存储封装 |
+| `lib_storage` | 普通偏好与Room数据库封装，认证校验记录持久化及事务 |
 | `demo_engine` | RN与Native根页共用的原型API Mock拦截与演示业务状态，与 Native 登录认证 Mock 分离 |
 
 模块依赖由 `app` 组装，基础库不新增对业务 UI、`app` 或 RN 的反向依赖。架构目标与模块演进边界见 [Android 技术方案](../docs/design/Android%20技术方案.md)；当前已实施的 Native 设计说明见 [Android 架构文档](docs/01-architecture-design.md)。
@@ -29,7 +31,7 @@ Android 是 EntryTask 当前的 Native 宿主与原型运行端。它提供登�
 - `HomeFragment.usesReactNative()`读取构建期配置：官方CLI使用RN页面，Android Studio使用Compose Native四根页。显式覆盖及限制见文末双页面模式说明。
 - TurboModule TypeScript 契约位于根目录 `specs/Native*.ts`，`package.json` 的 Codegen 扫描 `specs/` 并生成 `com.entrytask.specs` 下的接口；Android Native 实现由 `EntryTaskPackage` 注册。修改契约需同步 JS adapter、Native 实现、注册与 Codegen 构建。
 
-认证账号在Native Mock中写入SP并逐账号保存加盐校验值；进程重启只清内存会话，登录经同一拦截器重读SP校验。旧mock_reg/mock_db账号按需原子迁移，不在启动时删除。详见 [认证返回与账号持久化修复](../docs/development/认证返回与账号持久化修复.md)。
+认证账号在Native Mock中通过lib_storage的Room封装持久化，注册和登录读取同一个entrytask_auth.db；进程重启只清内存会话。旧SP加盐记录及mock_reg/mock_db完整旧键对在后台按需迁移，先提交Room、再清理对应SP，不清其他偏好。详见 [Room认证存储实施说明](../docs/development/Room认证存储实施说明.md) 和 [lib_storage用法](lib_storage/README.md)。
 
 ## 首页 MVVM 与分步迁移
 

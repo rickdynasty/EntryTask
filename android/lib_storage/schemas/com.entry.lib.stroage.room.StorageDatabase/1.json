@@ -1,0 +1,37 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "95c76e40536419aee14ad564b585d38c",
+    "entities": [
+      {
+        "tableName": "auth_credentials",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`account_key` TEXT NOT NULL, `password_verifier` TEXT NOT NULL, PRIMARY KEY(`account_key`))",
+        "fields": [
+          {
+            "fieldPath": "accountKey",
+            "columnName": "account_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "passwordVerifier",
+            "columnName": "password_verifier",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "account_key"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '95c76e40536419aee14ad564b585d38c')"
+    ]
+  }
+}

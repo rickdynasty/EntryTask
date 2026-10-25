@@ -44,6 +44,5 @@ dependencies {
     api("com.google.code.gson:gson:2.10.1")
 
 
-    implementation(project(":lib_storage"))
     implementation(project(":lib_base"))
 }

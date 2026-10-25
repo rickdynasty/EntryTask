@@ -9,6 +9,12 @@ import javax.crypto.spec.PBEKeySpec
 interface MockAccountStorage {
     fun read(key: String): String?
     fun commit(values: Map<String, String>, removals: Set<String>): Boolean
+    /** Room适配器覆写为唯一主键插入，避免多连接竞争覆盖；内存替身沿用锁内提交。 */
+    fun create(key: String, verifier: String): Boolean {
+        if (read(key) != null) return false
+        check(commit(mapOf(key to verifier), emptySet())) { "AUTH_STORAGE_WRITE_FAILED" }
+        return true
+    }
 }
 
 /** 演示认证账本：用户名规范化后索引，每个账号独立保存加盐校验值，不保存新明文密码。 */
@@ -19,8 +25,7 @@ class MockAccountStore(private val storage: MockAccountStorage) {
         migrateLegacy()
         val key = accountKey(username)
         if (storage.read(key) != null) return@synchronized Registration.EXISTS
-        persist(mapOf(key to verifier(password)))
-        Registration.CREATED
+        if (storage.create(key, verifier(password))) Registration.CREATED else Registration.EXISTS
     }
 
     fun verify(username: String, password: String): Boolean = synchronized(lock) {
@@ -41,7 +46,7 @@ class MockAccountStore(private val storage: MockAccountStorage) {
     private fun migrateLegacy() {
         val values = linkedMapOf<String, String>()
         val removals = linkedSetOf<String>()
-        for (prefix in listOf("mock_reg", "mock_db")) {
+        for (prefix in LEGACY_ACCOUNT_PREFIXES) {
             val username = storage.read("${prefix}_username") ?: continue
             val password = storage.read("${prefix}_password") ?: continue
             if (username.isBlank() || password.isBlank()) continue
@@ -77,12 +82,17 @@ class MockAccountStore(private val storage: MockAccountStorage) {
     }
 
     companion object {
+        const val ACCOUNT_KEY_PREFIX = "mock_auth_v1."
+        private val LEGACY_ACCOUNT_PREFIXES = listOf("mock_reg", "mock_db")
+        val LEGACY_ACCOUNT_KEYS: Set<String> = LEGACY_ACCOUNT_PREFIXES.flatMap {
+            listOf("${it}_username", "${it}_password")
+        }.toSet()
         private const val ITERATIONS = 120_000
         private val ALGORITHMS = setOf("PBKDF2WithHmacSHA256", "PBKDF2WithHmacSHA1")
         private val random = SecureRandom()
         // 多个拦截器/Store实例也不能绕过注册防重和迁移的原子边界。
         private val lock = Any()
-        private fun accountKey(username: String) = "mock_auth_v1." + hex(
+        private fun accountKey(username: String) = ACCOUNT_KEY_PREFIX + hex(
             MessageDigest.getInstance("SHA-256").digest(username.trim().toByteArray(Charsets.UTF_8)))
         private fun hex(bytes: ByteArray) = bytes.joinToString("") { "%02x".format(it) }
         private fun unhex(value: String): ByteArray {

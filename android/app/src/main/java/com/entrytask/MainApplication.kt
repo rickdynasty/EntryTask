@@ -16,6 +16,11 @@ import kotlinx.coroutines.SupervisorJob
 import com.entry.lib.log.MLog
 import com.entry.lib.net.NetManager
 import com.entry.lib.stroage.StorageManager
+import com.entry.lib.stroage.room.RoomStorage
+import com.entry.lib.net.MockInterceptor
+import com.entry.lib.net.mock.MockAccountStore
+import com.entrytask.storage.RoomMockAccountStorage
+import com.entrytask.storage.SharedPreferencesLegacyAccounts
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -44,6 +49,16 @@ class MainApplication : Application(), ReactApplication {
             if (value.phase in setOf(WarmupPhase.FAILED, WarmupPhase.TIMED_OUT)) MLog.w("EntryTask.RNStartup", message)
             else MLog.i("EntryTask.RNStartup", message)
         }
+    }
+    // Application只持有一个Room实例；实际打开和迁移延后到后台认证请求。
+    private val authDatabase by lazy { RoomStorage.open(this) }
+    private val authAccounts by lazy {
+        MockAccountStore(
+            RoomMockAccountStorage(
+                authDatabase.credentials,
+                SharedPreferencesLegacyAccounts(getSharedPreferences("app_default_pref", MODE_PRIVATE)),
+            )
+        )
     }
     val shellGraph by lazy { com.entrytask.shell.di.ShellGraph() }
     val prototypeNetwork: okhttp3.OkHttpClient by lazy {
@@ -84,12 +99,12 @@ class MainApplication : Application(), ReactApplication {
         )
 
         MLog.i("EntryTask.Bridge", "application.started version=${BuildConfig.VERSION_NAME} debug=${BuildConfig.DEBUG} entry=src/index")
-        // 初始化 MMKV
+        // 初始化既有普通偏好存储，账号改由Room持久化。
         StorageManager.init(this)
         getSharedPreferences("app_default_pref", MODE_PRIVATE).edit()
             .remove("key_token").apply()
-        // 旧mock_reg/mock_db账户由认证拦截器在后台原子迁移；启动时不能删除已注册账户。
-        NetManager.initMock()
+        // 认证拦截器后台迁移旧SP，提交Room后再清旧键；启动时不读账号库。
+        NetManager.initMock(MockInterceptor(this) { authAccounts })
 
         loadReactNative(this)
         registerActivityLifecycleCallbacks(AuthWarmupLifecycle(authFrameTiming) {

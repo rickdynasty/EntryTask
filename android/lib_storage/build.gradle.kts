@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -31,4 +32,11 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
 
     implementation(project(":lib_base"))
+    implementation("androidx.room:room-runtime:2.7.2")
+    ksp("androidx.room:room-compiler:2.7.2")
+}
+
+// Room 2.7.2支持当前Kotlin 2.1.20，使用匹配的KSP2；不升级项目工具链。
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }

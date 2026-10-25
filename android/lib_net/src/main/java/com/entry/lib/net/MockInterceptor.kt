@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.SystemClock
 import com.entry.lib.log.MLog
 import com.entry.lib.net.mock.MockAccountStore
-import com.entry.lib.net.mock.SharedPreferencesAccountStorage
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
@@ -24,14 +23,15 @@ import java.util.UUID
  */
 class MockInterceptor(
     context: Context,
-    private val accounts: MockAccountStore = MockAccountStore(SharedPreferencesAccountStorage(
-        context.applicationContext.getSharedPreferences("app_default_pref", Context.MODE_PRIVATE))),
+    accountProvider: () -> MockAccountStore,
 ) : Interceptor {
     companion object {
         private const val TAG = "Rick_tan:MockInterceptor"
     }
 
     private val app = context.applicationContext
+    // 首次认证请求在OkHttp后台线程创建/打开数据库，Application启动不读盘。
+    private val accounts by lazy(accountProvider)
 
     // 读取 assets 目录下的 manifest.json 路由配置清单
     private val routes by lazy {
