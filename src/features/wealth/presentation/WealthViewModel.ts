@@ -3,20 +3,18 @@ import type { PageUiStatePort } from '@shared/domain/PageUiState';
 import { ResourceViewModel } from '@shared/presentation/ResourceViewModel';
 import type { ResourceSource } from '@shared/domain/Resource';
 import type { WealthContent } from '../domain/Wealth';
-import type { Asset, ContentItem, Page } from '@features/services/public';
+import type { Asset, Page } from '@features/services/public';
 import type { Product } from '../domain/Wealth';
 
 export type WealthViewModelSources = {
   content: ResourceSource<WealthContent>;
   products: ResourceSource<Page<Product>>;
   assets: ResourceSource<Asset>;
-  articles: ResourceSource<Page<ContentItem>>;
 };
 export class WealthViewModel {
   readonly content: ResourceViewModel<WealthContent>;
   readonly products: ResourceViewModel<Page<Product>>;
   readonly assets: ResourceViewModel<Asset>;
-  readonly articles: ResourceViewModel<Page<ContentItem>>;
   constructor(
     sources: WealthViewModelSources,
     readonly ui: PageUiStatePort,
@@ -27,7 +25,6 @@ export class WealthViewModel {
     this.content = new ResourceViewModel(sources.content);
     this.products = new ResourceViewModel(sources.products);
     this.assets = new ResourceViewModel(sources.assets);
-    this.articles = new ResourceViewModel(sources.articles);
   }
   selectCategory(category: string): void {
     if (this.ui.getSnapshot().category === category) return;
@@ -38,6 +35,5 @@ export class WealthViewModel {
     this.content.deactivate();
     this.products.deactivate();
     this.assets.deactivate();
-    this.articles.deactivate();
   }
 }

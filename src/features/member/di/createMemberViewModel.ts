@@ -4,18 +4,13 @@ import type { ResourceClient } from '@infra/state/ResourceClient';
 import * as validators from '@infra/network/generated/validators';
 import { MemberViewModel } from '../presentation/MemberViewModel';
 import type { MemberContent } from '../domain/Member';
-import type {
-  ContentItem,
-  Identity,
-  Checkin,
-  Page,
-} from '@features/services/public';
+import type { Identity, Checkin } from '@features/services/public';
 
 export function createMemberViewModel(
   client: ResourceClient,
   epoch: number,
 ): MemberViewModel {
-  // 会员内容与会话私有摘要、签到、权益、能量资源分别建源。
+  // 只为根页实际订阅的会员内容、摘要和签到建源；子页资源由各自流程管理。
   return new MemberViewModel(
     {
       content: client.source<MemberContent>(
@@ -31,21 +26,6 @@ export function createMemberViewModel(
       checkin: client.source<Checkin>(
         { apiId: 'checkin.status' },
         validators.checkin_status,
-        epoch,
-      ),
-      activities: client.source<Page<ContentItem>>(
-        { apiId: 'activity.list' },
-        validators.activity_list,
-        epoch,
-      ),
-      claims: client.source<Page<ContentItem>>(
-        { apiId: 'claim.list' },
-        validators.claim_list,
-        epoch,
-      ),
-      energy: client.source<Page<ContentItem> & { balance: number }>(
-        { apiId: 'energy.records' },
-        validators.energy_records,
         epoch,
       ),
     },

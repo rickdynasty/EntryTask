@@ -10,7 +10,6 @@ import com.entry.lib.net.MockInterceptor
 import com.entry.lib.net.mock.MockAccountStore
 import com.entry.lib.stroage.room.RoomStorage
 import com.entrytask.storage.RoomMockAccountStorage
-import com.entrytask.storage.SharedPreferencesLegacyAccounts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
@@ -19,7 +18,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-/** 隔离数据库/旧SP；seed和verify由两个instrumentation进程运行，验证真实冷重启。 */
+/** 隔离数据库/用于断言不写SP的测试偏好；seed和verify由两个instrumentation进程运行，验证真实冷重启。 */
 class AuthPersistenceTest {
     @Test
     fun registrationAndLoginUseDurableInterceptedCredentials() =
@@ -42,10 +41,7 @@ class AuthPersistenceTest {
             fun service(database: RoomStorage): UserService {
                 val accounts =
                     MockAccountStore(
-                        RoomMockAccountStorage(
-                            database.credentials,
-                            SharedPreferencesLegacyAccounts(preferences),
-                        )
+                        RoomMockAccountStorage(database.credentials)
                     )
                 val client =
                     OkHttpClient.Builder()

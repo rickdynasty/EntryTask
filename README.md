@@ -1,7 +1,5 @@
 # EntryTask
 
-> 新版必做 UI：RN 与 Android Compose 双端实现及验证见[实施记录](docs/development/新版四Tab实施记录.md)；旧 XML 根页说明属于前一版实现。
-
 EntryTask 是一个基于 React Native Community CLI 创建的银行业务教学原型，用于验证 Android Native 宿主与 RN 业务页面协作、分层架构和本地模拟业务流程。项目没有真实后端，不连接真实银行服务；页面中的账户、资产、收益、活动和操作结果均为演示数据。
 
 本仓库采用 Android Native + React Native 的当前交付路径：Native 负责登录注册、应用外壳、根 Tab、会话与设备能力；RN 在同一个 React Native 实例中实现首页、财富、会员、我的四个业务域及其子页面。Android Studio构建另提供Compose Native四根页以对照学习与演示，详细边界见[双页面模式说明](docs/development/native-dashboard.md)。iOS 工程保留 React Native CLI 集成入口，业务 Native 能力尚未实施，详细范围见 iOS 技术方案。
@@ -10,6 +8,8 @@ EntryTask 是一个基于 React Native Community CLI 创建的银行业务教学
 
 数据库入门见 [Room新手使用指南](docs/development/Room新手使用指南.md)：基础概念、分层架构、封装思想、业务接入、迁移与测试。
 
+首页 UI 入门见 [首页UI新手指引](docs/development/首页UI新手指引.md)：区分 XML 宿主、Native Compose 与 RN 页面，沿四个 Tab 讲解页面分区、组件复用、MVVM 状态和交互流程。
+
 ## 工程架构
 
 ```text
@@ -17,7 +17,7 @@ EntryTask
 ├── Android Native
 │   ├── app             应用组装、单 RN Host、根 Tab、Native Bridge、Mock 资源打包
 │   ├── biz_user        登录注册与会话相关 Native 业务
-│   ├── biz_dashboard   Compose Native四根页、共用View、MVVM与Mock适配
+│   ├── biz_dashboard   Compose Native四根页、共用组件、MVVM与Mock适配
 │   ├── lib_base        基础能力与 UI/MVVM 封装
 │   ├── lib_net         Native 网络基础设施
 │   ├── lib_storage     Native 存储封装
@@ -85,10 +85,12 @@ Android Native 构建及日志命令见 [Android 项目 README](android/README.m
 | Android 端技术方案 | [Android 技术方案](docs/design/Android%20技术方案.md) |
 | iOS 端技术方案及实施范围 | [iOS 技术方案](docs/design/iOS技术方案.md) |
 | 原型与 API/Mock 需求 | [原型需求](docs/requirements/01-prototype-requirements.md)、[API 与 Mock 需求](docs/requirements/02-api-mock-requirements.md) |
-| 四 Tab 页面设计 | [原型分析与 RN 页面设计](docs/ui/四Tab原型分析与RN页面设计.md)、[实现与验证记录](docs/ui/四Tab实现与验证记录.md) |
-| RN 工程整理与启动基线 | [RN foundation](docs/development/rn-foundation.md) |
+| 首页与四 Tab 设计 | [页面、组件与数据流](docs/design/首页与四Tab技术方案.md) |
+| 登录注册及账号存储 | [认证方案](docs/design/登录注册技术方案.md)、[Room设计](docs/development/Room认证存储设计.md) |
+| 完整文档导航 | [docs](docs/README.md) |
+| RN 工程与运行说明 | [RN foundation](docs/development/rn-foundation.md) |
 | 启动、RN挂载、Bridge与登录逐步源码时序 | [启动与登录全链路源码详解](docs/development/启动与登录全链路源码详解.md) |
 | 运行异常排查 | [Troubleshooting](docs/development/troubleshooting.md) |
-| Android 早期架构/规范/路线资料 | [Android docs 索引](android/docs/README.md) |
+| Android 开发指南 | [Android docs 索引](android/docs/README.md) |
 
 需求、设计方案和当前源码实现是不同层次的材料：设计方案描述目标架构，项目 README 与源码描述当前实现；端侧未完成的能力会明确标为待实施，不以目标设计代替交付证据。

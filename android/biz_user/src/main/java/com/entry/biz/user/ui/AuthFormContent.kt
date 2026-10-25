@@ -51,6 +51,7 @@ internal fun AuthFormContent(
     onIntent: (AuthUiIntent) -> Unit,
     onSwitchForm: () -> Unit,
 ) {
+    val enabled = !state.isLoading && !state.authenticated
     // 只保留瞬时显隐状态，不用 rememberSaveable，离页/重建后默认隐藏。
     var passwordVisible by remember { mutableStateOf(false) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -66,7 +67,7 @@ internal fun AuthFormContent(
     val submit = {
         keyboard?.hide()
         passwordVisible = false
-        if (!state.isLoading) onIntent(if (isRegistration) AuthUiIntent.SubmitRegister else AuthUiIntent.SubmitLogin)
+        if (enabled) onIntent(if (isRegistration) AuthUiIntent.SubmitRegister else AuthUiIntent.SubmitLogin)
     }
     MaterialTheme(colorScheme = lightColorScheme(primary = BrandRed, onPrimary = Color.White,
         background = Color.White, surface = Color.White, onSurface = Ink, onSurfaceVariant = Muted)) {
@@ -94,7 +95,7 @@ internal fun AuthFormContent(
                         placeholder = stringResource(if (isRegistration) R.string.auth_register_username_hint else R.string.auth_username_hint),
                         value = state.username,
                         onValueChange = { onIntent(AuthUiIntent.UpdateUsername(it)) },
-                        enabled = !state.isLoading,
+                        enabled = enabled,
                         keyboardOptions = KeyboardOptions(autoCorrect = false, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
                     )
@@ -104,19 +105,19 @@ internal fun AuthFormContent(
                         placeholder = stringResource(if (isRegistration) R.string.auth_register_password_hint else R.string.auth_password_hint),
                         value = state.password,
                         onValueChange = { onIntent(AuthUiIntent.UpdatePassword(it)) },
-                        enabled = !state.isLoading,
+                        enabled = enabled,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(autoCorrect = false, keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submit() }),
                         trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }, enabled = !state.isLoading) {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }, enabled = enabled) {
                                 Icon(painterResource(if (passwordVisible) R.drawable.ic_auth_visibility_off else R.drawable.ic_auth_visibility),
                                     stringResource(if (passwordVisible) R.string.auth_hide_password else R.string.auth_show_password))
                             }
                         },
                     )
                     Spacer(Modifier.height(36.dp))
-                    Button(onClick = { submit() }, enabled = !state.isLoading,
+                    Button(onClick = { submit() }, enabled = enabled,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(disabledContainerColor = BrandRed.copy(alpha = 0.55f), disabledContentColor = Color.White)) {
                         if (state.isLoading) {
@@ -133,7 +134,7 @@ internal fun AuthFormContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(if (isRegistration) R.string.auth_has_account else R.string.auth_no_account),
                         fontSize = 14.sp, color = Muted)
-                    TextButton(onClick = onSwitchForm, enabled = !state.isLoading) {
+                    TextButton(onClick = onSwitchForm, enabled = enabled) {
                         Text(stringResource(if (isRegistration) R.string.auth_go_login else R.string.auth_go_register), fontWeight = FontWeight.Medium)
                     }
                 }

@@ -11,6 +11,7 @@ import React, {
   useSyncExternalStore,
 } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -45,6 +46,7 @@ import {
 } from '@shared/ui/Primitives';
 import type { Application } from '../CompositionRoot';
 import { AuthenticationGate } from './AuthenticationGate';
+import { useRootChannels } from './useRootChannels';
 import { helpCenterTarget, requiresPageAuthentication } from './routeAccess';
 type StackParams = { Root: undefined; Detail: { target: Target } };
 const Stack = createNativeStackNavigator<StackParams>();
@@ -179,18 +181,30 @@ function RootRoute({
   return <RootHub />;
 }
 
+/** 资源组装会初始化客户端Store，只能在提交后的effect执行，不能放在render/useMemo。 */
 function RootHub() {
   const application = useApplication();
   const shell = useSyncExternalStore(
     application.shell.subscribe,
     application.shell.getSnapshot,
   );
-  const [demoTitle, setDemoTitle] = useState<string | null>(null);
-  const channels = useMemo(
-    () => application.createChannels(shell.sessionEpoch),
-    [application, shell.sessionEpoch],
+  const channels = useRootChannels(application, shell.sessionEpoch);
+  if (!channels)
+    return <ActivityIndicator accessibilityLabel="正在准备页面" />;
+  return <RootPages key={shell.sessionEpoch} channels={channels} />;
+}
+
+function RootPages({
+  channels,
+}: {
+  channels: ReturnType<Application['createChannels']>;
+}) {
+  const application = useApplication();
+  const shell = useSyncExternalStore(
+    application.shell.subscribe,
+    application.shell.getSnapshot,
   );
-  useEffect(() => () => channels.dispose(), [channels]);
+  const [demoTitle, setDemoTitle] = useState<string | null>(null);
   const unread = useResource(channels.messaging.unread, shell.authenticated);
   const open = useCallback(
     (target: Target) => {

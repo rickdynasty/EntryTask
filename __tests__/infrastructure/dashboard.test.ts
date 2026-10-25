@@ -31,13 +31,11 @@ function model(commands: CheckinRepository, loading = false) {
       content: source<never>(null),
       summary: source<never>(null),
       checkin: source(status, loading),
-      activities: source<never>(null),
-      claims: source<never>(null),
-      energy: source<never>(null),
     },
     commands,
   );
   vm.checkin.activate();
+  vm.activateSubmission();
   return vm;
 }
 test('client page state survives same-epoch tabs and rejects an old owner after reset', () => {
@@ -151,4 +149,49 @@ test('home category replaces one query, retains tab selection and resets for a n
   runtime.resetPages();
   expect(runtime.pageState(2, 1).getSnapshot().category).toBe('all');
   runtime.dispose();
+});
+
+
+test('inactive category replacement never opens IO and notifies subscribers of reset', () => {
+  const runtime = createAppStore({ execute: jest.fn() });
+  const open = jest.fn(() => source<never>(null).open());
+  const vm = new HomePageViewModel(
+    { content: source<never>(null), products: source<never>(null) },
+    runtime.pageState(1, 1),
+    () => ({ open }),
+  );
+  const changed = jest.fn();
+  vm.products.subscribe(changed);
+  vm.selectCategory('finance');
+  expect(open).not.toHaveBeenCalled();
+  expect(changed).toHaveBeenCalledTimes(1);
+  vm.products.activate();
+  expect(open).toHaveBeenCalledTimes(1);
+  vm.dispose();
+  runtime.dispose();
+});
+
+test('late failure from an old write cannot poison a newer confirmed checkin', async () => {
+  let rejectOld: (reason: Error) => void = () => {};
+  const commands = {
+    submit: jest.fn(() => new Promise<Checkin>((_resolve, reject) => { rejectOld = reject; })),
+    status: jest.fn().mockResolvedValue({ ...status, checkedToday: false }),
+  };
+  const vm = model(commands);
+  const first = vm.submit();
+  vm.deactivateSubmission();
+  vm.activateSubmission();
+  // 离页后的不确定写入先确认；查询返回未签到后才允许用户再提交。
+  await vm.submit();
+  expect(commands.status).toHaveBeenCalledTimes(1);
+  rejectOld(new Error('late failure'));
+  await first;
+  commands.submit.mockResolvedValueOnce({ ...status, checkedToday: true });
+  await vm.submit();
+  expect(commands.submit).toHaveBeenCalledTimes(2);
+  expect(commands.status).toHaveBeenCalledTimes(1);
+  expect(vm.getOperation().message).toContain('签到成功');
+  vm.dispose();
+  await vm.submit();
+  expect(commands.submit).toHaveBeenCalledTimes(2);
 });

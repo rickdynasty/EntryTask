@@ -1,5 +1,8 @@
 package com.entry.biz.user.repository
 
+import com.entry.biz.user.domain.AuthRepository
+import com.entry.biz.user.domain.AuthenticatedUser
+import com.entry.biz.user.domain.AuthRejectedException
 import com.entry.biz.user.manager.UserAuthManager
 import com.entry.biz.user.model.User
 import com.entry.biz.user.network.UserService
@@ -12,7 +15,7 @@ import kotlinx.coroutines.ensureActive
  * 用户数据仓库
  * 负责协调网络请求、处理响应结果并建立Native内存会话
  */
-class UserRepository(private val userService: UserService) {
+class UserRepository(private val userService: UserService) : AuthRepository {
 
     companion object {
         private const val TAG = "Rick_tan:UserRepository"
@@ -21,7 +24,7 @@ class UserRepository(private val userService: UserService) {
     /**
      * 执行登录请求
      */
-    suspend fun login(username: String, password: String): User {
+    override suspend fun login(username: String, password: String): AuthenticatedUser {
         MLog.d(TAG, "开始执行登录请求: api=user")
         val epoch = UserAuthManager.sessionSnapshot().second
         val response = userService.login(username, password)
@@ -30,7 +33,7 @@ class UserRepository(private val userService: UserService) {
             val user = response.data
 
             commitSession(user, epoch)
-            return user
+            return AuthenticatedUser(user.id, user.username)
         } else {
             MLog.w(TAG, "request.rejected operation=login code=${response.code}")
             throw AuthRejectedException(if (response.code == 400 || response.code == 401)
@@ -41,7 +44,7 @@ class UserRepository(private val userService: UserService) {
     /**
      * 执行注册请求
      */
-    suspend fun register(username: String, password: String): User {
+    override suspend fun register(username: String, password: String): AuthenticatedUser {
         MLog.d(TAG, "开始执行注册请求: api=user")
         val epoch = UserAuthManager.sessionSnapshot().second
         val response = userService.register(username, password)
@@ -50,7 +53,7 @@ class UserRepository(private val userService: UserService) {
             MLog.d(TAG, "注册成功，建立完整内存会话")
             val user = response.data
             commitSession(user, epoch)
-            return user
+            return AuthenticatedUser(user.id, user.username)
         } else {
             MLog.w(TAG, "request.rejected operation=register code=${response.code}")
             throw AuthRejectedException(if (response.code == 409)
@@ -61,11 +64,12 @@ class UserRepository(private val userService: UserService) {
     /** 提交前检查取消和会话版本；退出后的旧认证响应不产生会话/成功导航。 */
     private suspend fun commitSession(user: User, expectedEpoch: Long) {
         currentCoroutineContext().ensureActive()
-        if (!UserAuthManager.commitAuthentication(user.username, requireNotNull(user.token), expectedEpoch)) {
+        val token = user.token?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("AUTH_RESPONSE_INVALID")
+        check(user.username.isNotBlank()) { "AUTH_RESPONSE_INVALID" }
+        if (!UserAuthManager.commitAuthentication(user.username, token, expectedEpoch)) {
             throw CancellationException("AUTH_REQUEST_SUPERSEDED")
         }
     }
 
 }
-/** 只有经过业务映射的提示可交给UI，不直接展示服务端载荷。 */
-internal class AuthRejectedException(val userMessage: String) : Exception()

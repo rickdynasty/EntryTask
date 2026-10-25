@@ -7,12 +7,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.entry.biz.user.ui.LoginRoute
-import com.entry.biz.user.ui.RegisterRoute
+import com.entry.biz.user.ui.AuthRoute
 import com.entry.biz.user.viewmodel.UserViewModel
 import com.entry.lib.log.MLog
 
-/** 认证导航的内部目的地；route字符串保持不变，兼容已有导航恢复。 */
+/** 认证导航的内部目的地；只描述当前登录和注册两个目的地。 */
 private sealed class AuthDestination(val route: String) {
     object Login : AuthDestination("login")
     object Register : AuthDestination("register")
@@ -37,9 +36,10 @@ fun AuthNavHost(
                 viewModelStoreOwner = loginEntry,
                 factory = viewModelFactory,
             )
-            LoginRoute(
+            AuthRoute(
                 viewModel = loginViewModel,
-                onNavigateToRegister = {
+                isRegistration = false,
+                onSwitchForm = {
                     MLog.d("AuthNavHost", "跳转到注册页面")
                     loginViewModel.onFormLeft()
                     onAuthPageChanged()
@@ -59,14 +59,17 @@ fun AuthNavHost(
                 viewModelStoreOwner = registerEntry,
                 factory = viewModelFactory,
             )
-            RegisterRoute(
+            val backToLogin = {
+                registerViewModel.onFormLeft()
+                onAuthPageChanged()
+                navController.popBackStack()
+                Unit
+            }
+            BackHandler(onBack = backToLogin)
+            AuthRoute(
                 viewModel = registerViewModel,
-                onBackToLogin = {
-                    MLog.d("AuthNavHost", "返回登录页面")
-                    registerViewModel.onFormLeft()
-                    onAuthPageChanged()
-                    navController.popBackStack()
-                },
+                isRegistration = true,
+                onSwitchForm = backToLogin,
                 onAuthSuccess = {
                     MLog.d("AuthNavHost", "注册认证成功，通知宿主")
                     onAuthSuccess()

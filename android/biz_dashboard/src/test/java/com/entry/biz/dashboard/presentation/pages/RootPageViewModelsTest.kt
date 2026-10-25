@@ -189,4 +189,63 @@ class RootPageViewModelsTest {
             Dispatchers.resetMain()
         }
     }
+    @Test
+    fun oldCheckinFailureCannotOverwriteNewAccountOrStartConfirmation() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val gate = CompletableDeferred<Unit>()
+            val status = CheckinStatus("2026-10-25", false, 0, 0, 0, false, emptyList(), "demo")
+            var reads = 0
+            val vm = MemberPageViewModel(object : MemberRepository {
+                override suspend fun member() = MemberContent(emptyList())
+                override suspend fun identity(member: Boolean): Identity = throw IllegalStateException("offline")
+                override suspend fun checkin(): CheckinStatus { reads++; return status }
+                override suspend fun submit(date: String, key: String): CheckinStatus {
+                    // 模拟底层不合作取消，最终迟到返回普通异常。
+                    withContext(NonCancellable) { gate.await() }
+                    throw IllegalStateException("late failure")
+                }
+            })
+            vm.show(true, 1)
+            runCurrent()
+            vm.submit()
+            runCurrent()
+            vm.show(true, 2)
+            runCurrent()
+            val readsBeforeOldFailure = reads
+            gate.complete(Unit)
+            runCurrent()
+            assertEquals(readsBeforeOldFailure, reads)
+            assertEquals(MemberPageViewModel.Operation(), vm.submission.value)
+            assertEquals(status, vm.checkin.state.value.data)
+            vm.show(false, 2)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun checkinCannotWriteWhileItsAuthoritativeStatusIsRefreshing() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            var writes = 0
+            val status = CheckinStatus("2026-10-25", false, 0, 0, 0, false, emptyList(), "demo")
+            val vm = MemberPageViewModel(object : MemberRepository {
+                override suspend fun member() = MemberContent(emptyList())
+                override suspend fun identity(member: Boolean): Identity = throw IllegalStateException("offline")
+                override suspend fun checkin(): CheckinStatus { delay(100); return status }
+                override suspend fun submit(date: String, key: String): CheckinStatus { writes++; return status.copy(checked = true) }
+            })
+            vm.show(true, 1)
+            advanceUntilIdle()
+            vm.refresh()
+            vm.submit()
+            advanceUntilIdle()
+            assertEquals(0, writes)
+            vm.show(false, 1)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
 }

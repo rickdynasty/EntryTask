@@ -7,10 +7,8 @@ import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
-import com.entry.biz.user.viewmodel.UserViewModel
+import com.entry.biz.user.di.AuthGraph
 import com.entry.biz.user.manager.UserAuthManager
-import com.entry.biz.user.network.userService
-import com.entry.biz.user.repository.UserRepository
 import com.entry.biz.user.ui.navigation.AuthNavHost
 import com.entry.lib.base.mvvm.BaseActivity
 import com.entry.lib.log.MLog
@@ -54,8 +52,7 @@ class AuthActivity : BaseActivity() {
         MLog.d(TAG, "AuthActivity 创建，组装认证依赖与 Compose 导航")
 
         // Repository 可复用；表单 VM 由每个导航页面独立创建。
-        val userRepository = UserRepository(userService)
-        val viewModelFactory = UserViewModel.Factory(userRepository)
+        val viewModelFactory = AuthGraph.viewModelFactory()
 
         setContent {
             // 登录和注册共用认证成功通知，由宿主关闭认证页并返回原首页。

@@ -1,6 +1,6 @@
 # Android 子项目规则
 
-适用于 `android/`，继承根 [AGENTS.md](../AGENTS.md)。依据 [Android 技术方案](../docs/design/Android%20技术方案.md)；`android/docs/` 中旧 Native 业务页方案不再适用。业务任务默认保留现有 CLI、包名及构建链，不重新初始化工程。
+适用于 `android/`，继承根 [AGENTS.md](../AGENTS.md)。依据 [Android 技术方案](../docs/design/Android%20技术方案.md)；首页区域与组件见[首页方案](../docs/design/首页与四Tab技术方案.md)。业务任务默认保留现有 CLI、包名及构建链，不重新初始化工程。
 
 ## 模块边界与渐进实施
 
@@ -33,7 +33,7 @@
 ## 单 RN 宿主与 Codegen
 
 - `MainApplication.reactHost` 是进程内唯一 Host，沿用 `getDefaultReactHost`、RN 新架构和 Hermes。不要在 Fragment、Tab 或认证 Activity 创建第二个 Host / runtime。
-- MainActivity 保留静态 XML 宿主容器，通过 MainShellView 的 Compose 底栏渲染 MainViewModel；HostModule 使用同一进程级 ShellRepository。外层按稳定 tag `entrytask-root-hub` 查找/复用 RootContentHostFragment，缺失才添加；内层 BaseFragment 使用稳定 `R.id.rn_content` / `entrytask-rn-root` 恢复 RN，不重复 add/attach。Native四页使用ComposeView，组合随viewLifecycleOwner释放；可见业务UI不再新增XML，详见新版四Tab方案。不使用 `commitAllowingStateLoss` 掩盖生命周期错误。
+- MainActivity 保留静态 XML 宿主容器，通过 MainShellView 的 Compose 底栏渲染 MainViewModel；HostModule 使用同一进程级 ShellRepository。外层按稳定 tag `entrytask-root-hub` 查找/复用 RootContentHostFragment，缺失才添加；内层 BaseFragment 使用稳定 `R.id.rn_content` / `entrytask-rn-root` 恢复 RN，不重复 add/attach。Native四页使用ComposeView，组合随viewLifecycleOwner释放；可见业务UI不再新增XML，详见首页与四Tab方案。不使用 `commitAllowingStateLoss` 掩盖生命周期错误。
 - 保留 `RootContentHostFragment.usesReactNative()` 的两种构建模式。修改 RN 默认路径不得破坏 Native-only 内容；测试时临时修改开关必须恢复并说明验证范围。
 - 当前原生适配在 `app/src/main/java/com/entrytask/bridge/`，继承根 `specs/` 生成的 `com.entrytask.specs.Native*Spec`，由 `EntryTaskPackage` 注册。未来抽模块需按设计完整迁移，不能新增旧桥双实现绕过 Codegen。
 - 改签名联动 `specs/`、package.json Codegen 配置、RN adapter、Native 实现/注册及测试；生成源码留 build 目录。bootstrap 返回实际支持的能力，不宣称尚未实现的方法。

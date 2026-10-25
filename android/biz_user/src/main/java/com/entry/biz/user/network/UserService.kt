@@ -24,7 +24,7 @@ interface UserService {
     ): ApiResponse<User>
 }
 
-/** 由NetManager懒加载创建的服务代理；调用接口才发请求，不在UI/Repository读写Mock账号SP。 */
+/** 由NetManager懒加载创建的服务代理；调用接口才发请求，不在UI/Repository读写Mock账号数据库。 */
 val userService: UserService by lazy {
     NetManager.create(UserService::class.java)
 }

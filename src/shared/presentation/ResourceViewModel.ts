@@ -44,10 +44,12 @@ export class ResourceViewModel<T> {
   }
   replace(source: ResourceSource<T>): void {
     // 分类或搜索条件变化时先释放旧资源，再绑定新请求的数据源。
+    const active = this.resource !== undefined;
     this.deactivate();
     this.source = source;
     this.state = { data: null, loading: true, error: null };
-    this.activate();
+    this.emit();
+    if (active) this.activate();
   }
   refresh = (): void => {
     this.resource?.refresh();

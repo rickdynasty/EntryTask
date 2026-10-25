@@ -1,17 +1,5 @@
 /** EntryTask RN：我的业务域模块：负责业务域数据契约，不跨域持有页面私有实现。 */
-import type { Service, Money } from '@features/services/public';
-export type Marketing = {
-  services: Service[];
-  assetSlogan: string;
-  assetNotice: string;
-  creditTitle: string;
-  creditSubtitle: string;
-  loanTitle: string;
-  loanLimit: Money;
-  loanRate: string;
-  isDemo: boolean;
-};
-
+import type { Money } from '@features/services/public';
 /** 财务概览是受保护接口的展示契约；营销额度不代表授信。 */
 export type FinancialOverview = {
   month: string;

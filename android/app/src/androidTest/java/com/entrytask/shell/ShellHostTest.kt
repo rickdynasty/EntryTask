@@ -30,6 +30,9 @@ class ShellHostTest {
     @Before fun createMemorySession() = instrumentation.runOnMainSync {
         UserAuthManager.establishSession("shell-host-test", "instrumentation-memory-only")
         app.shellGraph.repository.refreshSession()
+        // 各测试从明确的首页/根深度开始，不继承前一个用例停留的Tab。
+        app.shellGraph.repository.selectTab(1)
+        app.shellGraph.repository.updateDepth(0)
     }
     @After fun clearMemorySession() = instrumentation.runOnMainSync {
         app.shellGraph.repository.logout()
@@ -94,24 +97,24 @@ class ShellHostTest {
         }
     }
 
-    @Test fun rnNavigationRepairsStaleDepthWithoutClosingMainActivity() {
+    @Test fun rnDemoRepairsStaleDepthAndBackClosesOnlyTheModal() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             awaitRoot(scenario)
-            awaitCondition {
-                instrumentation.uiAutomation.rootInActiveWindow
-                    ?.findAccessibilityNodeInfosByText("搜索")?.isNotEmpty() == true
-            }
+            awaitCondition(60000) { description("搜索") != null }
             scenario.onActivity { app.shellGraph.repository.updateDepth(1) }
             awaitCondition { app.shellGraph.repository.snapshots.value.depth == 0 }
             scenario.onActivity { assertFalse(it.isFinishing) }
-            // 从真实 RN 入口进入子页，再走 Activity → ReactFragment → RN 的系统返回链。
-            val search = instrumentation.uiAutomation.rootInActiveWindow
-                ?.findAccessibilityNodeInfosByText("搜索")?.firstOrNull { it.isClickable }
-            assertNotNull(search)
-            assertTrue(search!!.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
-            awaitCondition { app.shellGraph.repository.snapshots.value.depth == 1 }
-            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-            awaitCondition { app.shellGraph.repository.snapshots.value.depth == 0 }
+            // 新版根页搜索是演示Modal；它不伪造导航depth，返回仅关闭Modal。
+            val search = requireNotNull(description("搜索"))
+            assertTrue(search.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+            awaitCondition {
+                instrumentation.uiAutomation.rootInActiveWindow
+                    ?.findAccessibilityNodeInfosByText("本入口仅作界面演示")?.isNotEmpty() == true
+            }
+            assertEquals(0, app.shellGraph.repository.snapshots.value.depth)
+            // Modal由RN Dialog窗口接收系统返回，不能直接调用Activity回调绕过它。
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            awaitCondition { description("搜索") != null }
             scenario.onActivity {
                 assertFalse(it.isFinishing)
                 app.shellGraph.repository.selectTab(2)
@@ -119,6 +122,30 @@ class ShellHostTest {
             awaitCondition { app.shellGraph.repository.snapshots.value.tabId == 2 }
             scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
             awaitCondition { app.shellGraph.repository.snapshots.value.tabId == 1 }
+        }
+    }
+
+    @Test fun publicHelpUsesTheRnStackAndNativeBackReturnsToTheGate() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            awaitRoot(scenario)
+            awaitCondition(60000) { description("搜索") != null }
+            scenario.onActivity { app.shellGraph.repository.logout() }
+            awaitCondition { resumedAuth() != null }
+            instrumentation.runOnMainSync { resumedAuth()!!.finish() }
+            awaitMain(scenario)
+            awaitCondition {
+                instrumentation.uiAutomation.rootInActiveWindow
+                    ?.findAccessibilityNodeInfosByText("帮助中心")?.isNotEmpty() == true
+            }
+            var help = instrumentation.uiAutomation.rootInActiveWindow
+                ?.findAccessibilityNodeInfosByText("帮助中心")?.firstOrNull()
+            while (help != null && !help.isClickable) help = help.parent
+            assertNotNull(help)
+            assertTrue(help!!.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+            awaitCondition { app.shellGraph.repository.snapshots.value.depth == 1 }
+            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            awaitCondition { app.shellGraph.repository.snapshots.value.depth == 0 }
+            scenario.onActivity { assertFalse(it.isFinishing) }
         }
     }
 
@@ -191,8 +218,17 @@ class ShellHostTest {
         }
         return result
     }
-    private fun awaitCondition(condition: () -> Boolean) {
-        val end = android.os.SystemClock.elapsedRealtime() + 30000
+    private fun description(label: String): android.view.accessibility.AccessibilityNodeInfo? {
+        fun find(node: android.view.accessibility.AccessibilityNodeInfo?): android.view.accessibility.AccessibilityNodeInfo? {
+            if (node == null) return null
+            if (node.contentDescription?.toString() == label) return node
+            repeat(node.childCount) { find(node.getChild(it))?.let { found -> return found } }
+            return null
+        }
+        return find(instrumentation.uiAutomation.rootInActiveWindow)
+    }
+    private fun awaitCondition(timeoutMs: Long = 30000, condition: () -> Boolean) {
+        val end = android.os.SystemClock.elapsedRealtime() + timeoutMs
         while (android.os.SystemClock.elapsedRealtime() < end) {
             if (condition()) return
             Thread.sleep(50)

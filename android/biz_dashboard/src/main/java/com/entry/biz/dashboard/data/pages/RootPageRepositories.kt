@@ -3,16 +3,11 @@ package com.entry.biz.dashboard.data.pages
 import com.entry.biz.dashboard.domain.pages.*
 import java.math.BigDecimal
 import java.text.DecimalFormat
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 四域契约共享一个会话资产缓存；不存在第二套持久账本。 */
+/** 四域契约的数据适配；页面资源拥有加载状态，仓库不再保留永不刷新的资产副本。 */
 class RootPageRepositories(private val api: NativeApiClient) : RootPageRepositorySet {
-    private val assetLock = Mutex()
-    private var assetCache: Pair<Long, AssetOverview>? = null
-
     private fun rows(array: JSONArray) = (0 until array.length()).map { array.getJSONObject(it) }
 
     private fun menu(data: JSONObject, key: String) =
@@ -121,17 +116,8 @@ class RootPageRepositories(private val api: NativeApiClient) : RootPageRepositor
             }
 
     override suspend fun assets(): AssetOverview =
-        assetLock.withLock {
-            val epoch = api.epoch()
-            assetCache?.takeIf { it.first == epoch }?.second
-                ?: api.request("asset.summary")
-                    .let {
-                        AssetOverview(
-                            money(it.getJSONObject("total")),
-                            money(it.getJSONObject("income")),
-                        )
-                    }
-                    .also { assetCache = epoch to it }
+        api.request("asset.summary").let {
+            AssetOverview(money(it.getJSONObject("total")), money(it.getJSONObject("income")))
         }
 
     override suspend fun member() =

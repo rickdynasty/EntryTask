@@ -1,6 +1,5 @@
 # EntryTask 接口与 Mock 数据需求
 
-版本：1.1（需求评审稿） · 日期：2026-10-18  
 从属文档：[原型需求规格说明书](01-prototype-requirements.md)
 
 本文定义页面所需的数据、请求行为和可验收模拟结果。以下是**拟定的逻辑 API 契约**，不代表当前源码已有接口，不限定 bridge 方法名或 Native 实现库。除现有 `/api/user/login`、`/api/user/register` 外，路径均为建议基线；后续接口方案可统一调整，但必须保留 API ID 与页面映射，不能遗漏能力。
@@ -9,7 +8,7 @@
 
 | 项目 | 需求 |
 | --- | --- |
-| 请求通路 | RN DataSource → NetworkPort/TransportRouter → Native 网络能力或 RN HTTP。本期A01～A37默认Native Mock，Native认证也走该通路；未配置实际服务的RN直连明确拒绝。禁止JS直读fixture、失败后切换通路或偷偷改Mock。 |
+| 请求通路 | RN DataSource → NetworkPort/TransportRouter → Native 网络能力或 RN HTTP。HTTP项默认Native Mock；A03为Native退出命令，Native认证也走该通路；未配置实际服务的RN直连明确拒绝。禁止JS直读fixture、失败后切换通路或偷偷改Mock。 |
 | API 标识 | apiId 为稳定逻辑名；method/path/query/body 形成唯一匹配；GET 参数规范化后匹配，POST 业务字段需校验，不能只看路径。 |
 | 认证 | 公开接口不要求会话；受保护接口由 Native 注入会话；RN 不传 Token/userId 来伪造身份。opaqueUserId 只用于展示域隔离，不能作为授权依据。 |
 | 请求标识 | 每次实际网络调用独立 requestId/traceId；核心操作 flowId 贯穿导航、bridge、网络和结果；幂等键另设，不把 requestId 与业务幂等键混为一谈。 |
@@ -32,7 +31,7 @@ P=公开，L=Native 会话必需。所有 API 正常响应必须有独立 fixtur
 | --- | --- | --- | --- | --- |
 | A01 auth.login | POST `/api/user/login` | P；username,password；沿用现有表单语义 | Native专用会话、用户ID、脱敏资料；建立完整会话 | N-01 |
 | A02 auth.register | POST `/api/user/register` | P；username,password | 新用户、完整会话；重复账号错误；走统一自动登录 | N-01 |
-| A03 auth.logout | POST `/api/user/logout` | L；无业务body | 成功确认；本地清理不依赖接口成功，失败亦退出 | P-03 |
+| A03 auth.logout | Native Host `logout`命令，无HTTP路由 | L；无业务body | 清内存会话、递增epoch、清理私密页面；不删除注册账号 | P-03 |
 | A04 home.content | GET `/api/home/content` | P | 搜索默认词、四快捷入口、主视觉/活动Banner、宫格、服务条、营销与浮动入口 | H-01 |
 | A05 service.catalog | GET `/api/services` | P；group可选 | 服务ID、名称、图标、分组、权限、受控目标 | C-01、各页服务区 |
 | A06 product.list | GET `/api/wealth/products` | P；category,scene,page,pageSize | 产品摘要；scene区分home精选/wealth推荐/普通列表，类型覆盖首页与财富全部产品入口 | H-01F、W-01E/F、W-02 |
@@ -45,12 +44,12 @@ P=公开，L=Native 会话必需。所有 API 正常响应必须有独立 fixtur
 | A13 transaction.detail | GET `/api/transactions/{id}` | L；归属校验 | 流水ID、账户、金额、余额、方向、类型、时间、脱敏对方信息 | W-06详情 |
 | A14 article.list | GET `/api/articles` | P；category可选,page,pageSize | 资讯ID、标题、摘要、分类、发布时间、本地封面 | W-01资讯、W-07 |
 | A15 article.detail | GET `/api/articles/{id}` | P | 标题、来源说明、发布时间、内容段落、本地图片 | W-07详情/市场解读 |
-| A16 member.content | GET `/api/member/content` | P | 游客欢迎、专属/乐园分类、签到规则文案、会员卡片与权益ID | M-01 |
+| A16 member.content | GET `/api/member/content` | P | 会员欢迎、专属/乐园分类、签到规则文案、会员卡片与权益ID | M-01 |
 | A17 member.summary | GET `/api/member/summary` | L | 演示等级、能量余额、今日签到、连续日数、已领数量、业务日 | M-01登录卡/乐园、P-01B |
 | A18 checkin.status | GET `/api/member/checkin` | L | businessDate、cycleId、连续天数、已签到日期、本周期已奖励档、能量余额 | M-03 |
 | A19 checkin.submit | POST `/api/member/checkin` | L；expectedBusinessDate、idempotencyKey | 权威签到状态、awardedEnergy、余额、alreadyChecked；日期过时需刷新，不按过期日期写入 | M-03 |
 | A20 benefit.list | GET `/api/member/benefits` | P；category可选,page,pageSize | benefitId、标题、类型、所需等级、有效期、库存展示、规则 | M-04、M-01卡片 |
-| A21 benefit.detail | GET `/api/member/benefits/{id}` | P；有会话附带当前资格/已领状态 | 完整规则、资格、库存、领取状态；游客为loginRequired | M-04详情 |
+| A21 benefit.detail | GET `/api/member/benefits/{id}` | P；有会话附带当前资格/已领状态 | 完整规则、资格、库存、领取状态；未认证请求返回loginRequired | M-04详情 |
 | A22 benefit.claim | POST `/api/member/benefits/{id}/claims` | L；idempotencyKey | claimId、benefitId、claimedAt、当前状态、已领数量；重复返既有结果 | M-04领取 |
 | A23 claim.list | GET `/api/member/claims` | L；page,pageSize | 当前用户已领记录、权益标题、有效期、状态、说明 | M-01已领、M-05 |
 | A24 claim.detail | GET `/api/member/claims/{id}` | L；归属校验 | 领取ID、时间、权益与使用说明；无真实兑换码 | M-05详情 |
@@ -59,7 +58,7 @@ P=公开，L=Native 会话必需。所有 API 正常响应必须有独立 fixtur
 | A27 activity.detail | GET `/api/activities/{id}` | P | 起止时间、状态、规则、段落、本地素材、受控CTA目标 | M-02详情、各Banner |
 | A28 profile.summary | GET `/api/profile/summary` | L | 脱敏资料引用、银行卡数、待办数、卡券数、积分、能量值 | P-01 |
 | A29 profile.detail | GET `/api/profile` | L | 演示昵称、脱敏手机号、本地头像key、等级、低碳展示标签 | P-02 |
-| A30 profile.marketing | GET `/api/profile/marketing` | P | 信用卡/借款营销、最高示例额度、利率说明、资产区营销与活动ID | P-01游客/登录 |
+| A30 profile.marketing | GET `/api/profile/marketing` | P | 信用卡/借款营销、最高示例额度、利率说明、资产区营销与活动ID | P-01 |
 | A31 personal.items | GET `/api/profile/items` | L；type=todo/points/orders,page,pageSize | type对应记录、摘要（含积分余额）、时间及只读详情ID | P-04 |
 | A32 personal.itemDetail | GET `/api/profile/items/{id}` | L；type；归属校验 | 事项类型、标题、状态、时间、说明/变更值；无交易处理 | P-04详情 |
 | A33 message.list | GET `/api/messages` | L；page,pageSize | messageId、标题、摘要、时间、isRead | C-03 |
@@ -68,7 +67,7 @@ P=公开，L=Native 会话必需。所有 API 正常响应必须有独立 fixtur
 | A36 message.unread | GET `/api/messages/unread-count` | L | unreadCount，与列表同源 | 四根页角标 |
 | A37 search.query | GET `/api/search` | P；keyword,scope=services/products/articles/activities,page,pageSize | 统一{type,id,title,summary,target}；仅所选范围；不搜个人数据 | C-02 |
 
-范围说明：C-04/C-05 为本地 RN 说明模板，不额外定义业务 HTTP；P-03 关于页/退出确认是本地 UI，偏好通过 Native 存储能力；Native 会话快照、能力协商、宿主导航不是 HTTP API，不为它们添加虚构网络延迟。A03 网络失败仍需立即完成本地退出，日志注明“远端模拟退出失败/本地已清理”。
+范围说明：C-04/C-05 为本地 RN 说明模板，不额外定义业务 HTTP；P-03 关于页/退出确认是本地 UI，金额显隐为会话内状态，其他typed偏好通过 Native 存储能力；Native 会话快照、能力协商、宿主导航不是 HTTP API，不为它们添加虚构网络延迟。A03是Native受控命令，不参与HTTP Mock延迟或fixture计数。
 
 目录引用规则：A04/A08/A16/A30 可引用 A05 的 serviceId、A07 的 productId、A21 的 benefitId、A27 的 activityId。内容接口不得给出没有对应详情或演示说明目标的悬空 ID。列表页只请求当前选项；不一次加载所有分类，再让页面从万能 JSON 裁切。
 
@@ -197,9 +196,9 @@ Native Mock场景控制仅用于开发/验收，不暴露普通用户任意切�
 
 ## 7. 后续技术方案必须提交的契约成果
 
-1. 按 API ID 输出最终请求/响应 schema、字段可空规则、HTTP/业务错误、页面引用及transport/auth/cache/telemetry策略；本期37API显式默认nativeMock。
+1. 按 API ID 输出最终请求/响应 schema、字段可空规则、HTTP/业务错误、页面引用及transport/auth/cache/telemetry策略；HTTP API显式默认nativeMock，退出单独使用Host命令。
 2. 输出 bridge 网络/存储/认证/日志/导航的序列化类型、异步终态、取消和版本协商机制；说明RN版本实测依据。
 3. 输出 Mock manifest、逐 API JSON 文件清单、状态更新/持久化/幂等方案和 Clock/场景控制入口；禁止内联万能JSON或公网fallback。
-4. 输出原生旧账号密码/Token数据的清理迁移方案；Mock账号验证数据的安全保存方法；会话不落RN存储。
+4. 输出Mock账号校验数据的存储边界、schema升级与异常策略；会话不落RN存储，不以清数据解决升级。
 5. 输出验收脚本或步骤，覆盖正常1000～3000ms、固定延迟测试、分页、故障、跨日、重复、切账号、进程重启和重置；记录实际证据。
 6. Android 本期逐项验证；iOS只维护逻辑契约兼容要求，未来实现时复用数据并补平台测试，不在本期填通过。

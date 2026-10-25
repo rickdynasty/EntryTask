@@ -36,8 +36,8 @@ class RnRequiredDashboardTest {
         return null
     }
 
-    private fun awaitCondition(message: String, predicate: () -> Boolean) {
-        val deadline = SystemClock.elapsedRealtime() + 30000
+    private fun awaitCondition(message: String, timeoutMs: Long = 30000, predicate: () -> Boolean) {
+        val deadline = SystemClock.elapsedRealtime() + timeoutMs
         while (SystemClock.elapsedRealtime() < deadline) {
             if (predicate()) return
             Thread.sleep(100)
@@ -51,9 +51,17 @@ class RnRequiredDashboardTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         instrumentation.runOnMainSync {
             UserAuthManager.establishSession("rn-ui-test-only", "memory-only")
+            val app = instrumentation.targetContext.applicationContext as MainApplication
+            app.shellGraph.repository.refreshSession()
+            app.shellGraph.repository.selectTab(1)
+            app.shellGraph.repository.updateDepth(0)
         }
         try {
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                // Debug首次Metro加载和JS握手独立计时；每个业务区域仍沿用30秒断言。
+                awaitCondition("RN入口未就绪：检查Metro/Bundle/bootstrap", 60000) {
+                    description(instrumentation.uiAutomation.rootInActiveWindow, "搜索") != null
+                }
                 for ((tab, marker) in
                     listOf(1 to "金彩秋冬", 2 to "总资产（元）", 3 to "会员专属活动", 4 to "月度收支")) {
                     scenario.onActivity {

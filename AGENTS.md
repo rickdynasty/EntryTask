@@ -8,7 +8,7 @@
 - 修改 RN 源码，以及根目录 RN 配置、`specs/`、JS 测试时，读取 [RN 规则](src/AGENTS.md)；修改 Android 时读取 [Android 规则](android/AGENTS.md)；修改 iOS 时读取 [iOS 规则](ios/AGENTS.md)。共享契约或资源改动还需读取实际受影响平台的规则。
 - 子目录规则细化对应目录；跨端不变量由本文件统一定义。遵循当前用户任务及更高优先级指令；发现规则冲突时说明具体冲突，不通过删除规则或跳过校验解决。
 - 产品行为查阅 [原型需求](docs/requirements/01-prototype-requirements.md)、[API 与 Mock 需求](docs/requirements/02-api-mock-requirements.md)。总体边界查阅 [总体设计](docs/design/EtryTask%20项目设计方案.md)，按任务阅读三端方案。
-- 当前运行方式查阅 [RN 工程说明](docs/development/rn-foundation.md)，初始化与日志查阅 [排障说明](docs/development/troubleshooting.md)。`android/docs/` 是历史初稿，冲突部分以新需求和 `docs/design/` 为准。
+- 当前运行方式查阅 [RN 工程说明](docs/development/rn-foundation.md)，初始化与日志查阅 [排障说明](docs/development/troubleshooting.md)。`android/docs/` 提供 Android 开发资料入口与 Compose Preview 指引，技术方案以 `docs/design/` 为准。
 - 设计稿中的目标目录、API 总数、性能指标和规划模块不等于已实现。实际配置以源码和锁文件核实；需求以当前产品基线为准。记录偏差，按任务范围渐进落实设计，不以现有缺陷作为新代码范式，也不顺带迁移整个工程。
 
 ## 工程定位与现状

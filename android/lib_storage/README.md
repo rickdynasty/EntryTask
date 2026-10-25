@@ -1,6 +1,6 @@
 # lib_storage
 
-保留既有 `com.entry.lib.stroage` 包名。普通偏好继续使用 `StorageManager`；新增 Room 封装用于认证 Mock 的持久校验记录，不开放任意数据库/凭据给 RN。
+保留既有 `com.entry.lib.stroage` 包名。普通偏好继续使用 `StorageManager`；Room 封装用于认证 Mock 的持久校验记录，不开放任意数据库/凭据给 RN。
 
 ## Room 封装
 
@@ -23,8 +23,8 @@ val persisted = authDatabase.credentials.read(key)
 
 使用 Room 2.7.2 与 Kotlin 2.1.20 对应的 KSP 2.1.20-1.0.32，不升级项目 Kotlin/AGP/RN。KSP 导出 [版本1 schema](schemas/com.entry.lib.stroage.room.StorageDatabase/1.json)，只提交 schema，不提交 build 下的生成实现。
 
-这是第一个 Room 版本；SP→Room 是应用适配层的数据导入，不是 SQLite 的 0→1 Migration。未来改表必须：保留旧 schema、升版本、增加显式 `Migration` 并注册到 builder、补充真实旧数据库升级测试；不使用 `fallbackToDestructiveMigration`。当前未引入数据库加密/Keystore，不把 Room 或密码哈希等同于生产认证方案。
+当前数据库结构为版本1。未来改表必须：保留旧 schema、升版本、增加显式 `Migration` 并注册到 builder、补充真实旧数据库升级测试；不使用 `fallbackToDestructiveMigration`。当前未引入数据库加密/Keystore，不把 Room 或密码哈希等同于生产认证方案。
 
-认证接入、幂等迁移与设备验证见 [Room认证存储实施说明](../../docs/development/Room认证存储实施说明.md)。
+认证接入见[Room认证存储设计](../../docs/development/Room认证存储设计.md)。
 
 入门学习见 [Room新手使用指南](../../docs/development/Room新手使用指南.md)，覆盖基础概念、分层、封装、普通业务接入、迁移、测试与排障。

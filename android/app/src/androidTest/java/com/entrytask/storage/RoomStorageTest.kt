@@ -1,9 +1,7 @@
 package com.entrytask.storage
 
-import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
-import com.entry.lib.net.mock.MockAccountStorage
 import com.entry.lib.net.mock.MockAccountStore
 import com.entry.lib.stroage.room.RoomStorage
 import java.util.UUID
@@ -107,52 +105,15 @@ class RoomStorageTest {
     }
 
     @Test
-    fun actualPreferencesAndBothCredentialGenerationsMigrateToRoom() = isolated { _, database ->
-        val prefName = "room_legacy_test_${UUID.randomUUID()}"
-        val preferences = context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
-        try {
-            // 复用既有KDF生成旧版SP校验记录，不在测试中复制算法实现。
-            val old = linkedMapOf<String, String>()
-            val source =
-                object : MockAccountStorage {
-                    override fun read(key: String) = old[key]
-
-                    override fun commit(
-                        values: Map<String, String>,
-                        removals: Set<String>,
-                    ): Boolean {
-                        old.putAll(values)
-                        removals.forEach(old::remove)
-                        return true
-                    }
-                }
-            MockAccountStore(source).register("existing-test", "existing-password")
-            val edit =
-                preferences
-                    .edit()
-                    .putString("theme", "dark")
-                    .putString("mock_reg_username", "legacy-test")
-                    .putString("mock_reg_password", "legacy-password")
-            old.forEach { (key, value) -> edit.putString(key, value) }
-            assertTrue(edit.commit())
-            val accounts =
-                MockAccountStore(
-                    RoomMockAccountStorage(
-                        database.credentials,
-                        SharedPreferencesLegacyAccounts(preferences),
-                    )
-                )
-            assertTrue(accounts.verify("existing-test", "existing-password"))
-            assertTrue(accounts.verify("legacy-test", "legacy-password"))
-            assertFalse(accounts.verify("legacy-test", "wrong"))
-            assertEquals(mapOf("theme" to "dark"), preferences.all)
-            assertEquals(
-                MockAccountStore.Registration.EXISTS,
-                accounts.register("legacy-test", "replacement"),
-            )
-            assertTrue(accounts.verify("legacy-test", "legacy-password"))
-        } finally {
-            context.deleteSharedPreferences(prefName)
+    fun authenticationAdapterPersistsVerifierAndRejectsDuplicateWithoutReplacement() = isolated { name, database ->
+        val accounts = MockAccountStore(RoomMockAccountStorage(database.credentials))
+        assertEquals(MockAccountStore.Registration.CREATED, accounts.register("room-only-test", "test-only"))
+        RoomStorage.open(context, name).use { reopened ->
+            val restarted = MockAccountStore(RoomMockAccountStorage(reopened.credentials))
+            assertTrue(restarted.verify("room-only-test", "test-only"))
+            assertFalse(restarted.verify("room-only-test", "wrong"))
+            assertEquals(MockAccountStore.Registration.EXISTS, restarted.register("room-only-test", "replacement"))
+            assertTrue(restarted.verify("room-only-test", "test-only"))
         }
     }
 }

@@ -1,8 +1,8 @@
 # EntryTask RN 工程说明
 
-> 新版必做 UI：RN 与 Android Compose 双端实现及验证见[实施记录](../docs/development/新版四Tab实施记录.md)；旧 XML 根页说明属于前一版实现。
-
 EntryTask 是由 React Native Community CLI 创建的原生宿主银行业务原型。RN 承载首页、财富、会员、我的四个业务域及其详情子页；Android 原生宿主持有唯一 React Native 实例、底部 Tab、登录注册、会话、网络 Mock、存储和 Native 日志能力。iOS 保留工程入口，业务桥接尚未实施。
+
+四个 Tab 的页面分区、共用组件、Route/Screen/VM 分工以及 Native Compose 对应关系，见 [首页UI新手指引](../docs/development/首页UI新手指引.md)。
 
 ## 工程架构
 
@@ -94,7 +94,7 @@ npm run logs:android         # 查看 Native/ReactNativeJS 日志
 
 Android 也可在 Android Studio 打开 `../android`。普通 RN 热更新不会更新 Native Codegen、Android 资源或 Manifest；Native Bridge/API 资源变化后须重新构建安装。业务包名为 `com.entrytask`，注册组件名为 `EntryTask`。`RootContentHostFragment.usesReactNative()`读取构建期配置：官方CLI使用RN页面，Android Studio使用Compose Native四根页；切换需重新构建安装，详见[双页面模式](../docs/development/native-dashboard.md)。
 
-Mock API、数据规则、设备截图和已知差异见 [四 Tab 实现与验证记录](../docs/ui/四Tab实现与验证记录.md)；逐页原型拆解见 [四 Tab 页面设计](../docs/ui/四Tab原型分析与RN页面设计.md)；运行及日志排障见 [RN 工程说明](../docs/development/rn-foundation.md)。
+四页区域、共性组件、数据流与演示范围见[首页技术方案](../docs/design/首页与四Tab技术方案.md)；认证见[登录注册方案](../docs/design/登录注册技术方案.md)；运行及日志排障见[RN工程说明](../docs/development/rn-foundation.md)。
 
 ## 边界
 

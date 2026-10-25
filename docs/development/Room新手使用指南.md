@@ -4,7 +4,7 @@
 
 本文以 EntryTask 当前源码为主线：先理解 Room，再读懂 `lib_storage` 的封装，最后学习怎样为新业务设计持久化。**“当前实现”都附有源码链接；“教学示例”只写在文档中，未新增业务、表或数据库，也没有作为独立示例工程编译验收。**
 
-版本基线：本工程使用 **Room 2.7.2、Kotlin 2.1.20、KSP 2.1.20-1.0.32**，不是自动选择最新版本。官方站点部分指南已切换到 Room 3；阅读时应选 [Room 2.x 指南](https://developer.android.com/training/data-storage/room/v2)，不要混用 `androidx.room3` 的依赖、包名或迁移写法。本次文档不升级任何依赖。
+版本基线为 Room 2.7.2、Kotlin 2.1.20、KSP 2.1.20-1.0.32，以工程依赖为准；教学代码使用本工程 Room 2.x API。
 
 ## 阅读路线
 
@@ -15,7 +15,7 @@
 | 接业务 | 第9～11节：接入模式、收藏示例、生命周期 | 新功能的数据放哪层？怎样与VM连接？ |
 | 维护 | 第12～16节：迁移、排障、测试、性能、练习 | 升级如何保留旧数据？怎样验证正确？ |
 
-只想快速定位实现，可以先看 [lib_storage README](../../android/lib_storage/README.md)；需要了解这次 SP→Room 改造，阅读 [认证存储实施说明](Room认证存储实施说明.md)。
+只想快速定位实现，可以先看 [lib_storage README](../../android/lib_storage/README.md)；需要理解当前认证接入，阅读 [认证存储设计](Room认证存储设计.md)。
 
 ## 1. 为什么需要数据库
 
@@ -44,7 +44,7 @@ var authenticated = false
 | --- | --- | --- |
 | 当前页加载状态、选中Tab | 内存状态、ViewModel等 | 不为临时UI状态建账号表 |
 | 少量主题/开关偏好 | 偏好存储，例如SP或DataStore | 当前普通偏好仍使用已有SP，未整体迁移 |
-| 多条记录、按条件查询、唯一性及事务 | SQLite / Room | 本轮认证校验记录已接入Room |
+| 多条记录、按条件查询、唯一性及事务 | SQLite / Room | 认证校验记录使用Room |
 | 图片、文档、下载文件 | 文件存储及必要的元数据 | 不默认将大文件塞进数据库列 |
 | 真实服务端账号、资产、交易事实 | 后端服务 | 当前无后端，客户端Mock只是教学环境 |
 
@@ -62,7 +62,7 @@ var authenticated = false
 | Column，列 | 记录的某个属性 | `account_key`、`password_verifier` |
 | Primary key，主键 | 唯一定位一行 | `account_key` |
 | Schema，结构 | 表名、列、类型、约束、索引等定义 | 版本1的schema JSON |
-| Transaction，事务 | 将一组数据库操作作为一个提交单元 | 批量导入旧账号 |
+| Transaction，事务 | 将一组数据库操作作为一个提交单元 | 批量唯一插入校验记录 |
 
 当前认证表可以简化为：
 
@@ -364,7 +364,6 @@ flowchart TD
     RULE --> ADAPTER[RoomMockAccountStorage]
     ADAPTER --> PORT[CredentialStore]
     PORT --> DB[RoomStorage / DAO / SQLite]
-    LEGACY[旧SP：只作迁移源] --> ADAPTER
 ```
 
 不能据此总结成“所有Room访问都必须经过网络”。本地收藏、草稿等真正的本地业务可通过Repository访问本地Store；当前账号必须走拦截器，是为了遵守模拟后台边界。
@@ -376,8 +375,8 @@ flowchart TD
 | 内容 | 当前或建议归属 | 原因 |
 | --- | --- | --- |
 | Room构建、认证技术校验表、受控Store | 当前`lib_storage` | 不包含银行业务规则 |
-| 网络侧Mock账号规则、持久化Port | 当前`lib_net/mock` | 历史认证Mock位置，本轮未整体搬迁 |
-| 两侧接口适配、旧SP导入接线 | 当前`app/storage` | 组装技术能力，不在app新增DAO/密码算法 |
+| 网络侧Mock账号规则、持久化Port | 当前`lib_net/mock` | 通过持久化Port注入存储实现 |
+| 两侧接口适配、Room原子写入接线 | 当前`app/storage` | 组装技术能力，不在app新增DAO/密码算法 |
 | 用户ViewModel/Repository/认证UI | `biz_user` | 用户业务所有权 |
 | 新业务的Entity/DAO、数据映射 | 先按业务数据所有权决定 | 不把所有业务表都塞进基础库 |
 | 完整模拟后台的会员/账本表 | 依总体方案归`demo_engine`等实际所有者 | 当前完整Demo数据库仍是后续目标 |
@@ -450,7 +449,7 @@ UI层采用项目已有生命周期感知收集方式。Native Compose可从VM�
 
 ### 8.3 一次事务保证什么
 
-以本工程批量导入为例：一批记录写入时，若后续SQL抛出未被吞掉的失败，整批应回滚；不应让调用方得到“失败”却留下该事务前半批新增记录。
+以CredentialStore批量插入为例：一批记录写入时，若后续SQL抛出未被吞掉的失败，整批应回滚；不应让调用方得到“失败”却留下该事务前半批新增记录。
 
 当前封装采用`runInTransaction`包住批量DAO操作和结果计算。Room也会为其生成的插入方法安排事务；外层显式边界让封装自己的提交语义清晰。不要理解为“不手动包事务的每个DAO都没有事务”。[Room事务参考](https://developer.android.com/reference/androidx/room/Transaction)。
 
@@ -472,7 +471,7 @@ Room不负责解决全部业务幂等性。签到、转账类流程还需要业�
 | --- | --- | --- | --- |
 | 真正本地业务 | 本地数据库 | View→VM→Repository→本地Store | 收藏/草稿等需求明确后可采用 |
 | 本地模拟后台 | Mock账本/数据库 | View→VM→网络→Mock handler→Store | 当前注册登录采用此模式 |
-| 在线读取，允许缓存 | 真实API；本地是有策略的缓存 | Repository协调网络/缓存 | 需另定义TTL、过期、错误和清理；本轮未新增 |
+| 在线读取，允许缓存 | 真实API；本地是有策略的缓存 | Repository协调网络/缓存 | 需另定义TTL、过期、错误和清理；当前未实施 |
 | 离线优先同步 | 本地投影加明确同步协议 | 本地写入/Outbox/同步/冲突合并 | 复杂度较高，不能只加Room就声称实现 |
 
 接入顺序建议：
@@ -701,7 +700,7 @@ Bridge只暴露业务所需的动作和经过裁剪的结果；不能提供任�
 
 SQL加scope能保护查询范围，但不能替代页面生命周期和迟到响应隔离。数据库里有旧账号记录本身正常；将旧账号结果显示到新账号页面才是错误。
 
-## 12. 升级：新安装、SQL迁移和SP导入要区分
+## 12. 数据库版本与结构升级
 
 ### 12.1 三种情况
 
@@ -709,9 +708,8 @@ SQL加scope能保护查询范围，但不能替代页面生命周期和迟到响
 | --- | --- | --- |
 | 首次安装、没有数据库 | Room按当前schema建表 | 当前版本1已实现 |
 | 已有Room旧库，结构变化 | 升版本并提供升级路径 | 本工程尚无1→2实际升级 |
-| 已有SP账号，改用Room | 应用层读取/转换/导入/确认/删旧键 | 当前适配器已实现 |
 
-SP导入不是SQLite的“0→1 Migration”。SQL Migration只认识对应数据库的版本结构，不会自动理解另一个SP文件中的密码格式。
+SQL Migration 根据数据库版本管理表结构与数据转换，不能只修改Entity而忽略用户设备上的已有数据库。
 
 ### 12.2 一个1→2升级教学例子
 
@@ -740,28 +738,9 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 
 不要将Kotlin属性默认值与SQLite列默认值混为一谈：前者影响对象构造，后者影响旧表升级/SQL插入；本例用`defaultValue`明确对齐schema。
 
-### 12.3 当前SP导入如何避免丢账号
+### 12.3 当前数据库升级边界
 
-当前 [RoomMockAccountStorage](../../android/app/src/main/java/com/entrytask/storage/RoomMockAccountStorage.kt) 的顺序：
-
-```text
-读取旧SP校验记录
-  → Room事务 INSERT OR IGNORE
-  → 确认事务返回成功
-  → 删除对应SP键
-  → 允许认证继续
-```
-
-| 失败位置 | 数据在哪里 | 重试行为 |
-| --- | --- | --- |
-| Room未提交 | 旧SP仍在 | 再导入 |
-| Room已提交，SP未清理 | 两处可能同时存在 | Room已有记录优先，再清旧SP |
-| 旧明文转换或提交失败 | 完整旧键对保留 | 不写入明文Room记录，后续重试 |
-| 数据库损坏/缺失升级路径 | 不自动删数据 | 返回失败，按明确方案修复 |
-
-先删SP再写Room，中断时可能丢账号；先写Room但重试覆盖已有值，又可能恢复出过时密码。当前方案使用先提交、后清理、冲突不覆盖来避免这两类问题。
-
-这不是SP与SQLite的一次原子事务。保留残缺旧键对、不清普通偏好、保留已有Room记录等具体规则见 [迁移说明](Room认证存储实施说明.md)。
+当前认证库schema为版本1，结构升级需在lib_storage注册显式Migration；app适配层不负责擅自删库重建。
 
 ### 12.4 升级前的检查顺序
 
@@ -810,7 +789,7 @@ SELECT COUNT(*) FROM auth_credentials;
 
 ### 13.3 日志记录什么
 
-本工程使用MLog。迁移日志标签为`EntryTask.AuthStorage`，认证请求另有requestId；适合记录阶段、错误类别、耗时和关联编号。
+本工程使用MLog。认证请求具有requestId；适合记录阶段、错误类别、耗时和关联编号。日志不包含校验记录或密码。
 
 不输出密码、Token、用户名、账号hash索引、校验值、SQL参数、完整请求体或个人资产响应。不要为了排查Room打开全量SQL参数日志。初始化失败也要能从Native日志看到，不依赖RN初始化成功。
 
@@ -820,7 +799,7 @@ SELECT COUNT(*) FROM auth_credentials;
 
 | 测试层 | 使用什么 | 主要验证 |
 | --- | --- | --- |
-| JVM单测 | Fake Store、Fake旧数据源 | 失败恢复、调用顺序、业务结果、迟到响应 |
+| JVM单测 | Fake Store、Fake Repository | 失败恢复、调用顺序、业务结果、迟到响应 |
 | Android数据库测试 | 隔离Room/SQLite文件 | SQL、主键、事务回滚、线程限制、真实持久化 |
 | 请求/业务集成测试 | Retrofit→Mock→Room→Repository | 注册登录是否经过正确执行边界、返回码和重启读取 |
 
@@ -830,10 +809,10 @@ Fake能模拟写入失败，但不能证明真正的SQL执行正确；只测新�
 
 | 测试文件 | 学习重点 |
 | --- | --- |
-| [RoomMockAccountStorageTest](../../android/app/src/test/java/com/entrytask/storage/RoomMockAccountStorageTest.kt) | Room提交失败保留SP、清理失败后重试、不覆盖已有记录 |
-| [RoomStorageTest](../../android/app/src/androidTest/java/com/entrytask/storage/RoomStorageTest.kt) | 双连接、批量回滚、主线程限制、实际SP转换 |
+| [RoomMockAccountStorageTest](../../android/app/src/test/java/com/entrytask/storage/RoomMockAccountStorageTest.kt) | 写入失败传播及重试、唯一键不覆盖、拒绝无效key |
+| [RoomStorageTest](../../android/app/src/androidTest/java/com/entrytask/storage/RoomStorageTest.kt) | 双连接、批量回滚、主线程限制、认证适配持久化 |
 | [AuthPersistenceTest](../../android/app/src/androidTest/java/com/entrytask/auth/AuthPersistenceTest.kt) | seed/verify独立进程，注册、错误密码、正确登录、重复注册 |
-| [MockAccountStoreTest](../../android/lib_net/src/test/java/com/entry/lib/net/mock/MockAccountStoreTest.kt) | 密码逐字校验、多账号、旧版本优先级、写入失败 |
+| [MockAccountStoreTest](../../android/lib_net/src/test/java/com/entry/lib/net/mock/MockAccountStoreTest.kt) | 密码逐字校验、多账号、重复注册、写入失败 |
 
 `RoomStorageTest`用触发器使批量写入中途失败，再检查前面新增的行是否回滚。这比只断言“正常插入能查到”更能验证事务边界。
 
@@ -859,9 +838,9 @@ adb -s <serial> shell am instrument -w -e class com.entrytask.storage.RoomStorag
 
 这些路径以`android/`为工作目录。不要在有用户数据的设备直接使用可能卸载应用的connected测试，也不要清除应用数据来准备测试。
 
-分进程认证执行`AuthPersistenceTest`的`authPhase=seed`，成功后再在新的instrumentation调用中运行`authPhase=verify`；具体命令见[实施说明](Room认证存储实施说明.md)。seed故意保留测试库，verify才清理测试库；若中断，先确认文件属于测试再处理。
+分进程认证执行`AuthPersistenceTest`的`authPhase=seed`，成功后再在新的instrumentation调用中运行`authPhase=verify`；具体步骤见[登录注册指南](登录注册功能新手指南.md#184-怎样验证真正结束进程后仍能登录)。seed故意保留测试库，verify才清理测试库；若中断，先确认文件属于测试再处理。
 
-本次指南仅修改文档，未重新运行上述构建/设备测试；实施说明中的结果属于对应实现轮次，不是本文新增验证结论。
+测试结论以当前构建和实际执行输出为准。
 
 ## 15. 性能与稳定性从哪些地方开始
 
@@ -917,7 +896,7 @@ adb -s <serial> shell am instrument -w -e class com.entrytask.storage.RoomStorag
 | 4 | [CredentialStore](../../android/lib_storage/src/main/java/com/entry/lib/stroage/room/CredentialStore.kt) | 对外能力边界 |
 | 5 | [RoomStorage](../../android/lib_storage/src/main/java/com/entry/lib/stroage/room/RoomStorage.kt) | 构建、事务、结果映射 |
 | 6 | [RoomMockAccountStorage](../../android/app/src/main/java/com/entrytask/storage/RoomMockAccountStorage.kt) | 适配与跨介质提交顺序 |
-| 7 | [LegacyAccountSource](../../android/app/src/main/java/com/entrytask/storage/LegacyAccountSource.kt) | 只读迁移源与定向清理 |
+| 7 | [认证存储设计](Room认证存储设计.md) | 数据边界、封装与一致性 |
 | 8 | [MockAccountStore](../../android/lib_net/src/main/java/com/entry/lib/net/mock/MockAccountStore.kt) | 密码规则、优先级、认证判定 |
 | 9 | [MainApplication](../../android/app/src/main/java/com/entrytask/MainApplication.kt) | 单实例所有者与依赖注入 |
 | 10 | [MockInterceptor](../../android/lib_net/src/main/java/com/entry/lib/net/MockInterceptor.kt) | 请求边界、模板响应和错误映射 |

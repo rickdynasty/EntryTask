@@ -104,11 +104,13 @@ class MemberPageViewModel(private val repository: MemberRepository) : RootPageVi
     private val operation = MutableStateFlow(Operation())
     val submission = operation.asStateFlow()
     private var writing: Job? = null
+    private var writeVersion = 0L
     private var intentDate = ""
     private var key = ""
     private var confirmationRequired = false
 
     override fun resetSession() {
+        writeVersion++
         writing?.cancel()
         writing = null
         operation.value = Operation()
@@ -117,6 +119,7 @@ class MemberPageViewModel(private val repository: MemberRepository) : RootPageVi
     }
 
     override fun onInactive() {
+        writeVersion++
         if (writing?.isActive == true) confirmationRequired = true
         writing?.cancel()
         writing = null
@@ -133,21 +136,24 @@ class MemberPageViewModel(private val repository: MemberRepository) : RootPageVi
 
     fun submit() {
         val current = checkin.state.value.data ?: return
-        if (!active || operation.value.submitting || current.checked) return
+        if (!active || checkin.state.value.loading || operation.value.submitting || current.checked) return
         if (intentDate != current.date) {
             intentDate = current.date
             key = UUID.randomUUID().toString()
         }
         val version = epoch
+        val operationVersion = ++writeVersion
+        val flowId = key
+        fun ownsResult() = active && version == epoch && operationVersion == writeVersion
         operation.value = Operation(true, "正在签到")
-        MLog.i("EntryTask.NativeDashboard", "checkin.submit.started flowId=$key")
+        MLog.i("EntryTask.NativeDashboard", "checkin.submit.started flowId=$flowId")
         writing =
             viewModelScope.launch {
                 try {
                     if (confirmationRequired) {
                         val confirmed = repository.checkin()
                         ensureActive()
-                        if (version == epoch) {
+                        if (ownsResult()) {
                             checkin.replace(confirmed)
                             confirmationRequired = false
                             operation.value =
@@ -155,9 +161,9 @@ class MemberPageViewModel(private val repository: MemberRepository) : RootPageVi
                         }
                         return@launch
                     }
-                    val result = repository.submit(current.date, key)
+                    val result = repository.submit(current.date, flowId)
                     ensureActive()
-                    if (version == epoch) {
+                    if (ownsResult()) {
                         checkin.replace(result)
                         operation.value =
                             Operation(
@@ -166,16 +172,19 @@ class MemberPageViewModel(private val repository: MemberRepository) : RootPageVi
                             )
                         identity.load { repository.identity(true) }
                     }
-                    MLog.i("EntryTask.NativeDashboard", "checkin.submit.completed flowId=$key")
+                    MLog.i("EntryTask.NativeDashboard", "checkin.submit.completed flowId=$flowId")
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
+                    // 不合作的取消可能迟到抛业务异常；旧操作不得污染新页或新会话。
+                    ensureActive()
+                    if (!ownsResult()) return@launch
                     confirmationRequired = true
                     operation.value = Operation(true, "结果待确认，正在查询签到状态")
                     try {
                         val result = repository.checkin()
                         ensureActive()
-                        if (version == epoch) {
+                        if (ownsResult()) {
                             checkin.replace(result)
                             confirmationRequired = false
                             operation.value =
@@ -184,11 +193,12 @@ class MemberPageViewModel(private val repository: MemberRepository) : RootPageVi
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (failed: Exception) {
-                        if (version == epoch) operation.value = Operation(false, "结果尚未确认，请先刷新签到状态")
+                        ensureActive()
+                        if (ownsResult()) operation.value = Operation(false, "结果尚未确认，请先刷新签到状态")
                     }
                     MLog.e(
                         "EntryTask.NativeDashboard",
-                        "checkin.submit.failed flowId=$key code=RESULT_CONFIRMATION",
+                        "checkin.submit.failed flowId=$flowId code=RESULT_CONFIRMATION",
                     )
                 }
             }

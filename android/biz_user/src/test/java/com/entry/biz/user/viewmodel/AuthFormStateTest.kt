@@ -6,11 +6,9 @@ import com.entry.biz.user.model.ApiResponse
 import com.entry.biz.user.model.User
 import com.entry.biz.user.network.UserService
 import com.entry.biz.user.repository.UserRepository
-import com.entry.biz.user.ui.contract.AuthUiEffect
 import com.entry.biz.user.ui.contract.AuthUiIntent
 import com.entry.lib.log.MLog
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -24,7 +22,7 @@ class AuthFormStateTest {
     private val store = ViewModelStore()
     private var logging = true
     @Before fun setup() { Dispatchers.setMain(dispatcher); logging = MLog.isEnabled; MLog.isEnabled = false }
-    @After fun teardown() { store.clear(); MLog.isEnabled = logging; Dispatchers.resetMain() }
+    @After fun teardown() { store.clear(); UserAuthManager.logout(); MLog.isEnabled = logging; Dispatchers.resetMain() }
     private fun model(key: String, service: UserService) = UserViewModel(UserRepository(service)).also { store.put(key, it) }
     private fun fill(vm: UserViewModel, name: String, password: String) {
         vm.handleIntent(AuthUiIntent.UpdateUsername(name))
@@ -60,15 +58,14 @@ class AuthFormStateTest {
         val vm = model("login", Service {
             try { awaitCancellation() } finally { cancelled = true }
         })
-        val effects = mutableListOf<AuthUiEffect>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
         fill(vm, "demo", "test-only")
         vm.handleIntent(AuthUiIntent.SubmitLogin)
         runCurrent()
         vm.onFormLeft()
         runCurrent()
         assertTrue(cancelled)
-        assertTrue(effects.isEmpty())
+        assertNull(vm.uiState.value.message)
+        assertFalse(vm.uiState.value.authenticated)
         assertEquals("", vm.uiState.value.password)
         assertFalse(vm.uiState.value.isLoading)
     }
@@ -98,14 +95,12 @@ class AuthFormStateTest {
     @Test fun businessFailuresShowToastAndRestoreBothForms() = runTest(dispatcher) {
         for (registration in listOf(false, true)) {
             val vm = model("failure-$registration", Service { ApiResponse(401, "untrusted-server-detail", null) })
-            val effects = mutableListOf<AuthUiEffect>()
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
             fill(vm, "demo", "test-only")
             vm.handleIntent(if (registration) AuthUiIntent.SubmitRegister else AuthUiIntent.SubmitLogin)
             runCurrent()
             assertFalse(vm.uiState.value.isLoading)
-            assertEquals(listOf(AuthUiEffect.ShowToast(if (registration) "注册失败，请稍后重试"
-                else "账号或密码错误，请检查后重试")), effects)
+            assertEquals(if (registration) "注册失败，请稍后重试"
+                else "账号或密码错误，请检查后重试", vm.uiState.value.message)
         }
     }
 
@@ -117,32 +112,26 @@ class AuthFormStateTest {
         )
         for ((index, case) in cases.withIndex()) {
             val vm = model("network-$index", Service { throw case.first })
-            val effects = mutableListOf<AuthUiEffect>()
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
             fill(vm, "demo", "test-only")
             vm.handleIntent(AuthUiIntent.SubmitLogin)
             runCurrent()
             assertFalse(vm.uiState.value.isLoading)
-            assertEquals(listOf(AuthUiEffect.ShowToast(case.second)), effects)
+            assertEquals(case.second, vm.uiState.value.message)
         }
     }
 
     @Test fun duplicateRegistrationUsesAccountExistsToast() = runTest(dispatcher) {
         val vm = model("duplicate", Service { ApiResponse(409, "untrusted-detail", null) })
-        val effects = mutableListOf<AuthUiEffect>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
         fill(vm, "demo", "test-only")
         vm.handleIntent(AuthUiIntent.SubmitRegister)
         runCurrent()
-        assertEquals(listOf(AuthUiEffect.ShowToast("该用户名已注册，请更换用户名或直接登录")), effects)
+        assertEquals("该用户名已注册，请更换用户名或直接登录", vm.uiState.value.message)
         assertFalse(vm.uiState.value.isLoading)
     }
 
     @Test fun exitingWhileLoginIsPendingRejectsLateSessionAndSuccessEffect() = runTest(dispatcher) {
         val response = CompletableDeferred<ApiResponse<User>>()
         val vm = model("pending-exit", Service { response.await() })
-        val effects = mutableListOf<AuthUiEffect>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
         fill(vm, "test-epoch-only", "test-only")
         vm.handleIntent(AuthUiIntent.SubmitLogin)
         runCurrent()
@@ -150,27 +139,26 @@ class AuthFormStateTest {
         response.complete(ApiResponse(200, "success", User(1, "test-epoch-only", null, null, "memory-test-only")))
         runCurrent()
         assertFalse(UserAuthManager.isLogin())
-        assertTrue(effects.isEmpty())
+        assertNull(vm.uiState.value.message)
+        assertFalse(vm.uiState.value.authenticated)
         assertFalse(vm.uiState.value.isLoading)
     }
 
-    @Test fun loginAndRegistrationBothEmitAuthSucceededAfterCommittingSession() = runTest(dispatcher) {
+    @Test fun loginAndRegistrationRetainSuccessWithoutAnActiveUiCollector() = runTest(dispatcher) {
         for (registration in listOf(false, true)) {
             val user = User(1, "auth-success-only", null, null, "memory-test-only")
             val vm = model("success-$registration", Service { ApiResponse(200, "success", user) })
-            val effects = mutableListOf<AuthUiEffect>()
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiEffect.toList(effects) }
             try {
                 UserAuthManager.logout()
                 fill(vm, user.username, "test-only")
                 vm.handleIntent(if (registration) AuthUiIntent.SubmitRegister else AuthUiIntent.SubmitLogin)
                 runCurrent()
-                val expected = if (registration) {
-                    listOf(AuthUiEffect.ShowToast("注册成功"), AuthUiEffect.AuthSucceeded)
-                } else {
-                    listOf(AuthUiEffect.AuthSucceeded)
-                }
-                assertEquals(expected, effects)
+                assertTrue(vm.uiState.value.authenticated)
+                assertEquals(if (registration) "注册成功" else null, vm.uiState.value.message)
+                // 提示消费不清掉成功事实；宿主重建或恢复后仍能观察成功。
+                vm.handleIntent(AuthUiIntent.MessageShown)
+                assertNull(vm.uiState.value.message)
+                assertTrue(vm.uiState.value.authenticated)
                 assertTrue(UserAuthManager.isLogin())
                 assertEquals("", vm.uiState.value.password)
                 assertFalse(vm.uiState.value.isLoading)
@@ -180,4 +168,35 @@ class AuthFormStateTest {
         }
     }
 
+    @Test fun viewModelAcceptsDomainContractAndCannotSubmitAgainAfterSuccess() = runTest(dispatcher) {
+        var calls = 0
+        val repository = object : com.entry.biz.user.domain.AuthRepository {
+            override suspend fun login(username: String, password: String): com.entry.biz.user.domain.AuthenticatedUser {
+                calls++
+                return com.entry.biz.user.domain.AuthenticatedUser(1, username)
+            }
+            override suspend fun register(username: String, password: String) = login(username, password)
+        }
+        val vm = UserViewModel(repository).also { store.put("domain", it) }
+        fill(vm, "demo", "test-only")
+        vm.handleIntent(AuthUiIntent.SubmitLogin)
+        runCurrent()
+        vm.handleIntent(AuthUiIntent.SubmitLogin)
+        vm.handleIntent(AuthUiIntent.UpdatePassword("should-not-be-retained"))
+        runCurrent()
+        assertEquals(1, calls)
+        assertTrue(vm.uiState.value.authenticated)
+        assertEquals("", vm.uiState.value.password)
+    }
+
+    @Test fun malformedSuccessDoesNotEstablishSession() = runTest(dispatcher) {
+        UserAuthManager.logout()
+        val vm = model("invalid", Service { ApiResponse(200, "success", User(1, "demo", null, null, "")) })
+        fill(vm, "demo", "test-only")
+        vm.handleIntent(AuthUiIntent.SubmitLogin)
+        runCurrent()
+        assertFalse(UserAuthManager.isLogin())
+        assertFalse(vm.uiState.value.authenticated)
+        assertEquals("登录失败，请稍后重试", vm.uiState.value.message)
+    }
 }

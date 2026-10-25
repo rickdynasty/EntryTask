@@ -138,6 +138,6 @@ interface ProfileRepository {
     suspend fun financial(): FinancialOverview
 }
 
-/** 组装根复用同一实现与会话缓存；VM仍只依赖领域接口。 */
+/** 组装根复用同一数据实现；VM仍只依赖领域接口。 */
 interface RootPageRepositorySet :
     HomeRepository, WealthRepository, MemberRepository, ProfileRepository

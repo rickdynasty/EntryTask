@@ -26,7 +26,12 @@ export function MemberRoute({
     model.subscribeOperation,
     model.getOperation,
   );
-  useEffect(() => () => model.deactivateSubmission(), [model]);
+  const canSubmit = active && session.authenticated;
+  useEffect(() => {
+    if (canSubmit) model.activateSubmission();
+    else model.deactivateSubmission();
+    return () => model.deactivateSubmission();
+  }, [model, canSubmit]);
   return (
     <MemberScreen
       content={content}

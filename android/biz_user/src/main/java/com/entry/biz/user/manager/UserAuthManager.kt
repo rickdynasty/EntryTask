@@ -1,9 +1,5 @@
 package com.entry.biz.user.manager
 
-import android.content.Context
-import android.app.Activity
-import android.content.Intent
-import com.entry.biz.user.ui.AuthActivity
 import com.entry.lib.log.MLog
 
 /**
@@ -57,15 +53,4 @@ object UserAuthManager {
         MLog.d(TAG, "用户已登出，重置登录状态")
     }
 
-
-    /**
-     * 拉起登录/注册界面
-     */
-    fun startAuthActivity(context: Context) {
-        // 从首页 Activity 启动时保留其栈实例；仅非 Activity Context 需要 NEW_TASK。
-        val intent = Intent(context, AuthActivity::class.java)
-        if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        MLog.i(TAG, "打开 Native 登录注册界面")
-        context.startActivity(intent)
-    }
 }

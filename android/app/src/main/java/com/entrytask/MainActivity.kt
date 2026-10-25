@@ -19,7 +19,7 @@ import com.entry.lib.base.mvvm.BaseActivity
 import com.entry.lib.log.MLog
 import com.entry.lib.ui.BackPressHelper
 import com.entrytask.shell.domain.RootBackAction
-import com.entrytask.shell.host.RootContentFragmentFactory
+import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import com.entrytask.shell.host.RootContentHostFragment
 import com.entrytask.shell.host.HostFragmentHandle
 import com.entrytask.shell.presentation.AuthLaunchState
@@ -33,14 +33,10 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     private val graph get() = (application as MainApplication).shellGraph
     private val hostHandle = HostFragmentHandle()
     private var unbindForeground: (() -> Unit)? = null
-    private var legacyTab: Int? = null
     private val viewModel: MainViewModel by viewModels {
         viewModelFactory {
             initializer {
                 val savedState = createSavedStateHandle()
-                if (!savedState.contains(MainViewModel.SELECTED_TAB) && legacyTab != null) {
-                    savedState[MainViewModel.SELECTED_TAB] = legacyTab
-                }
                 MainViewModel(graph.repository, savedState, SystemClock::elapsedRealtime)
             }
         }
@@ -57,9 +53,8 @@ class MainActivity : BaseActivity(), DefaultHardwareBackBtnHandler {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        supportFragmentManager.fragmentFactory = RootContentFragmentFactory()
+        supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
         super.onCreate(savedInstanceState)
-        legacyTab = savedInstanceState?.takeIf { it.containsKey("root_tab") }?.getInt("root_tab")
         setContentView(R.layout.activity_home)
         // 框架可能早于门禁恢复旧Fragment；它已属于真实页面需求，不能按无Surface预热隔离异常。
         if (RootContentHostFragment.usesReactNative() && supportFragmentManager.findFragmentByTag(ROOT_TAG) != null) {
