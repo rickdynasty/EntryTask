@@ -13,7 +13,7 @@
 
 ## 工程定位与现状
 
-这是 RN 官方 CLI 创建的银行业务演示工程，采用按业务域和技术职责划分的模块化架构及 MVVM。当前 Android 先行，iOS 保留模板及入口适配，完整原生能力实施延期。
+这是 RN 官方 CLI 创建的银行业务演示工程，采用按业务域和技术职责划分的模块化架构及 MVVM。Android 与 iOS 均提供 Native 宿主和认证，复用 RN 业务页；iOS 使用 App target 加六个 Swift Package library，实际验证范围见 ios/README.md。
 
 | 路径 | 职责 |
 | --- | --- |
@@ -22,7 +22,7 @@
 | `contracts/` | 运行时桥接配置、API 策略及响应 schema |
 | `mock/` | Native 本地网络使用的路由清单及分 API JSON |
 | `android/` | Native 宿主、认证、网络、存储和日志实现 |
-| `ios/` | iOS 工程及未来对等能力接入 |
+| `ios/` | iOS 宿主、认证、五模块桥接及平台能力 |
 | `tools/`、`__tests__/` | 资源与架构检查、校验器生成、JS 测试 |
 | `docs/` | 需求、设计、开发及验证说明 |
 
@@ -30,7 +30,7 @@
 
 ## 跨端架构不变量
 
-1. 每进程只使用一个 RN instance。Native 负责宿主、根 Tab、认证及会话权威；RN 负责四域页面和业务子页，Android Studio模式另有XML Native四根页（见 docs/development/native-dashboard.md），优先复用 RN 控件。不能为页面、Tab 或登录创建第二个 runtime，也不能另建 RN 根底栏复制 Native 导航状态。
+1. 每进程只使用一个 RN instance。Native 负责宿主、根 Tab、认证及会话权威；RN 负责四域页面和业务子页，Android Studio模式另有Compose Native四根页（见 docs/development/native-dashboard.md），iOS Xcode模式另有SwiftUI Native四根页（见 docs/development/ios-dashboard-modes.md），优先复用 RN 控件。不能为页面、Tab 或登录创建第二个 runtime，也不能另建 RN 根底栏复制 Native 导航状态。
 2. View 渲染，VM 生产状态和处理动作，领域契约定义业务，Repository 管数据，适配器实现 IO，组装根构造依赖。跨域只使用公开契约，禁止导入其他域的私有实现；按复杂度引入 UseCase，不机械添加空层。
 3. RN 可以使用 Native 网络或自己的 HTTP 能力，由 EndpointRegistry 按 API 显式选择；禁止失败后自动切换通路。当前无后端的演示 API 使用 Native Mock，RN 不直接读取响应 fixture 冒充请求。
 4. Native 持有银行凭证及持久化权威；RN 不复制凭证、持久账户库或另一套持久查询缓存。RN 查询缓存与客户端状态遵守 RN 子规则，跨端交互通过受控 Port / Codegen 适配。
@@ -47,6 +47,7 @@ npm run logs:android
 
 第二条在独立终端运行；多设备可加 `-- emulator-5554`，实际 serial 以 `adb devices -l` 为准。Metro 按 `j` 打开 RN DevTools。构建终端没有 JS 输出不代表应用没有日志。
 
+- iOS构建期 `ENTRYTASK_PAGE_MODE=native|rn`：Xcode默认Native，项目CLI扩展让官方run-ios/build-ios默认RN；显式构建参数优先，禁止写入粘滞开关。
 - JS 入口固定为 `src/index.js`，根组件 `src/app/App.tsx`；不恢复根目录 `index.js` 或另建入口兜底。
 - 注册组件名为 `EntryTask`；Android `applicationId` / namespace 为 `com.entrytask`，Application 为 `.MainApplication`。不得在目录整理中误改安装身份或组件名。
 - Android 开发入口为 `src/index`，Bundle 入口为 `../../src/index.js`；iOS 开发入口为 `src/index`，构建 `ENTRY_FILE=src/index.js`。涉及入口调整时核对 Metro、原生配置、Codegen 和组件注册的一致性。
@@ -56,7 +57,7 @@ npm run logs:android
 
 - `specs/` 只定义薄传输类型，`package.json` 的 Codegen 扫描目录保持 `specs`，生成包保持 `com.entrytask.specs`。签名变化需同步 RN adapter、Android 实现和测试，标明 iOS 对等实现是否延期；不手工修改生成接口。
 - API 新增或变更同步检查 `contracts/api/endpoints.json`、schema、`mock/manifest.json`、分 API JSON、校验器和受影响消费者。契约必须明确认证、空值、分页、超时及错误语义；不虚构真实后端行为。
-- `contracts/` 中的运行时 JSON 由 Metro 解析；Native Mock 资源必须进入 APK / 未来 iOS Bundle。Native 不能运行时访问开发机仓库，也不能依赖 Metro 提供 mock 文件。
+- `contracts/` 中的运行时 JSON 由 Metro 解析；Native Mock 资源必须进入 APK / iOS Bundle。Native 不能运行时访问开发机仓库，也不能依赖 Metro 提供 mock 文件。
 - 普通 Native Mock 人工延迟按需求为随机 1000～3000ms，可取消，运行在后台；不得把延迟加入真实 RN HTTP，也不得在主线程等待。现有实现偏差应明确记录，在相关任务中修正。
 - 共享资源只有一份源码；通过生成任务打包到构建目录，禁止手工维护平台副本。改变打包配置需验证空生成目录构建和最终产物资源；历史上曾出现构建成功但 APK 漏资源，不能只检查源文件存在。
 - 修改 schema 后运行 `npm run contracts:generate`，提交生成的校验器并检查差异；禁止手改生成物或放宽 schema 来掩盖坏数据。

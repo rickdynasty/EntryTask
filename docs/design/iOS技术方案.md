@@ -1,244 +1,518 @@
-# iOS技术方案
+# iOS 技术方案
 
-状态：详细设计，Native能力实施延期。
-输入：[总体方案](EtryTask%20项目设计方案.md)、[RN方案](前端RN技术方案.md)、[需求](../requirements/01-prototype-requirements.md)
+状态：首期核心链路已实现。本文维护当前架构及明确标出的待验证边界；运行命令、源码入口和验证范围见 [iOS README](../../ios/README.md)。模拟器功能通过不等于真机、旧系统、性能和分发验收完成。
 
-## 1. 范围与技术基线
+依据：[总体设计](EtryTask%20项目设计方案.md)、[Android 方案](Android%20技术方案.md)、[RN 方案](前端RN技术方案.md)、[认证方案](登录注册技术方案.md)、[首页方案](首页与四Tab技术方案.md)，以及下文列出的当前源码和运行契约。本文直接维护有效方案，不保留旧方案和逐次修订记录。
 
-本文件提供可执行的iOS对等架构设计，供未来排期使用。**本期不修改iOS代码、不安装Pods、不运行Xcode构建或设备测试；所有iOS实施任务与运行验收均为延期。** Android先行不意味着iOS能力已存在。
+## 1. 实施范围与对齐原则
 
-未来iOS提供Native认证、四Tab/Shell、单RN容器、五个TurboModule、URLSession网络/本地拦截、存储/日志；复用同一RN四业务域及子页。iOS不以SwiftUI重写产品/资产/权益等RN页面，也不在RN另建登录页。
+iOS 提供 Native 应用外壳、四个根 Tab、登录注册、会话、单 RN 宿主、五个 TurboModule、网络、本地 Mock、存储及日志；复用已有 RN 四域页面和业务子页。CLI默认RN页面，Xcode默认SwiftUI Native四根页；共享Native Shell及平台能力。构建选择和Native MVVM详见[双模式指南](../development/ios-dashboard-modes.md)。
 
-| 项目 | 静态现状 | 设计与验证责任 |
+首期以 Android **RN 模式的行为**为对等基线。iOS增加DashboardFeature对齐Android的Native四根页职责；下载、引擎预热仍为独立扩展。iOS 平台采用 UIKit 宿主、SwiftUI 认证、Swift MVVM、URLSession 与 SQLite 封装，实现相同业务边界。
+
+对齐的是状态归属、契约、数据及可观察行为，不要求 Swift 类名、数据库物理实现或平台返回方式逐字对应。当前工程没有后端，不设计虚构的真实登录服务、持久登录或自动刷新 Token。
+
+| 必须对齐 | iOS 实施规则 |
+| --- | --- |
+| 单 RN instance | 每进程一个 factory/runtime、一个业务 Surface；Tab、认证、前后台不新建实例 |
+| Native 会话权威 | RN 不保存账号库、Token、密码，也不决定用户 scope |
+| Native 提前认证 | Shell 首次可展示时先检查会话，未登录直接展示 Native 认证，不等待 RN 首页 |
+| RN 默认门禁 | 根页/子页默认登录，HelpCenter 公开；仍复用当前 RN 页面策略 |
+| 注册即认证 | 注册通过网络 Mock 写库，成功建立完整内存会话，再关闭认证页 |
+| 默认 Mock | 业务 API 精确匹配本地路由、读取随包 JSON，随机延迟 1～3 秒，可取消 |
+| 双网络通路 | RN EndpointRegistry 明确选择通路；Native 失败不自动转 RN HTTP |
+| 状态隔离 | epoch 隔离用户会话，revision 排序 Shell 快照，页面请求版本隔离迟到结果 |
+| 可排障 | RN 独立 Console，Native 结构化日志；关键请求沿用 requestId/flowId |
+
+## 2. 已核实的工程现状
+
+| 项目 | 当前实现 |
+| --- | --- |
+| RN/React | RN 0.86.0 / React 19.2.3，保留版本与锁文件 |
+| 生命周期 | AppDelegate创建进程图，单SceneDelegate连接窗口和Shell；禁用多Scene |
+| 组件与入口 | EntryTask；Debug src/index，构建 ENTRY_FILE=src/index.js，Release main.jsbundle |
+| 工程身份 | target/scheme EntryTask；原bundle ID保持不变 |
+| 工具链 | 最低iOS 15.1、Swift语言模式5；本次编译使用Xcode 27 / Swift 6.4，旧系统需专项验证 |
+| 模块 | App + 本地Package六个library；GRDB精确锁定7.8.0 |
+| Bridge | 五个Codegen ObjC++ adapter，经factory delegate注入Swift facade |
+| 存储/Mock | GRDB双数据库、受控typed偏好、专用URLProtocol和分API handler |
+| 测试 | SwiftPM行为/网络集成测试，Xcode模块测试与认证/RN UI测试 |
+| 窗口 | UIKit单窗口，SwiftUI认证，Native底栏与唯一RN child |
+
+当前 [endpoints.json](../../contracts/api/endpoints.json) 有 **35 个 jsAllowed 端点**；[manifest.json](../../mock/manifest.json) 有 **37 条 HTTP Mock 路由**，包含 2 个 nativeOnly 登录/注册接口。退出是 Host 命令，不是第 38 个 HTTP API。数量只是当前清单核对结果；新增接口后以清单为准，不硬编码到业务逻辑。
+
+## 3. 技术选型与依赖
+
+| 职责 | 选型 | 决策理由与边界 |
 | --- | --- | --- |
-| 宿主 | AppDelegate创建RCTReactNativeFactory及默认RN全屏窗口 | 改为NativeShellViewController + 单RN child，复用factory/runtime |
-| 最低系统 | project.pbxproj声明15.1，Podfile取RN最低支持；本地RN helper为15.1 | G0-I以RN、screens、Swift依赖支持矩阵取交集，暂以15.1为目标，不未经验证提升 |
-| Swift | SWIFT_VERSION5.0 | 先用Swift5语言模式并逐步严格并发检查；工具链支持后单独评审Swift6模式 |
-| 构建 | CocoaPods use_react_native!/autolinking | 保留RN Pods/Codegen，业务模块用本地Swift Package；RN ObjC++桥接留Pods/Xcode target |
-| 数据库 | 无本项目业务实现 | 采用SQLite+GRDB（SPM精确版本），G0-I验证最低系统与Swift工具链；不假定最新版本兼容 |
-| UI | RN模板，无Native认证/Tab | UIKit Shell+SwiftUI认证MVVM，iOS15.1可用ObservableObject路径 |
+| Shell/容器 | UIKit UIViewController + 独立 UITabBar | 显式管理 child、safe area、认证覆盖与 RN native-stack |
+| 认证 UI | SwiftUI + UIHostingController | 对等 Compose 的声明式表单及状态驱动；不重写 RN 银行业务页 |
+| MVVM | ObservableObject / @Published private(set) + 明确 Action | 支持 iOS 15.1；不要求 iOS 17 Observation |
+| 并发 | async/await、结构化 Task、MainActor、受控后台执行器 | 明确所有者与取消；actor 内也不能阻塞执行 KDF/同步磁盘 |
+| Native 网络 | URLSession，专用 ephemeral 配置 | Foundation 能力足够；首期不再引入 Alamofire |
+| 本地拦截 | 专用 session 的 URLProtocol | 对等 OkHttp interceptor；不全局拦截 RN/Metro |
+| 数据库 | SQLite + GRDB，经 StorageKit 封装 | 对等 Room 的事务/唯一约束/升级职责；业务不直接写 SQL |
+| 普通 typed 偏好 | 受控文件存储，串行原子替换 | Bridge 写成功需可确认，不能把 UserDefaults.set 返回当磁盘提交证明 |
+| 日志 | OSLog + RN 独立 Logger | 首期满足控制台诊断，不强制新增文件日志或远程平台 |
+| 工程模块 | 一个本地 Swift Package、按职责拆 target | 编译边界可检查；React/ObjC++ 留 app target 与 Pods 集成 |
 
-Xcode、SDK、Swift编译器、Ruby/Bundler、CocoaPods、GRDB与screens精确版本在G0-I登记；保留Gemfile.lock/Podfile.lock/Package.resolved及JS lock。不能以deployment target字段推断当前Pods/Archive已通过。
+GRDB **7.8.0** 通过 SwiftPM 精确锁定，应用与库保留 Swift 5 语言模式，使用 Swift 6 编译器。Package、Xcode workspace及CLI的project查询分别保留Package.resolved；不提交本地镜像配置或开发机缓存路径。
+## 4. 模块架构与依赖方向
 
-## 2. 模块化与工程目录
+首期固定为 **七个主要实施单元：一个现有App target，加六个本地Swift Package library target**。一个本地Package统一管理CoreKit、UserFeature、NetworkKit、StorageKit、DemoEngine、DashboardFeature；目录分层不等于额外编译模块，测试target不计入业务模块数量。
+
+Android工程和模块保持现状。iOS对应其职责划分，在本端明确契约、注入和Mock归属，不将Android重构作为前置条件。
+
+| iOS实施单元 | Android职责对应 | 当前设计职责 | 禁止承担 |
+| --- | --- | --- | --- |
+| App（现有EntryTask target） | app | AppContainer、Shell、RNIntegration、五Bridge、跨模块适配和资源组装 | SQL、密码算法、签到/权益规则 |
+| DashboardFeature | biz_dashboard | 四页领域模型、网络Repository、四域VM、区域资源与共用SwiftUI | 复制认证/账本、创建RN实例、维护另一套根Tab |
+| CoreKit | lib_base | 基础值与错误、技术Port、取消标记与提交执行器、日志、通用UI；模块内分目录 | 账号规则、银行领域模型、万能ServiceLocator |
+| UserFeature | biz_user | 认证公开契约、SessionStore、Auth VM/Repository、SwiftUI登录注册 | 直接操作DAO、处理Mock注册写库、创建RN实例 |
+| NetworkKit | lib_net的通用网络职责 | URLSession、拦截接点、请求登记/取消/超时、传输错误 | 账号校验、Mock fixture路由、业务SQL |
+| StorageKit | lib_storage | SQLite/GRDB封装、LocalDatabase、原子状态存储和typed偏好 | 判断登录成功、生成密码校验值、启动认证页面 |
+| DemoEngine | demo_engine与现有lib_net中的认证Mock职责 | 认证及原型Mock、manifest/fixture、账号校验、纯业务状态转换 | 持有VC/RN、直接依赖数据库实现、公网回退 |
+
+DashboardFeature对齐Android biz_dashboard的四根页职责，使用SwiftUI，各自维护展示状态，共用API/Mock/素材来源。Room和GRDB只承担平台持久化实现差异；Native会话、根Tab和业务事实的所有权不变。
+
+```mermaid
+flowchart TD
+    APP[App：AppContainer / Shell / RN / Bridge / Adapters] --> USER[UserFeature]
+    APP --> NET[NetworkKit]
+    APP --> STORE[StorageKit]
+    APP --> DEMO[DemoEngine]
+    APP --> DASH[DashboardFeature]
+    DASH --> CORE[CoreKit]
+    APP --> CORE[CoreKit]
+    USER --> CORE
+    NET --> CORE
+    STORE --> CORE
+    DEMO --> CORE
+```
+
+图中箭头代表编译依赖；运行时调用经Port和组合根注入，不要求NetworkKit导入DemoEngine或UserFeature导入网络实现。六个library target不相互导入具体实现，不反向依赖App或React。
+
+### 4.1 契约归属与跨模块适配
+
+| 契约/组件 | 所属位置 | 消费方式 |
+| --- | --- | --- |
+| NetworkPort、传输DTO、资源协议 | CoreKit/Contracts | UserFeature、NetworkKit、DemoEngine及App按需使用；不包含银行凭证或DAO |
+| SessionSnapshot、SessionPort、认证公开模型 | UserFeature/Public | App的Shell及Bridge注入后使用；NetworkKit/StorageKit不导入UserFeature |
+| MockAccountStorage、DemoStatePort等模拟业务契约 | DemoEngine/Public | App内适配器实现，转调StorageKit公开能力，不把业务Port塞入通用网络库 |
+| LocalDatabase、状态事务及typed存储能力 | StorageKit/Database、Preferences | App适配器和组合根使用；不暴露GRDB Database、任意SQL或表名 |
+| 公共品牌UI、Logger及安全字段 | CoreKit/UI、CoreKit/Logging | UserFeature/App复用；Domain与Contracts目录不导入UI |
+| 会话变化与Mock写入提交协调 | CoreKit/Foundation/CommitExecutor | 实现注入的提交Port，协调UserFeature和StorageKit；业务判定仍由各自模块承担 |
+
+AppContainer创建依赖：UserFeature的AuthRepository接收NetworkPort，NetworkKit接收DemoEngine实现的拦截Port；DemoEngine的存储Port由App适配器连接StorageKit。于是注册写库仍发生在网络拦截链内，UserFeature不直接写库，NetworkKit不认识账号规则。
+
+NetworkKit在请求执行时只接收由App会话适配器提供的不可变RequestContext和校验能力，不反查UserFeature单例。RequestContext包含必要的scope/epoch等Native内部上下文，不作为可被JS指定的身份参数。StorageKit只执行受控读写和事务，不读取SessionStore推断当前用户。
+
+技术模块公开接口默认最小化；未公开实现保持internal。CoreKit的Contracts、Foundation、Logging、UI目录各有边界，禁止把跨域业务模型或所有工具都堆入其中。
+
+### 4.2 目标目录
+
+当前目录按实际职责创建，没有消费者的规划层不创建空壳：
 
 ```text
 ios/
-  EntryTask/
-    App/                          AppDelegate / AppContainer / BuildInfo
-    Shell/                        ShellVC / ShellViewModel / HostCoordinator
-    RNIntegration/                factory / 容器VC / 生命周期适配
-    NativeModules/                五个ObjC++ Codegen适配器与注册
-    Resources/GeneratedMock/      构建期共享JSON产物，不手工编辑
-  Packages/EntryModules/
-    Package.swift
-    Sources/
-      AppCore/                    Result/Error/Clock/安全标识
-      PlatformContracts/          Network/Storage/Session/Host/Telemetry协议
-      UserAPI/                    认证入口/安全会话只读契约
-      UserFeature/                Native认证MVVM/Repository/SessionCoordinator
-      NativeUI/                   认证主题/通用控件
-      NetworkKit/                 URLSession/取消/总超时/缓存接口
-      StorageKit/                 typed偏好/Cache DB/Keychain封装
-      DemoEngine/                 manifest/handler/场景/GRDB Demo DB
-      TelemetryKit/               结构化日志/文件sink
-    Tests/                        各模块单测与黄金向量
-  EntryTaskTests/                  桥接/资源/容器集成
-  EntryTaskUITests/                原生认证与RN主链路
+├── EntryTask/
+│   ├── AppDelegate.swift
+│   ├── App/                          AppContainer、SceneDelegate
+│   ├── Adapters/                     AccountStorageAdapter、DemoStateAdapter
+│   ├── Shell/Presentation/           ShellViewModel、ShellViewController
+│   ├── RNIntegration/                RNRuntimeOwner、RNContainerViewController
+│   └── NativeModules/                ETFactoryDelegate.mm、ETBridgeServices.swift
+├── Packages/EntryModules/
+│   ├── Package.swift                 六个library与GRDB依赖
+│   ├── Sources/
+│   │   ├── CoreKit/                  Contracts、Foundation、Logging、UI
+│   │   ├── UserFeature/              Public、Data、Presentation
+│   │   ├── NetworkKit/               Client、Interception
+│   │   ├── StorageKit/               Database、Preferences
+│   │   ├── DashboardFeature/         Domain、Data、Presentation、UI
+│   │   └── DemoEngine/               Public、Routing、Auth、Prototype
+│   └── Tests/EntryModulesTests/      行为与真实URLSession集成测试
+├── EntryTaskUITests/                  认证到RN主链路
+└── EntryTask.xcodeproj                App/模块测试/UI测试target与资源脚本
+
+DerivedData/.../EntryTask.app/         contracts/mock生成产物，不提交平台源码副本
 ```
 
-AppCore无UIKit/React/业务依赖；PlatformContracts、UserAPI是纯Swift安全协议。UserFeature依赖UserAPI/PlatformContracts/NativeUI，NetworkKit与StorageKit通过协议协作而非互相import实现；DemoEngine独立包含业务handler/表，不进入未来real依赖图。NativeModules依赖React生成头和纯Swiftfacade，通过AppContainer注入Port，不import私有Repository/DAO。
+Shell、RNIntegration与NativeModules留在App内，React/C++/ObjC++经既有Pods集成。Swift Package中只有业务/技术库，不能为每个Tab创建framework或独立RN容器。
 
-RN生成代码依赖CocoaPods的target，不强行将React/ObjC++移入纯Swift Package造成头搜索/模块链接冲突；纯Swift模块通过本地SPM product链接到app。对象创建只在AppContainer，禁止模块通过UIApplication.shared遍历keyWindow寻找业务单例。
+### 4.3 物理拆分的触发条件
 
-域规模扩大后，可独立拆UserFeature的子target和Demo各域handler，但本期不为每页创建framework；对外public最小化，默认internal，测试用@testable import。资源bundle由显式provider注入，不假定Bundle.main包含所有SPM资源。
+首期不创建独立的UserAPI、NativeUI、TelemetryKit、PlatformContracts target，分别通过UserFeature/Public与CoreKit内部目录表达职责。只有出现实际跨模块消费者、独立发布/测试需求，或可测量的UI依赖扩散、构建成本时，再评估提取契约/UI/日志模块。
 
-## 3. NativeShell与RN生命周期
+提取前需给出消费者、依赖图和公开API，证明不会引入循环或反向依赖；同步迁移调用方并验证构建。不能仅以“中大型项目”为由提前增加空模块，也不能靠公开所有类型解决依赖问题。
 
-### 3.1 单runtime/单Surface
+## 5. 状态所有权与线程模型
 
-AppDelegate组装进程级RNRuntimeOwner、SessionCoordinator和服务；ShellViewController拥有原生底栏及一个RNContainerViewController child。底栏可用独立UITabBar（四UITabBarItem）或等效Native控件，**不使用四个UITabBarController子VC各自创建RN root**；选中项为ShellViewModel的单一投影。
+| 状态/对象 | 唯一所有者 | 执行边界 |
+| --- | --- | --- |
+| Native 内存会话、凭证、epoch | SessionStore | 同步短临界区；原子读取/比较并提交，凭证私有 |
+| tabId/depth/revision | ShellViewModel | MainActor；VM/Bridge 只提交动作 |
+| 认证展示状态/flow ID | ShellViewModel + ShellViewController | MainActor；窗口可见且前台时展示 |
+| 表单 username/password/loading/authenticated/message | 每个 AuthViewModel | MainActor；独立登录/注册实例 |
+| React factory/runtime/Surface | RNRuntimeOwner | 主线程组装；每进程唯一 |
+| 请求 Task、终态、取消墓碑 | NetworkClient请求登记表 | 串行状态机；等待网络不占锁 |
+| 会话变化与业务写入的提交顺序 | CommitExecutor | 专用串行提交执行器；主线程await，不同步等待 |
+| 认证 SQL 和演示状态事务 | StorageKit 数据库执行器 | 专用后台队列/GRDB；事务内不 await |
+| fixture/JSON 解析、密码派生 | 后台执行器，有界并发 | 禁止主线程和 URLSession delegate 队列长时间阻塞 |
+| RN Query、分类/滚动、资产显隐 | 既有 RN 应用图 | 保留现有组装、epoch 与资源释放规则 |
 
-RNRuntimeOwner保留一个RCTReactNativeFactory及dependencyProvider；创建EntryTask root view的具体factory入口在G0-I按RN0.86生成头确认，不能照抄旧RCTBridge/RCTRootView的API假定新架构兼容。rootView生命周期与child VC绑定，child containment按addChild/didMove和willMove/removeFromParent正确配对，防手势/安全区/appearance丢失。[RN0.86现有应用集成](https://reactnative.dev/docs/0.86/integration-with-existing-apps)
+SessionStore 采用受控锁封装的短同步操作，提供 snapshot、commitAuthentication(expectedEpoch)、logout。这样 Mock 写事务能同步确认 scope/epoch 并协调提交顺序。锁内不做 KDF、文件、数据库等待或跨 actor 调用。若使用 actor 替代，必须同时实现写事务与退出的串行提交协调，不能仅 await 一次快照后假定状态不再变化。
 
-ShellViewModel为@MainActor可观察状态，只有selectedTab、hostRevision、底栏/认证覆盖、runtimePhase/error，不拥有RN领域数据。Native选择Tab→更新revision→事件→RN确认；RN跨Tab走Host command，不先变更JS选中态。RN子页depth>1隐藏Native底栏，转场完成回根再显示，布局按约束重算而非仅设透明造成触摸遮挡。
+CommitExecutor按受理顺序执行认证会话提交、logout和Demo事务提交；这些写路径必须经过同一入口。事务任务执行前同步检查expectedEpoch/scope，校验和提交之间不穿插logout；已进入短事务的操作先完成，再执行退出。KDF和Mock延迟在提交队列外。SessionStore的锁只用于快照和内存修改，不包住数据库操作；提交协调器也不在事务内await。这样同时保证退出与写入的线性顺序，并避免持锁做IO。
 
-### 3.2 安全区、导航与手势
+会话更新完成后才回 MainActor 发布 Shell，避免会话锁与主线程互相等待。VM 不持有 UIViewController/View、NavController 或原始 NativeModule。SwiftUI 渲染函数不发网络、不写库、不处理返回导航。
 
-RN内容容器与Native底栏分别约束到合适区域，根页不重复加tabBar bottom inset；子页容器延伸到系统安全区，RN SafeAreaProvider处理home indicator。状态栏样式由Shell协调并使用childForStatusBarStyle等容器机制，不能多个VC同时全局控制。键盘由当前RN/认证VC处理，SafeArea与IME事件不可叠加两次。
+## 6. 启动与唯一 RN 宿主
 
-Shell不在RN外包一层负责业务push的UINavigationController；RN native-stack承担业务子页和侧滑。Native认证作为fullScreen presentation覆盖Shell，认证内可用SwiftUI导航，关闭时回原RN目标。认证手势/取消显式回调，interactive dismiss若允许须发送cancel；不能让用户滑走但Promise仍等待。本期建议认证fullScreen且明确取消按钮，避免表单sheet半遮导致底栏可点击。
+### 6.1 冷启动顺序
 
-RN侧滑开始仅发布pendingTransition，didComplete才提交新depth；手势取消还原原depth/底栏。VoiceOver焦点在子页完成后移至TitleBar，返回时恢复来源可见元素；Native tab item具有准确label/selected状态。根页没有Android式双击退出逻辑，系统Home/后台属于iOS平台行为。
+```mermaid
+sequenceDiagram
+    participant App as AppDelegate/SceneDelegate/AppContainer
+    participant Shell as ShellViewController/VM
+    participant Auth as Shell/Auth UI
+    participant Session as SessionStore
+    participant RN as RNRuntimeOwner/App
+    App->>App: Logger、资源provider、存储provider、网络和依赖组装
+    App->>Shell: 安装window.rootViewController
+    Shell->>Session: 读取原子快照
+    alt 未认证
+        Shell->>Auth: Shell可见且前台，展示全屏认证
+        Note over RN: 暂不创建业务Surface、不请求私密数据
+        Auth->>Session: 注册/登录结果按expectedEpoch提交完整会话
+        Auth-->>Shell: onAuthSuccess，关闭认证自身
+        Shell->>Session: 重读快照并更新Shell
+    else 已有内存会话
+        Shell->>Shell: 继续业务宿主流程
+    end
+    Shell->>RN: 创建或复用EntryTask的唯一root view
+    RN->>Shell: bootstrap + NativeSession.getSnapshot
+    Shell-->>RN: 能力与安全快照
+    RN->>RN: 默认页面门禁 → 四域页面 → 受控Mock请求
+```
 
-### 3.3 前后台和内存
+Application 没有 Android attachBaseContext/Startup 的直接等价阶段；初始化入口为 didFinishLaunchingWithOptions，SceneDelegate连接单窗口，展示时机由UIKit生命周期协调。数据库按需在后台打开，资源文件内容校验不阻塞首次 UI；资源错误经认证安全提示、Bridge错误信封或RN初始化错误页及Native日志报告。
 
-进后台会话不失效，不启动业务轮询；暂停活跃请求策略按VM所有权执行，写事务已提交则保留；回前台先会话/Host snapshot再处理过期资源。页面包含个人资产时Native可在应用切换快照上遮盖敏感区域，恢复前台移除；这是展示保护，不改变会话规则。
+ShellViewController 在认证覆盖期间保留，成功仅 dismiss 认证。进后台不创建 Shell/RN；进程被杀后重新建立进程对象及未认证会话，不能承诺 VC 或 runtime 永远存活。
 
-didReceiveMemoryWarning/系统压力转为memoryPressure事件，RN清公开内存资源/非活跃Panel View；Native清图片/fixture模板缓存，可重新读本地bundle；不删Demo DB或退出会话。runtime异常可重建一次，旧bridge/facade任务取消、订阅清理、注册新runtimeId；仍失败显示Native重试页。系统jetsam无法在进程内可靠兜底，重启按未认证状态恢复并进入Native认证协调。
+### 6.2 RNRuntimeOwner
 
-## 4. Swift认证MVVM和会话
+- 保留一个 RCTReactNativeFactory、delegate 和 RCTAppDependencyProvider；AppDelegate 不再用 startReactNative 直接替换 window 根控制器。
+- 经 factory.rootViewFactory 创建 EntryTask root view，RNContainerViewController 使用 addChild/didMove 和 willMove/removeFromParent 配对管理；只创建一次并持续复用。
+- 本地 RN 0.86 的 RCTRootViewFactory.h 提供 `viewWithModuleName:initialProperties:launchOptions:`。Swift 导入形式已通过当前工程编译确认，不手写另一套旧 RCTBridge/RCTRootView 初始化。
+- 初始未认证时不挂载私密 Surface。程序性取消或无法展示认证后可挂载现有 RN 门禁以提供显式重试/HelpCenter；不能自动循环重拉登录。
+- RN Reload使旧模块invalidate、取消请求并注销监听；factory不因Tab或认证重新创建。进程级会话与数据库不随 Reload 清空，模块 facade/Promise 不跨 runtime 复用。
+- Bridge初始化失败由现有RN错误页提供显式重试；不自动销毁重建runtime。JS Bundle完全不可达时沿用RN开发错误界面，原生引擎崩溃兜底及无损恢复仍需专项设计。
 
-View层为SwiftUI LoginView/RegisterView，由UIKit UIHostingController宿主；VM使用@MainActor ObservableObject、@Published private(set) uiState与动作方法，兼容当前15.1目标，不以iOS17 Observation为前提。VM只接AuthRepository/Session接口，输入错误和submitting分开；View负责焦点/键盘与显示。
+### 6.3 预热与系统压力
 
-登录与注册使用独立VM和共用表单，提示和成功事实进入可观察状态。AuthRepository通过NetworkPort调用登录/注册API，账号trim、密码原样；空串本地拒绝，长度上限在实施时与共享认证契约统一；KDF/JSON不在MainActor执行。每个VM持有可取消Task，离开认证取消查询/提交等待并清密码；Task cancellation单独处理，不在catch中统一Toast业务失败。不把密码放UserDefaults/Keychain/SwiftUI SceneStorage/恢复state。
+首期按需启动引擎，预热默认关闭，先采集冷启动与登录返回数据。若实施预热，使用当前 RN rootViewFactory 的 `initializeReactHostWithLaunchOptions:bundleConfiguration:devMenuConfiguration:` 等已核实入口另做 PoC，仍不创建 Surface 或执行业务请求，不能用隐藏 RN 页面假装预热。
 
-SessionCoordinator用actor串行化会话与epoch：guest/authenticating/authenticated/invalidating；token只在Native内部私有模型存在，安全Snapshot无凭证。提交完整NativeAuthSession后先更新快照/epoch，再发布事件；注册与登录同路径，缺用户或凭证拒绝成功。opaqueUserId只供RN投影隔离，不用于请求身份指定。
+收到内存压力时释放可重建的模板/图片缓存，不删账号库、演示账本或共享 Host。后台暂停非必要订阅与轮播；不承诺 App 被系统终止时执行清理回调。首期采用单Scene单窗口架构，不启用多窗口。
 
-Shell先读取Native会话，未认证时不等待RN即展示认证；RN默认门禁仅公开HelpCenter。并发authenticate合并一个展示，flowId对应展示结果，命令ACK不代表成功；取消停留门禁，不暴露私密页面，不循环重拉。认证成功只恢复安全route，不自动签到/领取。logout通过受控Host命令立即递增epoch清个人态，不额外虚构logout HTTP；current-epoch401失效一次，旧epoch401忽略，403保留会话。退出不删除模拟服务端账号/领取/签到。
+## 7. Shell MVVM、根 Tab 与子页导航
 
-Actor方法中的await可能发生重入，网络响应返回后必须重新校验epoch/operationId，不能以“使用actor”代替整个异步流程的原子性。关键事件通过快照恢复，不依赖Combine瞬时publisher保证必达。
+ShellViewModel 的快照保持当前字段：
 
-## 5. TurboModule与Swift并发边界
+```json
+{"tabId":1,"depth":0,"authenticated":false,"sessionEpoch":0,"revision":0}
+```
 
-### 5.1 桥接路径
+- tabId 为 1～4，分别首页、财富、会员、我的；depth 为 0～20，**根页为 0**。每次实际快照变化递增 revision，sessionEpoch 由 SessionStore 管理。
+- UIKit 独立 UITabBar 只发 selectTab，选中态由快照回写；不创建四个各带 RN root 的 tab controller。
+- Native 选择 Tab 更新 ShellViewModel 并发 onHostEvent，RN 沿现有 ShellViewModel 选择页面；RN 跨 Tab 同样发送 Host command，不能先维护另一份根状态。
+- 业务 push/pop 由 RN native-stack 管理，RN navigation 命令报告真实 depth。depth>0 或未认证时隐藏 Native 底栏，返回根页再显示。
+- RN 侧滑取消必须保持实际栈深度，不能根据手势开始事件提前切底栏；实际 onStateChange 为准，恢复后可重发同深度快照校准。
+- Shell 不额外包一层负责业务 push 的 UINavigationController；UIKit 不与 RN 同时消费同一个返回手势。
 
-`specs/Native*.ts → RN Codegen ObjC协议/C++ wrapper → ObjC++模块(.mm) → @objc Swift Facade → Swift业务Port`。ObjC++类实现生成接口并提供getTurboModule等实际要求，类名/注册清单在G0-I以生成物确认；Swift不直接假装实现C++ TurboModule接口。
+内容区上沿尊重状态栏安全区，根页下沿到 Native 底栏顶；子页释放底栏槽并处理 home indicator。结合当前 SafeAreaProvider 测试剩余 inset，不叠加两份顶部/底部 padding。Shell 通过 child 状态栏转发及 Info.plist 配置管理样式，认证有独立状态栏适配。
 
-Swift Facade仅使用ObjC可表示的String/NSNumber/闭包等类型，解析为Swift Sendable value后调用actor/async服务；业务模型不携UIKit对象跨隔离域。依赖通过模块provider/adapter注入，配置RN factory/dependencyProvider与Codegen自动链接，避免注册两次模块。
+iOS 没有 Android 双击返回退出任务。登录全屏认证不提供返回业务首页的手势，注册返回登录；Home 手势和后台由系统处理，禁止调用 exit(0)。若未来增加主动取消入口，取消只能回门禁/公开帮助。
 
-### 5.2 任务与回调
+## 8. 登录注册 MVVM 与会话流程
 
-| 边界 | 设计 |
+### 8.1 UI、状态与生命周期
+
+SwiftUI AuthFormContent 复用品牌区、外置标签、账号/密码输入、显隐、主按钮、切页入口和加载样式。Login/Register 分别持有 AuthViewModel；统一 onAuthSuccess 命名，不能把注册成功挂到语义错误的 onLoginSuccess。
+
+AuthUiState 对齐 Android：username、password、isLoading、authenticated、message；动作包括修改输入、提交登录/注册、MessageShown。密码显隐为局部状态，默认隐藏，后台/提交/重建恢复隐藏。表单适配键盘、动态字体、滚动及 VoiceOver，失败使用轻量 Toast，不新增阻断错误弹窗。
+
+提交前同步置 busy，加载或已成功时拒绝重复提交；Task 与 requestVersion 配对。切页清密码并取消该页等待，另一页不继承账号密码。成功事实保留在状态中，提示经 MessageShown 消费；只在当前可见且应用 active 时交付 Toast/onAuthSuccess，后台成功恢复后仍可观察。密码不进 SceneStorage、AppStorage、导航参数或数据库。
+
+### 8.2 完整请求链
+
+```text
+SwiftUI → AuthAction → AuthViewModel → AuthRepository
+ → NativeAuthService → NetworkPort / 专用URLSession
+ → DemoURLProtocol → AuthMockHandler → MockAccountStore
+ → DemoEngine.MockAccountStorage → App.AccountStorageAdapter
+ → StorageKit.LocalDatabase → GRDB → auth_credentials
+ → HTTP/JSON响应 → Repository校验 → SessionStore原子提交
+ → VM.authenticated → onAuthSuccess → dismiss → Shell重读快照
+```
+
+注册写库发生在网络拦截链内。AuthRepository 只请求、解释结果和提交会话，不预写本地账号。替换真实服务时可替换 client/handler 配置，界面和 VM 无需改成另一条注册流程；真实认证协议、安全条件仍需独立接入。
+
+登录/register 使用 manifest 的 method/path，表单编码与 Android UserService 一致；本地 API 不访问公网。响应分 API 模板，动态身份字段在 Native 注入；Repository 校验身份及非空凭证，提交前检查取消和 expectedEpoch。
+
+### 8.3 认证展示协调
+
+ShellViewModel以可选UUID authFlow表示当前认证请求，ShellViewController持有presentingFlow与authController。只在同一前台Shell可展示时present；重复 authenticate 合并，旧 dismiss completion 或迟到结果必须匹配当前 flow ID。UI completion 不是登录事实，成功/恢复后重新读取 SessionStore 并发布快照。
+
+Host authenticate 返回 true 只表示命令已受理。后台或尚无宿主时返回 HOST_NOT_READY，不无限排队到任意窗口；恢复/显式重试重新受理。注销先递增 epoch、清凭证与 scope，再重置 depth=0、tabId=1 并发布 Shell，旧请求不得重新建立登录。
+
+### 8.4 认证 Mock 与数据库语义
+
+| 规则 | 实施要求 |
 | --- | --- |
-| JS调用线程 | 立即校验长度/登记请求，再转异步；不假定所有模块方法都在主线程 |
-| Host/Auth | @MainActor检查当前可见宿主，展示/关闭在主线程；缺宿主返回HOST_NOT_READY |
-| 请求注册 | RequestRegistry actor保管Task/URLSessionTask、deadline、终态；每requestId完成一次 |
-| serialize/DB | 后台工作执行，明确Sendable DTO，不用Task.detached逃避隔离检查 |
-| Promise回调 | facade持有一次性resolver，终态后清引用，确认runtime有效；不将JSI对象跨任意线程访问 |
-| invalidate | 取消当前runtime任务、清事件订阅/Promise，不清进程会话和已提交事务 |
+| 文件/表 | Application Support 下独立认证 SQLite 文件；表 auth_credentials，account_key 唯一，password_verifier 非空 |
+| 账号 key | `mock_auth_v1.` + 归一用户名 UTF-8 的 SHA-256 小写hex |
+| 归一化 | 对齐 Android Kotlin trim；大小写敏感，不额外 Unicode 归一化；以中英文、Emoji、空白向量验证，不直接假定Foundation trim语义一致 |
+| 密码 | 原样参与派生，不 trim；长度边界按 UTF-16 code unit 对齐 Native Android（账号256、密码1024） |
+| verifier | `v1:<algorithm>:120000:<saltHex>:<derivedHex>`，16字节随机盐、32字节输出；SHA256 写入，记录算法 |
+| 算法对等 | CommonCrypto PBKDF2 + 安全随机数；固定向量验证 SHA256/SHA1 格式与非ASCII输入；读取并验证记录算法，不表示跨设备共享账号库 |
+| 新注册 | 数据库唯一约束 INSERT OR IGNORE，准确解释新增行数，重复账号不覆盖原密码 |
+| 错误 | 400/401安全凭据提示，409重复账号；存储失败不伪装成功，不退回偏好存储 |
+| 数据生命周期 | 正常重启保留账号，内存会话重新认证；退出不删除账号；不自动清库或导入其他平台库 |
 
-网络/存储/Host错误统一总体BridgeReply schema；普通错误结构化，Promise reject仅不可处理的桥接异常。cancel-before-register有30秒有界墓碑，duplicate requestId不执行第二次。事件按固定枚举+revision发送，onHostEvent注册计数正确，在没有listener时保留快照而非无限积压事件。
+不保存明文用户名、密码或 Token；校验值采用常量时间比较。Room 与 GRDB 都不是加密容器，本期对等演示校验库不宣称是生产银行认证。首期不增加 Android 尚未实施的自动登录、刷新 Token 或 Keychain 凭证恢复。
 
-Swift5语言模式先开并发警告，G0-I逐步提升至complete检查；跨ObjC回调/URLProtocol生命周期用受控锁/actor边界，不能全局@unchecked Sendable压制告警。[Apple严格并发迁移说明](https://developer.apple.com/documentation/swift/adoptingswift6)
+取消等待不能撤回已提交注册事务。取消后再次注册可返回409，应允许用户登录确认；非幂等操作无契约不自动重放。
 
-## 6. URLSession网络与本地拦截
+## 9. 五模块与协议兼容
 
-### 6.1 Client
+[specs](../../specs/NativeHost.ts) 是方法签名权威，[runtime.json](../../contracts/bridge/runtime.json) 是运行协议权威。首期不修改公共签名、不另建 iOS 专用业务页面或状态实现。
 
-NetworkKit持有专用ephemeral URLSession，关闭系统URLCache/自动Cookie，缓存由统一CacheStore负责；配置protocolClasses=[DemoURLProtocol.self]仅用于Demo client，不使用全局URLProtocol.registerClass影响RN/Metro/第三方。request timeout/总deadline默认10秒，待处理32/运行8，由请求协调器限制，URLSession连接数不等于整体并发上限。
-
-API descriptor构造固定`https://entrytask.invalid` URL；JS无任意URL/Header，认证API仅Native调用，退出为Host命令。GET单飞/缓存/epoch规则需按实际端点单独定义，包含个性资格的响应不进入公开缓存。HTTP状态与业务码、坏JSON分别上送RN；当前epoch401在Native先失效，bodyText保留故障测试数据但不记录日志。
-
-URLSession支持在专用配置中接入自定义协议类，这是本地拦截的接点。[Apple protocolClasses](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/protocolclasses)
-
-### 6.2 DemoURLProtocol生命周期
-
-1. canInit对该专用Demo session的所有业务HTTP/HTTPS请求返回可处理；不只匹配已知API，否则未知路径可能落向真实网络。外部/错误Host返回受控拒绝，绝不转发。
-2. startLoading解析上下文/manifest，创建有归属的Task，经DemoController读取场景/Clock；用可取消Task.sleep等待随机1000～3000ms，不阻塞delegate queue/主线程。
-3. 调用handler生成Data和HTTPURLResponse，在一个串行DeliveryGate中依次调用didReceive、didLoad、urlProtocolDidFinishLoading；transport故障调用didFailWithError且只有一次终态。
-4. stopLoading标记已停止、取消Task和底层操作；后续任何Data/终态回调需经过同一gate复核，确保停止后不再回调client。不能只cancel Task而忽略已经排队的回调。
-5. 事务提交后stopLoading不反向删除事实；下一次查询/同key重试读取权威结果。超时由Registry主动cancel并归一Timeout，不把所有NSURLErrorCancelled都当用户取消。
-
-URLProtocol方法无法直接await，异步Task与client回调需通过受控生命周期适配；不能保存一个强闭包循环`protocol→task→protocol`，完成/取消都释放。AppContainer注入专用DemoController时用明确的受控provider/request context，避免全局可变Mock配置污染测试；生产real session不装载DemoURLProtocol。
-
-### 6.3 RN HTTP隔离
-
-Native专用URLSession只服务NativeNetwork与Native认证，DemoURLProtocol只注册到该session。RN HTTP按EndpointRegistry选择独立公开服务，不全局拦截RN、Metro或资源请求；失败不切换通路，RN公共服务401不使银行会话失效。TLS/ATS、Cookie、缓存和取消分别验证。
-
-## 7. Demo数据库、存储与事务
-
-### 7.1 SQLite方案
-
-使用GRDB管理SQLite，Demo DB与PublicCache DB分开；SPM pin与iOS/Swift目标在G0-I核实。GRDB提供SQLite应用数据访问基础，具体并发与迁移API按锁定版本实现，不在设计稿中虚构已调用的函数签名。[GRDB官方仓库](https://github.com/groue/GRDB.swift)
-
-表结构和业务唯一约束与Android逻辑一致：demo_users、assets/accounts/transactions、checkins唯一(user,businessDate)、energy_ledger唯一source、member_balances、benefits、claims唯一(user,benefit)、messages/reads、personal_items、idempotency唯一(user,api,key)、demo_meta。金额用Int64或规范整数字符串，服务层用Decimal/整数精确计算，不用Double累计金融金额。
-
-DemoStateStore actor负责组织请求，但数据库事务由单writer连接执行，**事务闭包内不await网络/Task.sleep**；等待延迟在事务前完成。签到记录/余额/账本/幂等结果/revision同事务；领取条件减库存与claim插入同事务；消息已读条件更新。唯一冲突读取既有成功结果，其他错误回滚；deadline/epoch在写入前校验，提交临界区不被UI取消破坏原子性。
-
-SQLite外键启用，支持版本迁移并记录seedVersion/schemaVersion；WAL文件和主库一起受文件保护/备份策略管理。损坏时显示故障及开发重置说明，不自动删除注册账号。只读产品/资讯/活动可读JSON模板，不能为跨端一致性复制一套不同seed。
-
-### 7.2 存储分类
-
-| 数据 | 实现/路径 | 失败和隔离 |
+| 模块 | 方法/事件 | 返回或职责 |
 | --- | --- | --- |
-| assetVisibility展示状态 | 当前会话内存状态，默认隐藏 | 随epoch重置；不与账号持久事实混用 |
-| 公开缓存 | 独立SQLite cache文件，meta/body/hash/TTL300秒，初始20MiB上限 | 只允许公开API，损坏可清缓存，不动Demo DB |
-| Demo业务 | Application Support/Demo命名空间SQLite | 跨进程保留，退出不删，重置显式确认 |
-| Token | SessionCoordinator内存 | 不进Keychain/文件/SceneStorage；进程终止失效 |
-| 验证材料密钥 | Keychain ThisDeviceOnly、WhenUnlocked | 无iCloud同步，错误可见；不因安全存储存在而持久登录 |
+| NativeHost | bootstrap、command、onHostEvent | 启动能力、Shell命令与裸Shell快照事件 |
+| NativeSession | getSnapshot | authenticated、sessionEpoch，不含Token/scope |
+| NativeNetwork | execute、cancel | httpStatus/bodyText，取消指定requestId |
+| NativeStorage | read、write、remove | typed key能力，首期白名单assetVisibility |
+| NativeTelemetry | emitBatch | 白名单事件批次受理与安全输出 |
 
-演示认证采用参数版本化PBKDF2；当前Android格式为salt16字节、32字节输出、120000次并记录算法，iOS实施需以共享测试向量确认对等性，不能宣称尚未验证的参数完全一致，用CommonCrypto或G0-I验证过的等效实现；固定跨端测试向量验证相同输入，随机salt避免相同密码相同verifier。计算限制并发并脱离MainActor；verifier可用Keychain管理的设备AES-GCM密钥封装后入库，salt/KDF参数可明文。密钥失效不能降级存密码或自动清数据，返回安全错误；恢复/重置策略单独设计并要求用户明确操作。
+### 9.1 信封、能力和事件
 
-Demo DB/密钥/持久数据及其WAL、日志按敏感程度配置NSFileProtectionComplete与备份排除；本期无后台业务，受保护数据不可用时返回暂不可用，不无限重试。Keychain选项语义参考[WhenUnlockedThisDeviceOnly](https://developer.apple.com/documentation/security/ksecattraccessiblewhenunlockedthisdeviceonly)，实际物理设备锁屏场景在未来集成测试核查。
+```json
+{"outcome":"ok","data":true}
+```
 
-### 7.3 共享JSON、场景与重置
+```json
+{"outcome":"error","error":{"code":"AUTH_REQUIRED"}}
+```
 
-构建脚本将根mock/contracts复制bundle，输入输出文件清单让Xcode增量构建可追踪；manifest/hash与Android一致，脚本失败阻断打包，不使用上次遗留资源。Bundle/Swift Package资源通过显式ResourceProvider获取，测试注入独立目录。
+bootstrap 的 data 必须包含 protocolVersion、componentName、bootId、capabilities、shell；版本1.1、组件EntryTask。bootId 每进程生成，不在每次握手变动。能力与 Android 对齐：host.events、host.command、network.execute、storage.assetVisibility、session.snapshot、telemetry.emitBatch；只在实现可用时宣告，不能靠假能力让 RN 绕过初始化失败。
 
-Clock/RandomSource/ScenarioController与Android语义一致：真实时间默认上海业务日，测试冻结/推进；next-call故障原子消费；参数排序、bodyHash、错误优先级由黄金向量规定。状态handler输出schema一致，不要求内部SQLite字节或随机ID相同；测试比较归一化结果及不变量。
+Session data 为 `{authenticated,sessionEpoch}`。Network data 为 `{httpStatus,bodyText}`，HTTP/业务失败仍保留 HTTP 响应，由现有 RN 网络层解释；仅传输、协议、取消等错误走 error 信封。Host ACK 的 data 必须为 true。
 
-开发菜单重置二次确认后停止新请求、epoch变化/取消旧任务、事务替换seed、清缓存/偏好/checkpoint并发demoStateReset；失败不混用版本。普通logout不删除Demo事实。场景切换清查询缓存，避免成功缓存遮住故障注入。
+onHostEvent 直接发送 ShellSnapshot JSON 字符串，**不套 BridgeReply、不增加未经 RN 支持的事件 type 外壳**。订阅前后通过快照恢复，不积压无限事件；RN 当前以 revision/epoch 拒绝回退。刷新订阅期间丢事件时用 bootstrap/快照校准，不能伪造不存在的 Session 独立事件 API。
 
-## 8. 日志、稳定性与性能
+### 9.2 Codegen、注册与依赖注入
 
-TelemetryKit提供OSLog安全结构化输出和有界本地文件sink，采用总体字段/队列/保留规则。隐私字段默认不输出，Native最终白名单过滤；不能因为OSLog支持privacy就把原始Token/body写入文件sink。emitBatch解析、文件滚动在后台串行执行，溢出丢低级事件并记录droppedCount，事件失败不阻断领取或认证。
+采用 `specs → Codegen ObjC++接口 → ETNative*Adapter(.mm) → @objc Swift Facade → Port`。ObjC++只做传输、事件与Promise适配，Swift承载逻辑；这一适配方式符合[RN 0.86 Swift 模块说明](https://reactnative.dev/docs/0.86/the-new-architecture/turbo-modules-with-swift)。
 
-| 风险 | 措施 | 未来验证 |
+- 保留 package.json 的 name/type/jsSrcsDir/android 配置；iOS module provider 映射按本地 RN 0.86 Codegen 支持接入，不能手改生成头或 RCTModuleProviders。
+- ETFactoryDelegate通过`getModuleClassFromName:`识别五个自有模块，再在`getModuleInstanceFromClass:`返回注入ETBridgeServices的adapter；未知模块回到super/dependencyProvider。RN 0.86模块管理器会重新按Class实例化，仅返回getModuleProvider对象不足以保证依赖注入。模块invalidate注销owner、取消任务和监听。
+- 本地 RCTDefaultReactNativeFactoryDelegate/RCTTurboModuleManager 已有 provider 路径；具体 override 的 ObjC++ shim、生成 Spec 名称及事件基类在 I0 编译核实。Swift 无法表达 C++ 方法时留在 ObjC++，不硬写不可编译的纯 Swift override。
+- provider映射与自定义工厂若同时使用，五个模块只指定一个实例创建所有者，避免生成provider先创建无依赖实例。禁止用UIApplication.shared或可变全局单例反查业务服务。
+- adapter的owner绑定不能跨Reload复用；进程级facade和服务可以复用，但必须注销旧owner的任务与监听。RN回调和C++事件只在当前有效runtime触发。
+
+### 9.3 并发、限额与终态
+
+按 UTF-8 字节校验运行契约限额：请求65536、响应262144、事件8192、日志批次32768。Host命令按受理顺序串行处理，有界64条；网络最多32个登记任务。日志单批最多20条，去重窗口1000事件，单字符串安全裁剪160字符；限额在对应入口执行，需随运行契约一起调整；完整边界矩阵仍待补齐。
+
+NetworkClient请求登记表原子登记requestId、URLSessionTask、deadline、取消原因与continuation；facade另外按模块owner跟踪Task及运行时有效性，Native上下文捕获scope/epoch。同ID重复返回 REQUEST_BUSY_OR_DUPLICATE，不覆盖原请求；只有原执行身份可以移除登记。cancel-before-register保留最多128条、30秒有效墓碑，单调时间计算过期。
+
+UTF-8字节长度不使用Swift String.count或NSString.length代替。Network响应采用受控DataDelegate累计字节，超过上限立即停止接收并返回PAYLOAD_TOO_LARGE；不能先无界下载再检查最终字符串。
+
+活跃runtime下Promise恰好完成一次；销毁时清监听、取消请求并释放resolver，禁止向失效JS回调。副作用事务已提交时不因runtime销毁回滚事实。取消与超时是不同原因，任务取消不转成网络失败，迟到响应按STALE_SESSION或丢弃规则处理。
+
+## 10. 网络、本地拦截与业务 handler
+
+### 10.1 受控网络层
+
+NetworkKit 将 API ID、受控参数/JSON body 转为 URLRequest，Native 构造固定 `https://entrytask.invalid` 路由、X-Request-Id/X-Demo-Api/X-Demo-Scope；JS不能传任意host、凭证、用户scope或header。认证路由nativeOnly，JS调用必须ENDPOINT_NOT_ALLOWED。
+
+URLSession使用ephemeral配置，关闭自动Cookie和系统URLCache；首期不另建一套Native查询缓存，保留现有RN RTK Query缓存权威。请求timeoutMs按端点配置，Native限制1000～10000ms；整体deadline、排队与Mock延迟一起计时，不能只设置单段URLSession timeout就认为总超时已控制。
+
+不全局URLProtocol.registerClass，不定制全局RN网络配置，RN公开HTTP仍按EndpointRegistry走自己的通路。未知API或外部host在demo client本地拒绝，不回落到真实网络。[Apple protocolClasses](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/protocolclasses)
+
+### 10.2 DemoURLProtocol 与 handler
+
+1. 专用session对HTTP/HTTPS都交给DemoURLProtocol判定；外部host也受控拒绝，避免未匹配请求穿透公网。
+2. startLoading建立当前请求Task，读取manifest，精确匹配API ID、method、path，验证参数与exposure。
+3. 后台可取消等待随机1000～3000ms，再读取模板及用户状态；Clock/Delay/Random可注入测试，不把真实RN HTTP加入延迟。
+4. 认证分派AuthMockHandler；原型API分派PrototypeMockHandler及纯状态转换。每API fixture来自Bundle，handler只修改有业务意义的字段，不内联大段JSON。
+5. 写操作在一个数据库事务中读取、验证并提交状态，提交后才构造成功响应；错误回滚，不把异常转换为空成功。
+6. 回调经过串行DeliveryGate，didReceive → didLoad → finish或fail只选择一个终态；stopLoading关闭gate并取消Task/后续回调，不能只改Boolean而忽略排队回调。[Apple stopLoading](https://developer.apple.com/documentation/foundation/urlprotocol/stoploading())
+
+URLProtocol实例只能持有自己的request context和受控服务引用，完成、失败、取消都断开Task/client闭包。专用配置通过AppContainer创建的不可变DemoRequestContext接入，首选URLProtocol request property携带上下文引用；NetworkKit在创建请求时附加，protocol取出后调用注入Port。该引用只存在Native请求，不进入HTTP header或JS；I0必须验证URLSession复制请求后属性仍可获取、上下文可释放及并行测试隔离，不用可变static handler临时兜底。
+
+### 10.3 与 Android 原型行为对齐
+
+handler以当前 manifest 的 handler字段为完整清单，分组实现，不只做首页fixture读取：
+
+| 分组 | 行为要求 |
+| --- | --- |
+| 内容/目录/产品/资讯/活动 | 同模板、同过滤/分页/详情不存在语义；page从1，pageSize默认10、最大50 |
+| 资产/账户/流水/统计 | 新注册演示用户资产为0，不继承视觉稿金额；空与0区分；金额按整数字符串 |
+| 身份/财务概览 | profile.summary/detail/marketing/financialOverview形状与schema一致 |
+| 签到/能量 | 上海业务日，返回真实最近七日calendar；连续第3/7天奖励30/100，7天循环，重复提交不再奖励 |
+| 权益/已领 | 与当前Android一致的资格/fixture库存判断，重复领取返回已有记录，列表及统计一致 |
+| 消息/角标 | readIds按用户保存，重复已读不重复扣计数，读取后各页查询一致 |
+| 搜索/个人事项 | 使用相同模板、参数、分页与安全路由目标，不把搜索词写入日志 |
+
+Android当前没有完整关系化银行库、全局库存系统、通用幂等服务或生产风控，iOS首期不把这些目标当“已对等前提”。纯CheckinLedger规则与Android逐向量验证；Date、ID和traceId允许平台生成，比较归一化结果与业务不变量。
+
+## 11. 存储封装、事务与安全
+
+### 11.1 数据分类
+
+| 数据 | iOS方案 | 对齐与生命周期 |
 | --- | --- | --- |
-| 主线程停顿 | UI/@MainActor仅轻量操作，KDF/DB/JSON/资源读取后台化 | Instruments Time Profiler，单主线程长任务定位 |
-| 启动慢 | Shell先帧，RN按需启动、资源异步校验，非活跃Tab lazy | signpost分段，30次冷启动P95，总体预算同Android口径 |
-| 动画/手势卡顿 | 单Surface、RN native-stack、图片解码尺寸、减少跨层事件 | Animation Hitches/Core Animation，手势完成/取消脚本 |
-| 内存泄漏 | ObjC++/Swift facade/task引用断环，容器正确移除，订阅按runtime清理 | Allocations/Leaks/Memory Graph；20轮回收后增量目标≤20MiB |
-| URLProtocol重复回调 | DeliveryGate统一检查终态/停止标记 | start/stop/timeout并发压力测试，无finish与fail双终态 |
-| Actor重入竞态 | await后校验epoch、写事务无await、幂等唯一约束 | 并发401/退出再登/领取竞争向量 |
-| RN加载失败 | Native兜底、一次重建、Bundle/hash/能力协商 | release无Metro启动、错主版本/损坏资源注入 |
-| 锁屏保护数据不可用 | 暂停/错误反馈，不降级明文或重置数据库 | 真机锁屏/解锁、文件保护/Keychain错误 |
+| 认证校验记录 | 独立SQLite认证库，auth_credentials | 对等Room LocalDatabase；退出不删、正常重启保留 |
+| 原型用户账本 | 独立Demo SQLite库，demo_user_state(scope主键,state_json)；数据库版本由GRDB迁移表管理 | 对等Android按scope整体JSON提交，保持实际字段/规则，不新建十余张无消费者表 |
+| typed非敏感偏好 | 隔离scope/key的原子文件Store | 首期只允许assetVisibility布尔值；不允许任意path/key |
+| Token/当前会话 | Native内存SessionStore | 结束进程失效，不保存Keychain自动恢复 |
+| 资产显隐UI状态 | 既有RN会话内状态 | epoch变化默认隐藏，不自动从Native偏好恢复 |
+| 响应缓存 | 既有RN Query内存缓存 | 不额外新建Native磁盘查询缓存 |
+| 只读模板 | App Bundle | 唯一来源contracts/mock，不能写回Bundle |
 
-iOS内存测量记录physical footprint、堆/纹理及OS版本，不把Android PSS绝对值直接横比；关注同平台趋势与泄漏。Apple提供内存分析工作流，G0-I确定可用Instruments及Xcode版本。[Apple内存分析](https://developer.apple.com/documentation/xcode/gathering-information-about-memory-use)
+当前NativeStorage接口保留assetVisibility能力，但现有RN资产显隐只使用会话内状态；提供接口不等于恢复旧偏好的业务逻辑。首期实现 typed Port，不让其修改账号表或会话。
 
-未来试点可经单独评审接MetricKit/崩溃监控，当前没有远端监控服务，不伪造crash-free百分比。dSYM、JS source map与buildId同档，发布产物可符号化；RN ErrorBoundary不兜住EXC_BAD_ACCESS/系统终止等Native崩溃。
+### 11.2 数据库封装
 
-Swift Telemetry facade接收RN独立Logger的核心与Bridge事件，校验白名单并保留关联ID；开发Console不依赖Native日志成功。执行span与Bridge span独立计时，时钟不跨层直接相减；事务事实不因日志失败回滚。
+StorageKit暴露LocalDatabase(read/insertIfAbsent)和受控状态事务能力；App的DemoStateAdapter将其适配为DemoEngine的DemoStatePort。内部GRDB DatabaseQueue单writer即可满足当前演示写规模；并发读优化需实测后再引入DatabasePool。调用方不获取Database、SQL或任意表名。
 
-## 9. 构建、配置与发布
+schema版本与fixture版本分开管理。首次安装创建版本1及明确Migration登记；未来升级提供显式迁移和旧文件测试，不启用erase-on-schema-change，不在打开失败时删库。认证库、Demo库分开，读写只涉及各自事务，不虚构跨数据库原子事务。
 
-建立Demo-Debug/Demo-Release配置及共享Scheme，Demo-Debug可用Metro，Demo-Release必须RN脚本生成main.jsbundle/Hermes产物和本地资源，离线运行。真实配置未实现时不建立假Real可运行Scheme。AppDelegate运行环境由不可变BuildConfiguration注入，测试场景不靠修改全局UserDefaults让release意外启用。
+Demo写入通过scope锁/提交协调，事务内读改写整份当前用户状态，避免并发签到、领取、消息已读丢更新。读取在事务/版本化快照内完成，写失败不回成功；响应校验epoch，绝不能把A用户结果返回B用户。退出与写入竞争以提交线性化顺序定义：提交前失效则拒绝，已完成提交则保留A用户事实并丢弃过期响应，绝不迁入B用户scope。
 
-RN及生成桥接留CocoaPods，纯Swift业务/GRDB使用SPM；所有依赖精确锁定，检查重复SQLite/RN symbol及use_frameworks链接组合，不能将动态/静态链接冲突靠随意切USE_FRAMEWORKS解决。验证模拟器arm64与真机arm64，禁止无限制EXCLUDED_ARCHS规避当前平台错误。
+SQL事务内不做网络、KDF或await。KDF先后台计算，数据库唯一键作最终防重。取消发生在提交后保留事实，下一次读确认结果；不提供无限自动重试。
 
-未来Archive验证Bundle/Codegen符号/资源清单、签名/provisioning、Info.plist隐私与备份、目标系统、dSYM。Debug与演示分发签名分离；本期无真实发行需求，不声明已可App Store发布。不引入远程热更新，JS/Native/contracts/fixtureVersion随App版本原子交付。
+### 11.3 文件保护与边界
 
-本期维持单窗口应用；未来如开启多Scene，需独立ADR说明一个runtime在多Scene的Surface、认证presentation和全局会话协调，不能默认将当前单Shell方案复制到多个窗口。
+认证/Demo库及WAL/SHM、typed偏好存放Application Support的私有目录，配置文件保护与备份排除，实施时包含真实锁屏/解锁测试。受保护数据不可用返回安全存储错误，不回退明文、不自动重置。同步文件原子替换放后台队列，失败向调用方反馈。
 
-共享contracts/mock经验证和生成任务打入Bundle，运行时不依赖Metro或开发机。Archive/安装包需核对manifest、schema与资源内容；Bundle只读，状态写入受控数据库，不维护平台源码副本。
+首期不新增明文密码、Token或导出接口；Keychain仅在未来明确需要设备密钥/真实凭证时按独立安全设计接入。GRDB并不自动提供数据库加密，演示KDF参数也不视为生产银行安全基线。
 
-## 10. 测试与跨端一致性
+## 12. 共享资源与 Xcode 构建链
 
-| 测试层 | 内容 | 预期证据 |
+输入只有根 `contracts/`、`mock/`，不在ios源码目录维护副本。`tools/prepare-ios-resources.cjs`先执行validate-resources，再暂存并替换目标.app内的两个资源目录，生成每个JSON的SHA-256索引`runtime-resources.index.json`。删除的源文件会从产物消失；校验失败阻断构建。
+
+Xcode资源Build Phase声明脚本和两个源码目录为输入、索引为输出，并设置每次构建执行，以覆盖新增/删除JSON。通过RN `.xcode.env`解析Node，沿用RN Bundle/Hermes脚本与ENTRY_FILE；资源准备在签名前执行，不与Copy Bundle Resources重复维护。
+
+Debug与Release均包含Mock和契约；Release包含main.jsbundle。ResourceProvider显式接收Bundle根URL，运行时不访问开发机目录或Metro fixture。验证需比较最终.app全部索引和源码摘要，并从空DerivedData生成Release；产物验证不等于完整无Metro设备回归。
+
+原生认证品牌素材沿用受控工程资源；业务素材由RN现有Metro资源流程打包，不为iOS另生成一份四Tab素材目录。
+
+## 13. 日志、错误与诊断
+
+OSLog统一subsystem为`EntryTask`、category为`Native`，用结构化事件名区分启动、认证、网络与Bridge；module/apiId/requestId等白名单字段供关联。桥接批次采用与Android相同白名单字段和有限eventId去重；RN Console独立输出，Telemetry失败不递归投递、不阻塞核心操作。
+
+| 阶段 | 必记安全信息 |
+| --- | --- |
+| App/Shell启动 | 阶段、耗时、错误码、bootId/flowId |
+| bootstrap | 协议校验、资源读取阶段、成功/失败；不输出资源正文 |
+| 认证 | requested/presented/completed/canceled、flow ID及epoch；不打印用户名密码 |
+| 网络/Mock | apiId、requestId、transport、durationMs、HTTP/业务错误码 |
+| 数据库 | open/read/write失败类别、schema版本、耗时；不打印verifier/state_json |
+| runtime/前后台 | generation、绑定/释放/取消、前后台阶段 |
+
+初始化Logger在模块握手之前可用。错误页展示安全错误码和诊断编号；设备Xcode Console、模拟器OSLog与RN DevTools各有明确入口。Release保留必要warn/error；文件日志/上传/崩溃平台作为独立增强，不宣称已接入。
+
+## 14. 性能与稳定性验收
+
+以Release内置Bundle、固定设备/系统和明确样本口径评估，不以Debug/Metro耗时当生产指标。
+
+| 关注点 | 设计措施 | 必须收集的证据 |
 | --- | --- | --- |
-| Swift包单测 | Money/比率、Clock业务日、参数规范化、schema/DTO、KDF固定向量 | 测试报告与contracts版本 |
-| actor/状态 | 注册完整会话、并发认证、401/旧epoch、logout、await重入、一次终态 | 可控调度器与重复压力结果 |
-| URLProtocol | 正常随机延迟、固定种子、未知API拒绝、start/stop/超时/坏包、无socket | URLSession专用配置集成测试 |
-| Demo DB | 签到周期/断签/3/7日、库存竞争、不同幂等键重复、冲突hash、迁移/回滚 | 临时DB、固定Clock、黄金向量 |
-| 存储/安全 | 原子写失败、用户scope、Keychain/文件保护失败、备份排除 | 包测试+真机锁屏验证 |
-| bridge | Codegen注册、五模块能力/hash、序列化/事件/取消/模块销毁 | Native/RN集成报告 |
-| XCUITest | 四Tab/子页、认证返回、领取卡券、消息角标、侧滑取消、未认证门禁、低内存恢复 | 录像/截图/日志/设备与buildId |
-| 生命周期 | 前后台、runtime重建、进程结束后重新认证、同账号事实保留 | 与Android同需求用例的结果 |
-| release/性能 | 无Metro离线、Bundle、资源hash、Instruments预算、dSYM符号化 | 可安装包及性能/产物报告 |
+| 首次认证 | Native先呈现、延迟业务Surface与数据库打开 | App启动至认证首帧分段，主线程Time Profiler |
+| 登录返回 | 单宿主复用、bootstrap与首个RN布局分开计时 | 认证成功→dismiss→Surface→RN首帧→数据ready |
+| 请求等待 | Mock延迟独立记账，端点总deadline | 1～3秒人工等待与解析/DB/Bridge耗时分离 |
+| 表单交互 | KDF/JSON/SQL后台化，SwiftUI状态轻量 | 输入/键盘/显隐帧抖动、主线程长任务 |
+| 内存/泄漏 | child生命周期、Task闭包、模块事件配对 | 多轮认证/切Tab/进后台的Memory Graph与footprint趋势 |
+| 竞态 | expectedEpoch、requestVersion、flow ID、一次终态 | 注入延迟的取消、退出重登、Reload及提交竞争测试 |
 
-黄金向量共享输入、Clock、场景、预期结果和业务不变量：字段schema、错误码、金额、状态/计数相同；traceId/随机operationId按占位归一，不要求两端字节级相同。Android使用Room、iOS使用SQLite访问层的不同内部实现，不应导致奖励周期、库存、403/401语义或缓存TTL不同。
+iOS footprint与Android PSS不直接横比。首次基线形成后再制定设备预算与性能回归阈值；本设计不预填未经测量的P95、FPS、内存上限或预热收益。
 
-未来执行前先`xcodebuild -list`与workspace/scheme清单核实，构建/测试命令使用实际Scheme和已安装模拟器目标；Pods通过项目Bundler执行，Swift包测试依赖目标平台选择xcodebuild或适用的swift test。设计期不写死不存在的Scheme或设备UDID，不在本期执行这些操作。
+## 15. Android → iOS 源码职责映射
 
-## 11. iOS分阶段任务（全部延期）
+| Android当前入口 | iOS对应职责 |
+| --- | --- |
+| [MainApplication](../../android/app/src/main/java/com/entrytask/MainApplication.kt) / ShellGraph | AppDelegate / AppContainer；注入七个实施单元的依赖 |
+| [MainActivity](../../android/app/src/main/java/com/entrytask/MainActivity.kt) / MainViewModel | ShellViewController / ShellViewModel |
+| [DefaultShellRepository](../../android/app/src/main/java/com/entrytask/shell/data/DefaultShellRepository.kt) | ShellViewModel，MainActor状态权威 |
+| [RootContentHostFragment](../../android/app/src/main/java/com/entrytask/shell/host/RootContentHostFragment.kt) / BaseFragment | RNContainerViewController / RNRuntimeOwner |
+| [AuthActivity](../../android/biz_user/src/main/java/com/entry/biz/user/ui/AuthActivity.kt) / AuthNavHost / AuthRoute | ShellViewController / UIHostingController / AuthScreen |
+| [UserViewModel](../../android/biz_user/src/main/java/com/entry/biz/user/viewmodel/UserViewModel.kt) / AuthFormContent | 独立AuthViewModel / 共用SwiftUI表单 |
+| [UserRepository](../../android/biz_user/src/main/java/com/entry/biz/user/repository/UserRepository.kt) / UserAuthManager | UserFeature内AuthRepository实现 / SessionStore，App通过Public契约访问 |
+| [MockAccountStore](../../android/lib_net/src/main/java/com/entry/lib/net/mock/MockAccountStore.kt) / RoomMockAccountStorage | DemoEngine/Auth内MockAccountStore / App.AccountStorageAdapter |
+| [RoomStorage](../../android/lib_storage/src/main/java/com/entry/lib/stroage/room/RoomStorage.kt) | StorageKit LocalDatabase / GRDB |
+| [PrototypeMockInterceptor](../../android/demo_engine/src/main/java/com/entry/demo/PrototypeMockInterceptor.kt) / CheckinLedger | DemoURLProtocol / DemoHandler / CheckinLedger纯转换 |
+| [HostModule](../../android/app/src/main/java/com/entrytask/bridge/HostModule.kt) 及其余四模块 | 五个ObjC++ adapter + Swift facade |
 
-| 阶段/任务 | 依赖 | 完成条件 |
-| --- | --- | --- |
-| I0/IOS-00 兼容性PoC | 本期契约稳定+未来实施排期 | Xcode/Pods/SPM/RN0.86/screens/最低系统矩阵，单容器与ObjC++→Swift调用证据 |
-| I1/IOS-01 基础模块/契约 | IOS00 | 模块边界、五模块Codegen、bootstrap/事件/取消、共享schema hash |
-| I1/IOS-02 Native认证/会话 | IOS01 | SwiftUI MVVM、完整自动登录、取消/401/退出，Token不落盘 |
-| I2/IOS-03 Network/Storage/Demo | IOS01/02 | URLProtocol、共享端点/JSON、GRDB事务、幂等/Clock/迁移、原子偏好 |
-| I3/IOS-04 Shell/RN导航联调 | IOS02/03+共享RN | 四Tab、子栈/底栏/手势/安全区、单Surface生命周期 |
-| I4/IOS-05 对等与故障验收 | IOS04 | AT-01～18的平台适用项、黄金向量、进程/锁屏/内存用例 |
-| I5/IOS-06 优化演示包 | IOS05 | Demo-Release离线、性能/安全/Archive报告、双通路隔离与离线资源核对和已知限制 |
+Android启动、锁、Activity Result等框架机制不机械翻译成iOS API；对应职责和外部可观察结果必须能逐项说明。
 
-每任务未来登记负责人/PR/buildId/契约hash/设备/结果链接；当前为待实施设计清单，不能给表内任务填写“完成”。排期须按G0-I实际兼容性和人力估算，不以Android已完成推定iOS工作量为零。
+## 16. 分阶段职责与验收
 
-## 12. 扩展与限制
+按可验证的纵向链路交付，每阶段完成后文档只反映有效状态，不追加冗余修改流水。以下全部为待执行任务。
 
-当前仅RN factory模板，没有需迁移的本项目iOS旧用户库；首次未来接入创建版本化Demo数据。若实施前已有新代码/数据，重新核查迁移，不照本结论清用户目录。向后回滚检查DB schema，优先前向修复；卸载/重装是显式演示重置路径，不能伪装为无损升级。
+| 阶段 | 工作与关键文件 | 依赖 | 退出条件 |
+| --- | --- | --- | --- |
+| I0 集成PoC | 核对Xcode/Ruby/Pods/锁、修正测试target引用；最小factory child、模块注入、URLProtocol隔离、GRDB固定版本与生成资源试验 | 当前源码/契约 | 可编译最小新架构集成；35/37清单一致；生成目录清空后仍有效；确认Swift/ObjC++边界 |
+| I1 基础能力 | App+六个library的Package依赖；CoreKit日志/Port、UserFeature会话、ShellRepository、AppContainer | I0 | 依赖图符合第4节；单测覆盖会话/epoch、Shell revision、资源失败；无空target/全局服务查找 |
+| I2 认证纵向链路 | StorageKit认证库、DemoEngine/Auth handler、App存储适配、NetworkKit拦截接点、UserFeature认证MVVM与Shell展示协调 | I1 | Native先认证；注册写后可登录；重启账号仍在；两表单隔离、失败Toast、取消/重入有效 |
+| I3 五Bridge与宿主 | App内五Bridge与FactoryDelegate；NetworkKit请求登记、StorageKit typed偏好、CoreKit日志 | I1/I2 | 不改RN公共签名；模块可获取；取消/坏包/epoch/Reload测试通过；唯一Surface挂载 |
+| I4 原型业务对等 | DemoEngine/Prototype全部handler、StorageKit状态事务及App适配、RN四Tab/子栈/安全区 | I3 | 现有RN四页和已落地子页跑通；与Android固定输入/Clock结果一致，非幂等无自动重放 |
+| I5 稳定性与交付 | 模拟器/真机主链路、空目录Debug/Release构建、离线资源、日志和性能基线 | I4 | 对等矩阵有实际结果；已知限制明确；无数据清空、旧会话泄漏或缺资源 |
 
-未来真实网络使用不含Demo协议类的独立session和服务配置，新增真实鉴权/服务端幂等/风控要求；不把本地SQLite事务等同真实后端一致性。iPad/横屏/多窗口、持久登录、生物认证和远程配置需补需求及ADR；本期无这些隐含范围。
+I0中基础能力可用Fake Port完成组件测试，但发布给RN的能力必须真实完成，不允许假bootstrap、JS fake NativeModule或UI绕过认证。首个可演示里程碑为I2认证链路，完整跨端里程碑为I4。
 
-参考：RN、Apple URLSession/并发/安全存储、GRDB来源见正文。Apple部分页面依赖JS，具体API行为还应在G0-I以本机SDK头文件、官方文档和最小复现确认；本设计不据此声称编译或平台测试已通过。
+## 17. 对等测试与运行验证
+
+| 用例组 | 必测行为 |
+| --- | --- |
+| 启动/认证协调 | 未登录Native先认证；Shell保留；重复命令合并；后台不能任意present；旧completion不影响新flow |
+| 表单 | 登录失败后注册为空；返回清密码；重复提交防重；后台成功恢复；密码暂停隐藏 |
+| 账号持久化 | 注册经URLSession拦截写库；错误密码/重复注册/DB失败；结束进程重新登录；不读取另一测试库 |
+| 会话竞态 | A请求未完退出再登B；旧成功/旧401/旧写响应不回写B；取消后已提交事实可确认 |
+| 协议 | 五模块签名、UTF-8限额、裸Shell事件、ACK true、缺资源、协议版本错误、nativeOnly拒绝 |
+| 请求生命周期 | cancel先于execute、同ID重复、超时与取消区分、32并发上限、stopLoading/完成竞争、Reload清理 |
+| 四页/导航 | Tab选中回写、根depth=0、子页隐藏底栏、侧滑取消、安全区/键盘/字体/VoiceOver |
+| Mock状态 | 上海跨日、连续3/7奖励、断签/七日calendar、重复签到/领取/已读、分页/空/无资源 |
+| 打包/性能 | 空DerivedData生成、源文件删除后产物删除、Debug/Release资源摘要、无Metro离线、内存趋势 |
+
+测试使用Fake Clock/Delay/Random、临时数据库和独立scope，设备测试不卸载/清除用户演示账号。跨端黄金向量覆盖响应schema、HTTP/业务码、默认值、金额、分页和状态转换；不能只比较静态成功JSON。
+
+依赖安装仅在实施阶段按需执行，保留已有锁文件，禁止pod update全量漂移。使用以下命令核实实际环境：
+
+```sh
+# 仓库根：依赖缺失时安装，保留package-lock/Gemfile.lock
+npm ci
+bundle install
+
+# ios/：必要时安装Pods、核实真实scheme和destination
+bundle exec pod install
+xcodebuild -list -workspace EntryTask.xcworkspace
+xcodebuild -showdestinations -workspace EntryTask.xcworkspace -scheme EntryTask
+```
+
+确认环境后根目录使用官方 `npx react-native run-ios`；Xcode打开EntryTask.xcworkspace，选择实际EntryTask scheme。Debug/Release build/test命令使用查询所得destination，scheme已接入实际模块测试及UI测试target。Archive、签名和分发在明确交付范围与环境后执行，不把模拟器build写成正式发布。
+
+src/app/App.tsx初始化诊断已按平台区分：iOS提示Xcode与RN DevTools，Android保留设备日志命令；不改变业务VM、Port或协议。SafeArea、键盘、字体、SVG和native-stack在iOS设备实际验收，不能由共享TS代码可编译推断已对等。
+
+涉及RN/共享契约改动时运行现有typecheck、lint、architecture:check、contracts:check及相关Jest；修改specs需同时验证Android Codegen/构建，保持已完成端可用。schema变更先contracts:generate，不修改生成校验器绕过错误。
+
+## 18. 实现与验证边界
+
+已在当前模拟器构建/运行链路确认：工具链与GRDB固定版本兼容；factory/root view创建与注入模块可编译；Codegen事件/失效生命周期；URLProtocol上下文隔离及stopLoading；Xcode脚本沙箱与资源依赖；测试target与实际destination。
+
+本期固定边界：单窗口、Native认证与构建期选择的RN/SwiftUI四页、进程内会话、本地演示网络、无持久登录。后台持久下载、引擎预热、远程日志、全量关系化业务库、真实后端、iPad专属重设计及正式发布不混入首期依赖。
+
+已实现七个实施单元、五个Bridge及全部清单路由的分派；不能将路由存在等同全部错误/竞态场景验收。SwiftPM 18项、Xcode 10项模块测试及Native/RN模式各2项UI测试覆盖核心行为，设备环境为iPhone 18 Pro / iOS 27模拟器。Debug/Release模拟器构建及81个运行时JSON、13张共用图片的路径/摘要核对通过；RN Release包含Hermes Bundle，Native无业务JS Bundle，同目录切换清理通过；真机、旧系统、完整无Metro业务回归、Reload/内存压力矩阵、性能基线与签名分发仍待验证。实际命令和范围见iOS README，不以规划验收矩阵冒充本次执行结果。

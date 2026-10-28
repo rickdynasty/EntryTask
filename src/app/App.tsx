@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -69,7 +70,9 @@ export default function App() {
                 </Text>
                 {__DEV__ && (
                   <Text style={styles.diagnostic}>
-                    查看终端 npm run logs:android 或 RN DevTools Console
+                    {Platform.OS === 'ios'
+                      ? '查看 Xcode Console 或 RN DevTools Console'
+                      : '查看终端 npm run logs:android 或 RN DevTools Console'}
                   </Text>
                 )}
                 <Button

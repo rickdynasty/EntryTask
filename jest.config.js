@@ -1,4 +1,7 @@
 module.exports = {
+  // SwiftPM/Pods里的第三方JS测试不属于RN测试集。
+  testPathIgnorePatterns: ['/node_modules/', '/ios/Pods/', '/ios/Packages/.*/\\.build/', '/android/.*/build/'],
+  modulePathIgnorePatterns: ['/ios/Packages/.*/\\.build/'],
   preset: '@react-native/jest-preset',
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|react-native-safe-area-context|@react-native(-community)?|immer|redux|redux-thunk|reselect|@reduxjs)/)',

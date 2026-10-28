@@ -2,7 +2,7 @@
 
 ## 项目范围
 
-EntryTask 是通过 React Native Community CLI 创建的银行业务教学工程，没有真实后端。当前交付以 Android 为主：Native 负责应用宿主、认证、根 Tab、会话和受控平台能力；RN 负责四域业务页面及子页；Android Studio 构建提供 Native Compose 四根页。iOS 保留集成入口，对等 Native 业务能力待实施。
+EntryTask 是通过 React Native Community CLI 创建的银行业务教学工程，没有真实后端。Android 与 iOS 共用 RN 业务页：Native 负责应用宿主、认证、根 Tab、会话和受控平台能力；RN 负责四域业务页面及子页；Android Studio 构建提供 Native Compose 四根页。iOS已实现UIKit Shell、SwiftUI认证/四根页、CLI RN模式、五个TurboModule及平台网络/存储/Mock能力；详细架构、Android职责映射与验证边界见[iOS方案](iOS技术方案.md)。
 
 需求来源为[原型需求](../requirements/01-prototype-requirements.md)、[API 与 Mock 需求](../requirements/02-api-mock-requirements.md)，首页具体视觉依据为 `prd/EntryTask UI PRD.docx` 与 `prd/UI原型/`。需求中规划的端点、页面和性能目标不等于已验收能力；实际展示和交互边界见[首页方案](首页与四Tab技术方案.md)。
 
@@ -71,7 +71,7 @@ RN Logger 独立输出 Console，Native 使用 MLog，关键链路通过 flowId/
 | --- | --- | --- |
 | RN | 四域页面、通用子页、Bridge 适配、双网络封装及状态/日志 | 完整业务深链路和细粒度缓存策略按需求扩展 |
 | Android | 双模式宿主、Native认证、Compose根页、Room认证存储、Mock、进程内下载初版 | 下载可靠性、真实会话安全协议、正式发布基线 |
-| iOS | CLI 工程及 JS 入口适配 | Shell、认证、五模块、Mock、存储和生命周期对等接入 |
+| iOS | 单Scene Shell、认证、五个桥接模块、GRDB、URLSession Mock、RN/SwiftUI双模式 | 真机/旧系统矩阵、性能基线、签名分发；不包含预热或下载 |
 
 工程仍是演示系统，不声明真实银行认证安全、完整生产会话、后台持久下载或正式发布能力已落地。验证按改动覆盖静态检查、行为测试、原生构建、双模式设备主链路与资源产物；构建通过、设备通过、设计待实施分别报告。
 

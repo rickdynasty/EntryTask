@@ -7,12 +7,14 @@
 - [总体设计](design/EtryTask%20项目设计方案.md)
 - [首页与四 Tab](design/首页与四Tab技术方案.md)
 - [登录注册](design/登录注册技术方案.md)
-- [RN](design/前端RN技术方案.md)、[Android](design/Android%20技术方案.md)、[iOS（待实施能力）](design/iOS技术方案.md)
+- [RN](design/前端RN技术方案.md)、[Android](design/Android%20技术方案.md)、[iOS落地方案](design/iOS技术方案.md)
 - [Room 认证存储](development/Room认证存储设计.md)、[认证 UI](ui/登录注册UI实现说明.md)
 
 ## 开发与学习
 
-- [工程 README](../README.md)、[RN README](../src/README.md)、[Android README](../android/README.md)
+- [工程 README](../README.md)、[RN README](../src/README.md)、[Android README](../android/README.md)、[iOS README](../ios/README.md)
+- [iOS 四页双模式与组件指南](development/ios-dashboard-modes.md)
+- [iOS 基础与调试新手指南](development/iOS基础与调试新手指南.md)
 - [首页 UI 新手指引](development/首页UI新手指引.md)
 - [登录注册新手指南](development/登录注册功能新手指南.md)
 - [Room 新手指南](development/Room新手使用指南.md)
@@ -20,6 +22,10 @@
 - [双页面运行模式](development/native-dashboard.md)、[RN 运行说明](development/rn-foundation.md)
 - [日志排障](development/troubleshooting.md)、[RN 预热测量](development/rn-warmup-performance.md)
 - [Compose Preview](../android/docs/compose_preview使用指引.md)
+
+## 故障处理记录
+
+- [iOS 五个 Missing package product：问题分析、命令和修复验证](development/iOS编译失败处理记录-Missing-package-product.md)
 
 ## 产品与关键决策
 

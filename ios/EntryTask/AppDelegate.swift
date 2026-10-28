@@ -1,48 +1,27 @@
 import UIKit
-import React
-import React_RCTAppDelegate
-import ReactAppDependencyProvider
+import CoreKit
 
-@main
-class AppDelegate: UIResponder, UIApplicationDelegate {
-  var window: UIWindow?
-
-  var reactNativeDelegate: ReactNativeDelegate?
-  var reactNativeFactory: RCTReactNativeFactory?
-
-  func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-  ) -> Bool {
-    let delegate = ReactNativeDelegate()
-    let factory = RCTReactNativeFactory(delegate: delegate)
-    delegate.dependencyProvider = RCTAppDependencyProvider()
-
-    reactNativeDelegate = delegate
-    reactNativeFactory = factory
-
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "EntryTask",
-      in: window,
-      launchOptions: launchOptions
-    )
-
-    return true
-  }
-}
-
-class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
-  override func sourceURL(for bridge: RCTBridge) -> URL? {
-    self.bundleURL()
-  }
-
-  override func bundleURL() -> URL? {
-#if DEBUG
-    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "src/index")
-#else
-    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
-#endif
-  }
+/// 进程组合根只创建一次；窗口由单Scene入口连接，兼容当前iOS SDK生命周期要求。
+@main class AppDelegate: UIResponder, UIApplicationDelegate {
+    var window: UIWindow?
+    private var container: AppContainer?
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        AppLogger.log("application.starting")
+        container = AppContainer()
+        return true
+    }
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let config = UISceneConfiguration(name: "EntryTask", sessionRole: connectingSceneSession.role)
+        config.delegateClass = SceneDelegate.self
+        return config
+    }
+    func makeWindow(for scene: UIWindowScene) -> UIWindow {
+        if let window, window.windowScene === scene { return window }
+        guard let graph = container else { preconditionFailure("Application graph must be created before its scene") }
+        let window = UIWindow(windowScene: scene)
+        window.overrideUserInterfaceStyle = .light
+        window.rootViewController = ShellViewController(graph: graph)
+        self.window = window
+        return window
+    }
 }

@@ -73,3 +73,10 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Swift Package local build/cache; Package.resolved remains tracked.
+ios/Packages/**/.build/
+ios/Packages/**/.swiftpm/
+
+# Swift/Xcode workspace-level build metadata
+/.build/

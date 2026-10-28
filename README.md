@@ -1,8 +1,8 @@
 # EntryTask
 
-EntryTask 是一个基于 React Native Community CLI 创建的银行业务教学原型，用于验证 Android Native 宿主与 RN 业务页面协作、分层架构和本地模拟业务流程。项目没有真实后端，不连接真实银行服务；页面中的账户、资产、收益、活动和操作结果均为演示数据。
+EntryTask 是一个基于 React Native Community CLI 创建的银行业务教学原型，用于验证 Android/iOS Native 宿主与 RN 业务页面协作、分层架构和本地模拟业务流程。项目没有真实后端，不连接真实银行服务；页面中的账户、资产、收益、活动和操作结果均为演示数据。
 
-本仓库采用 Android Native + React Native 的当前交付路径：Native 负责登录注册、应用外壳、根 Tab、会话与设备能力；RN 在同一个 React Native 实例中实现首页、财富、会员、我的四个业务域及其子页面。Android Studio构建另提供Compose Native四根页以对照学习与演示，详细边界见[双页面模式说明](docs/development/native-dashboard.md)。iOS 工程保留 React Native CLI 集成入口，业务 Native 能力尚未实施，详细范围见 iOS 技术方案。
+本仓库采用 Android/iOS Native + React Native 的交付路径：Native 负责登录注册、应用外壳、根 Tab、会话与设备能力；RN 在同一个 React Native 实例中实现首页、财富、会员、我的四个业务域及其子页面。Android Studio构建另提供Compose Native四根页以对照学习与演示，详细边界见[双页面模式说明](docs/development/native-dashboard.md)。iOS 使用 UIKit Shell、SwiftUI 认证和六个 Swift 库，CLI加载RN页面、Xcode加载SwiftUI四根页，详细实现与验证边界见 [iOS README](ios/README.md)。
 
 第一次阅读本工程、尚无 Kotlin/Android 基础时，建议先看 [登录注册功能新手指南](docs/development/登录注册功能新手指南.md)：从语法、MVVM 和 Compose/XML 对比开始，沿当前源码讲解注册、登录、Mock 网络、Room账号存储、会话、调试和练习。
 
@@ -25,8 +25,8 @@ EntryTask
 ├── React Native (src/) 应用组合根、业务域、共享 UI、网络/状态/日志基础设施
 ├── specs/              RN 与 Native 的 Codegen TurboModule 契约
 ├── contracts/          API、响应 Schema 与 Bridge 运行时契约
-├── mock/               按 API 组织的 JSON fixture，由 Android 构建打入 APK
-├── ios/                RN CLI 原生工程入口；iOS 业务 Native 能力待实施
+├── mock/               按 API 组织的 JSON fixture，构建时进入 APK / iOS Bundle
+├── ios/                UIKit Shell、SwiftUI四页/认证、六个Swift库及TurboModule适配
 └── docs/               需求、总体设计、端侧技术方案、UI 与开发排障文档
 ```
 
@@ -34,7 +34,7 @@ EntryTask
 
 Native 是认证、根导航、会话和受控设备能力的权威方。应用进程内只创建一个 React Native Host/运行时和一个业务 Surface；Native Tab 状态同步给 RN，RN 使用 native-stack 承载业务子页面。四个业务 Tab 不各自创建 RN 实例。
 
-业务 API 通过 RN `EndpointRegistry → TransportRouter` 明确选择 Native 或 RN HTTP 通道；选择由 API 描述和业务需求决定，不对失败请求静默切换通道。当前原型 API 使用 Android Native 网络客户端本地拦截，按 API ID 从 `mock/` 读取 JSON，Mock 与 contracts 在构建时打入 APK，因此不依赖项目源码目录或后端。普通模拟请求随机延迟 1～3 秒。RN 自有日志与 Native 日志通过受控关联字段协助排障；日志不得记录凭证或敏感业务载荷。
+业务 API 通过 RN `EndpointRegistry → TransportRouter` 明确选择 Native 或 RN HTTP 通道；选择由 API 描述和业务需求决定，不对失败请求静默切换通道。当前原型 API 使用所在平台 Native 网络客户端本地拦截，按 API ID 从 `mock/` 读取 JSON，Mock 与 contracts 在构建时打入 APK / iOS Bundle，因此不依赖项目源码目录或后端。普通模拟请求随机延迟 1～3 秒。RN 自有日志与 Native 日志通过受控关联字段协助排障；日志不得记录凭证或敏感业务载荷。
 
 ## 环境准备
 
@@ -58,7 +58,17 @@ Android Studio 方式：用 Android Studio 打开仓库的 `android/` 目录，�
 
 ### iOS
 
-iOS 业务 Native Shell、认证、Bridge、存储和 Mock 引擎尚未落地，不能按完整业务端验收。后续启用 iOS 时需按仓库 Gemfile/Podfile 安装 CocoaPods，并核实 Xcode、Ruby、Pods 与 RN 版本；入口保持 `src/index.js` 和组件名 `EntryTask`。架构边界及验证要求见 [iOS 技术方案](docs/design/iOS技术方案.md)。
+需要 macOS、Xcode、Swift 6 工具链、仓库 Gemfile 对应的 Ruby/Bundler。GRDB 7.8.0 经 SwiftPM 锁定。首次安装及启动：
+
+```sh
+bundle install
+cd ios
+bundle exec pod install
+cd ..
+npx react-native run-ios
+```
+
+Xcode 打开 `ios/EntryTask.xcworkspace`，选择 `EntryTask` 和实际设备；CLI默认RN业务页，Xcode默认SwiftUI Native四根页，显式ENTRYTASK_PAGE_MODE构建设置优先；详见[iOS双模式说明](docs/development/ios-dashboard-modes.md)。RN Debug使用Metro，RN Release从包内加载`main.jsbundle`；Native模式无需Metro；入口保持 `src/index.js` 和组件名 `EntryTask`。详细目录、测试、日志和验证范围见 [iOS README](ios/README.md) 与 [iOS 技术方案](docs/design/iOS技术方案.md)。
 
 ## 开发检查与日志
 
@@ -80,6 +90,8 @@ Android Native 构建及日志命令见 [Android 项目 README](android/README.m
 | --- | --- |
 | RN 工程结构、MVVM、基础设施与开发命令 | [RN 项目 README](src/README.md) |
 | Android 工程模块、构建、运行、Mock 资源和日志 | [Android 项目 README](android/README.md) |
+| iOS 模块、启动认证、Bridge、测试与日志 | [iOS 项目 README](ios/README.md) |
+| 零基础学习 Xcode、Swift、运行、日志与断点 | [iOS 基础与调试新手指南](docs/development/iOS基础与调试新手指南.md) |
 | 全工程总体设计 | [EtryTask 项目设计方案](docs/design/EtryTask%20项目设计方案.md) |
 | RN 端技术方案 | [前端 RN 技术方案](docs/design/前端RN技术方案.md) |
 | Android 端技术方案 | [Android 技术方案](docs/design/Android%20技术方案.md) |

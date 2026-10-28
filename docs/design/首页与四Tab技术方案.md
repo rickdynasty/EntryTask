@@ -2,7 +2,7 @@
 
 ## 范围与实现边界
 
-产品依据为 `prd/EntryTask UI PRD.docx` 和 `prd/UI原型/` 中的视觉稿。本方案说明当前 Android Native 与 RN 两种页面实现；iOS Native 页面尚未实施。首页指第一个业务 Tab，主界面外壳指 MainActivity、内容宿主与根底栏，两者职责独立。
+产品依据为 `prd/EntryTask UI PRD.docx` 和 `prd/UI原型/` 中的视觉稿。本方案说明当前Android/iOS Native与RN页面实现；iOS也提供SwiftUI Native四根页，构建模式与架构见[iOS双模式指南](../development/ios-dashboard-modes.md)。首页指第一个业务 Tab，主界面外壳指 MainActivity、内容宿主与根底栏，两者职责独立。
 
 两种模式使用相同产品区域、契约、Mock 数据和素材来源，各自实现 UI、ViewModel 和页面生命周期。共享设计与数据协议，不跨框架共享可变视图状态。页面展示演示银行数据，多数入口通过演示弹层说明功能；不能据此视为完整交易、搜索或产品购买流程。
 

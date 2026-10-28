@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1210"
+   LastUpgradeVersion = "1500"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -20,6 +20,34 @@
                ReferencedContainer = "container:EntryTask.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "577938EE2C3EECD7A6DE4910"
+               BuildableName = "EntryTaskTests.xctest"
+               BlueprintName = "EntryTaskTests"
+               ReferencedContainer = "container:EntryTask.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BC4FA6E16229D25BF4FFCFC4"
+               BuildableName = "EntryTaskUITests.xctest"
+               BlueprintName = "EntryTaskUITests"
+               ReferencedContainer = "container:EntryTask.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -27,14 +55,33 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
+            BuildableName = "EntryTask.app"
+            BlueprintName = "EntryTask"
+            ReferencedContainer = "container:EntryTask.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <Testables>
          <TestableReference
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "00E356ED1AD99517003FC87E"
+               BlueprintIdentifier = "577938EE2C3EECD7A6DE4910"
                BuildableName = "EntryTaskTests.xctest"
                BlueprintName = "EntryTaskTests"
+               ReferencedContainer = "container:EntryTask.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BC4FA6E16229D25BF4FFCFC4"
+               BuildableName = "EntryTaskUITests.xctest"
+               BlueprintName = "EntryTaskUITests"
                ReferencedContainer = "container:EntryTask.xcodeproj">
             </BuildableReference>
          </TestableReference>
