@@ -6,6 +6,12 @@
 
 建议使用顺序：先完成第 1～5 节的首次运行，再通过第 6～8 节读代码，最后按第 9～12 节亲手查看日志、打断点、定位一次问题。第 13～16 节用于继续练习和查阅。
 
+## 先明确当前界面分工
+
+**四个根 Tab 始终由 Native UIKit 实现**：`ShellViewController`创建`UITabBar`，`ShellViewModel`持有根导航状态。页面模式只决定Tab内部内容：Xcode默认SwiftUI四页，官方CLI默认单RN Surface中的四域页面；登录注册在两种模式下都是Native SwiftUI。不要将“RN页面模式”理解为“RN实现根底栏”。
+
+刚接触Xcode、找不到磁盘里的App/SceneDelegate或四页源码时，先读[《Xcode使用与工程结构入门》](iOS-Xcode使用与工程结构入门.md)。其中按当前工程分组提供逐文件位置表，并解释Native Implementation与Package Dependencies。
+
 ## 阅读导航
 
 - [1. 先认识几个名词](#1-先认识几个名词)
@@ -40,7 +46,7 @@
 | Runtime | 运行环境 | 模拟器需要对应系统 runtime；RN 也有自己的 JS runtime，二者不同 |
 | Build | 把源代码编译、链接、组装成应用 | 成功后还需要安装、启动，才算运行起来 |
 | Debug / Release | 开发调试配置 / 优化配置 | 新人先用 Debug；Release 用于检查优化和打包行为 |
-| Bundle | 应用安装包中的文件集合 | 包含原生程序、资源，以及 Release 的 JS Bundle |
+| Bundle | 应用安装包中的文件集合 | 包含原生程序和资源；RN Release另包含JS Bundle |
 | Bridge / TurboModule | RN 调用原生能力的受控接口 | RN 请求会话、网络、存储和宿主操作的通道 |
 
 本工程是无真实后端的教学银行应用。Mock 是“本地模拟服务行为”：请求仍经过原生网络层，再被本地拦截并读取分 API JSON；不是 RN 页面直接打开 JSON 文件。
@@ -337,8 +343,10 @@ sequenceDiagram
 | 8 | DemoHandler.handle / process / authenticate | 随机等待后处理注册或登录；通过账号存储读写数据库 |
 | 9 | [MockAccountStore](../../ios/Packages/EntryModules/Sources/DemoEngine/Auth/MockAccountStore.swift).register / verify | 账号键和密码校验值处理；不保存明文密码 |
 | 10 | AuthScreen.deliver → ShellViewController.finishAuthentication | 确认前台和成功事实，关闭认证；不会销毁 Shell |
-| 11 | ShellViewController.render → [RNRuntimeOwner](../../ios/EntryTask/RNIntegration/RNRuntimeOwner.swift).rootView | 只创建一次业务根视图，之后持续复用 |
-| 12 | [ETBridgeServices](../../ios/EntryTask/NativeModules/ETBridgeServices.swift).perform / run | 受理 RN 调用，提供 bootstrap、会话、网络等能力 |
+| 11（仅RN模式） | ShellViewController.render → [RNRuntimeOwner](../../ios/EntryTask/RNIntegration/RNRuntimeOwner.swift).rootView | 只创建一次业务根视图，之后持续复用 |
+| 12（仅RN模式） | [ETBridgeServices](../../ios/EntryTask/NativeModules/ETBridgeServices.swift).perform / run | 受理 RN 调用，提供 bootstrap、会话、网络等能力 |
+
+Native模式在第10步后走`ShellViewController.render → NativeDashboardView → DashboardCoordinator.update → 当前页VM.activate/refresh → NetworkDashboardRepository → NetworkClient`，不经过第11、12步。两种模式的`UITabBarDelegate → ShellViewModel.selectTab`根Tab路径相同。
 
 `viewDidLoad` 通常用于一次性的视图创建；`viewDidAppear` 在控制器显示后调用，之后再出现也可能重复调用；当前 Shell 因此还需要 didStart 和认证 flow 的防重协调。不要把任何一个“出现回调”理解成整个进程只执行一次。
 
@@ -803,13 +811,15 @@ continue                        # 继续执行
 
 1. 当前实际运行的是 Debug 吗？Scheme Run 的 Debug executable 是否开启？
 2. 调试器连接的是这台设备上的这个进程吗？CLI 启动后可能尚未 Attach。
-3. 这条路径真的执行了吗？未认证时 RN 尚未挂载，首页 Bridge 断点自然可能不命中。
+3. 这条路径真的执行了吗？Native模式不会创建RN宿主；RN模式未认证时尚未挂载业务Surface，这两种情况下首页Bridge断点都可能不命中。
 4. 改完 Swift 后重新构建了吗？Fast Refresh 只处理 JS，不替你重编译 Swift。
 5. 文件是否属于正确 target？是否在看 Pods 或旧生成文件，而运行的是另一个实现？
 6. 所有断点是否被整体禁用？断点标记是否未解析、行号是否没有可执行代码？
 7. 最后才考虑优化、符号或缓存问题；保留首个错误，不先清空所有构建缓存。
 
 ## 11. 按实例调试登录和 RN 页面
+
+本章认证实验适用于两种模式；实验三仅适用于RN模式。Xcode默认Native模式的四页调试从DashboardFeature的VM与Repository入手，不等待Bridge调用。
 
 ### 11.1 实验一：空输入为什么不发网络
 
@@ -859,11 +869,11 @@ RN 初始化：JS App → NativeHost adapter → ETBridgeServices → bootstrap
 
 ### 11.4 实验四：点击会员签到后没有变化
 
-在 NativeNetwork 分支筛选 checkin.status / checkin.submit，观察 requestId；继续到 DemoHandler.dispatch 的 checkin 分支和 DemoStateAdapter.transaction。
+RN模式在NativeNetwork分支筛选checkin.status/checkin.submit；Native模式从MemberPageViewModel.submit进入NetworkDashboardRepository.submit。两条路径均汇合到NetworkClient，继续到DemoHandler.dispatch的checkin分支和DemoStateAdapter.transaction，观察安全requestId。
 
-检查：是否登录、请求 context 是否仍有效、日期是否符合业务要求、写事务是否完成、返回是否被 RN 接受。重复签到应读取已有事实，不应反复增加奖励。
+检查：是否登录、请求 context 是否仍有效、日期是否符合业务要求、写事务是否完成、返回是否被当前模式的活动页面接受。重复签到应读取已有事实，不应反复增加奖励。
 
-如果按钮或加载状态变化有问题，用 RN DevTools；如果 Native Mock / 数据库事务有问题，用 Xcode。UI 改动不等于数据库变更，数据库提交成功也不等于旧页面一定可以接受迟到响应。
+按钮或加载状态异常时，RN模式用RN DevTools，Native模式在MemberPageViewModel/PageResource中检查状态；Native Mock/数据库事务问题统一用Xcode。UI 改动不等于数据库变更，数据库提交成功也不等于旧页面一定可以接受迟到响应。
 
 ## 12. 常见问题排查
 
@@ -1050,6 +1060,8 @@ git diff --check
 完成这些练习后，再考虑独立添加页面、API 或公共组件。先熟悉一条完整链路，比一开始同时研究所有 RN/C++/数据库细节更容易形成判断。
 
 ## 16. 继续阅读
+
+- [Xcode使用与工程结构入门](iOS-Xcode使用与工程结构入门.md)：截图区域、磁盘到工程树映射、定位文件与配置。
 
 工程资料：
 

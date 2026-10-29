@@ -1,10 +1,15 @@
+// 文件职责：首页区域组装，成功内容和局部加载状态分开展示。
 #if canImport(UIKit)
 import SwiftUI
 
 /// 首页按原型区域排列；运营布局只支持已知四种样式，不解释远端脚本。
 struct HomeScreen: View {
+    /// 页面VM，View只观察其状态并转发动作。
     @ObservedObject var model: HomePageViewModel
+    /// active：页面或轮播是否允许工作，由当前Tab与前台状态决定。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let active: Bool; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankPage(identifier: "dashboard.home", refresh: model.refresh) {
             HomeTopBar(content: model.content, unread: model.unread, open: open)
@@ -25,6 +30,7 @@ struct HomeScreen: View {
                 ResourceRegion(resource: model.products, retry: model.refresh) { data in
                     if let data {
                         if data.items.isEmpty { Text("该分类暂无产品").font(.caption).foregroundColor(BankStyle.muted) }
+                        // 根页最多展示三张产品卡，避免把分页列表全部塞进首页。
                         ForEach(Array(data.items.prefix(3))) { FinancialProductCard(product: $0, open: open) }
                         Button("查看更多产品 ›") { open("更多产品") }.font(.caption).foregroundColor(BankStyle.muted).frame(maxWidth: .infinity)
                     }
@@ -36,10 +42,15 @@ struct HomeScreen: View {
         }
     }
 }
+/// 首页扫码、搜索、消息及顾问入口。
 private struct HomeTopBar: View {
+    /// 首页运营内容区域资源，为搜索提示及入口提供数据。
     @ObservedObject var content: PageResource<HomeContent>
+    /// 未读数独立区域，不阻塞首页其他内容。
     @ObservedObject var unread: PageResource<Int>
+    /// 演示入口回调，只传展示标题，不在组件内执行交易。
     let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         HStack(spacing: 12) {
             Button { open("扫一扫") } label: { BankIcon(key: "scan", color: BankStyle.ink) }.accessibilityLabel("扫一扫")
@@ -53,19 +64,28 @@ private struct HomeTopBar: View {
         }.padding(10).background(BankStyle.cream)
     }
 }
+/// 首页横向快捷入口，不维护业务导航权威。
 private struct HomeShortcutRow: View {
+    /// entries：宫格或分类的只读条目集合。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let entries: [MenuEntry]; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) { HStack { ForEach(entries) { item in
             Button(item.title) { open(item.title) }.font(.system(size: 12)).foregroundColor(BankStyle.muted).padding(10).background(Color.white).cornerRadius(4)
         } } }
     }
 }
+/// 按已知四种布局渲染运营区，拒绝解释远端代码。
 private struct HomeEditorialSection: View {
+    /// section：运营区域配置，只接受预定义布局样式。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let section: EditorialSection; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankCard(color: BankStyle.cream) {
             if !section.title.isEmpty { SectionHeader(title: section.title, subtitle: section.subtitle) }
+            // 只支持menu/banner/cards/news四种本地布局；不会将配置当代码执行。
             if section.style == "menu" {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: section.entries.count == 4 ? 4 : 3)) {
                     ForEach(section.entries) { tile in Button { open(tile.title) } label: { VStack(spacing: 9) { BankIcon(key: tile.icon); Text(tile.title).font(.system(size: 12)).foregroundColor(BankStyle.ink) }.frame(maxWidth: .infinity, minHeight: 70) }.buttonStyle(.plain) }

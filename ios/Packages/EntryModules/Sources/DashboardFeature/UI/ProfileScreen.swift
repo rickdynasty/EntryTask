@@ -1,9 +1,17 @@
+// 文件职责：我的页面区域组装，安全退出交给Native Shell。
 #if canImport(UIKit)
 import SwiftUI
 
+/// 我的页面区域组装，安全退出交给Native Shell。
 struct ProfileScreen: View {
+    /// 页面VM，View只观察其状态并转发动作。
     @ObservedObject var model: ProfilePageViewModel
+    /// visible：当前显示敏感值或密码的局部/会话内状态。
+    /// toggle：会话内隐私切换动作，组件不另存持久偏好。
+    /// logout：安全退出回调，实际会话清理由Native Shell完成。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let visible: Bool; let toggle: () -> Void; let logout: () -> Void; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankPage(identifier: "dashboard.profile", refresh: model.refresh) {
             HStack { Button("安全退出", action: logout).font(.system(size: 12)).foregroundColor(BankStyle.ink).accessibilityIdentifier("dashboard.logout"); Spacer(); Button { open("设置") } label: { BankIcon(key: "settings", color: BankStyle.ink) }.accessibilityLabel("设置") }
@@ -17,8 +25,12 @@ struct ProfileScreen: View {
         }
     }
 }
+/// 个人头像、等级和五项统计入口。
 struct UserCardHeader: View {
+    /// data：响应字节或只读展示模型，不在View中直接写库。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let data: Identity?; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankCard {
             HStack(spacing: 12) {
@@ -32,8 +44,12 @@ struct UserCardHeader: View {
         }
     }
 }
+/// 月度收支金额和比例，遵守同一隐私状态。
 struct MonthlyCashflowCard: View {
+    /// data：响应字节或只读展示模型，不在View中直接写库。
+    /// visible：当前显示敏感值或密码的局部/会话内状态。
     let data: FinancialOverview?; let visible: Bool
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankCard {
             SectionHeader(title: "月度收支", subtitle: data?.month ?? "")
@@ -42,11 +58,17 @@ struct MonthlyCashflowCard: View {
         }
     }
 }
+/// 区分未加载、无卡和有卡账单的展示组件。
 struct CreditBillCard: View {
+    /// data：响应字节或只读展示模型，不在View中直接写库。
+    /// visible：当前显示敏感值或密码的局部/会话内状态。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let data: FinancialOverview.Bill?; let visible: Bool; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankCard {
             SectionHeader(title: "信用卡账单")
+            // 区分尚无响应与服务端确认无卡，不把空账单伪装成零元欠款。
             if let data {
                 if data.hasCard { MoneyText(value: data.unpaid, visible: visible); Text("到期日 \(visible ? data.dueDate ?? "—" : "已隐藏")").font(.caption) }
                 else { Text("尚未绑定信用卡，暂无账单").font(.system(size: 13)).foregroundColor(BankStyle.muted) }
@@ -55,8 +77,13 @@ struct CreditBillCard: View {
         }
     }
 }
+/// 营销借款上限与示例利率，明确尚未授信。
 struct LoanSummaryCard: View {
+    /// data：响应字节或只读展示模型，不在View中直接写库。
+    /// visible：当前显示敏感值或密码的局部/会话内状态。
+    /// open：演示入口回调，只传展示标题，不在组件内执行交易。
     let data: FinancialOverview.Loan?; let visible: Bool; let open: (String) -> Void
+    /// 由只读状态组合界面，交互通过回调交给VM或宿主。
     var body: some View {
         BankCard {
             SectionHeader(title: "我的借钱")

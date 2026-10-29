@@ -1,7 +1,8 @@
 // swift-tools-version: 6.0
+// 文件职责：Swift Package入口：声明六个library、依赖边界与测试目标；Swift工具版本声明必须保留首行。
 import PackageDescription
 
-// 六个库只依赖CoreKit；App负责实现跨模块适配。
+// 模块通过CoreKit契约协作；StorageKit另依赖GRDB，跨模块实现由App适配器组装。
 let package = Package(name: "EntryModules", platforms: [.iOS("15.1"), .macOS(.v13)],
     products: ["CoreKit", "UserFeature", "NetworkKit", "StorageKit", "DemoEngine", "DashboardFeature"].map {
         .library(name: $0, targets: [$0])

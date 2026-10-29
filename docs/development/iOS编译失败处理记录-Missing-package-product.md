@@ -2,6 +2,8 @@
 
 记录日期：2026-10-28。适用工程：EntryTask iOS workspace。
 
+当前使用方式补充：根Tab在两种模式下均由Native UIKit实现；Xcode默认SwiftUI业务内容，官方CLI默认RN业务内容。本文中的命令与验证结论保留故障发生时范围，不代表重新验证。当前操作见[Xcode入门](iOS-Xcode使用与工程结构入门.md)和[双模式指南](ios-dashboard-modes.md)。
+
 本记录整理本次已经发生的故障、分析证据、处理命令和修复后操作。它与长期架构方案分开维护，不将临时排障流程写入 AGENTS.md。
 
 **结论：五个产品缺失来自同一条依赖解析失败链路。** Xcode 下载 GRDB 及其 SQLiteLib Git 子模块时遇到网络错误，Package Graph 未完整解析，连带报告本地五个产品缺失。补齐并核验锁定提交的依赖缓存后，标准 workspace 解析成功，默认 DerivedData 下的 iPhone 18 Pro Debug 构建成功。
@@ -376,9 +378,9 @@ git diff --check
 3. 顶部选择 EntryTask scheme、Debug 和实际 iPhone Simulator。
 4. 点击 Run，或按 ⌘R。若仍显示旧的解析错误，先关闭并重新打开当前 workspace，再解析和运行。
 5. 构建通过后观察是否安装、启动。需要 RN Debug 业务页时，在仓库根独立终端运行 `npm start`，已有正确 Metro 时复用它。
-6. 应用启动后先进行 Native 认证；认证成功后才加载当前 RN 业务页。进入首页后再检查 Tab、Mock 请求和日志。
+6. 应用启动后先进行 Native 认证；认证成功后按当前构建模式加载SwiftUI或RN业务内容，根Tab始终由Native提供。进入首页后再检查Tab、Mock请求和日志。
 
-说明：本次处理没有实现 iOS 的“CLI 使用 RN、Xcode 使用 Native 四页”双模式。依赖修复和页面模式需求属于不同工作，不能用本次构建通过宣称双模式已完成。
+历史范围说明：本次依赖故障修复时未实现双模式；后续已补齐构建期页面选择，详见双模式指南。不能用本故障记录的构建结果代替双模式验证。
 
 如果 Run 之后才出现 Metro 连通、签名或页面问题，按新的第一条具体错误继续排查，不把所有后续问题归到本次五产品解析错误。
 

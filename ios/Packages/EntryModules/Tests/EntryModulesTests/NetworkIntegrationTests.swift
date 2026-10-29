@@ -1,3 +1,4 @@
+// 文件职责：真实URLSession到Mock再到SQLite的集成回归。
 import XCTest
 import Foundation
 import CoreKit
@@ -7,11 +8,13 @@ import DemoEngine
 
 /// 使用真实URLSession→URLProtocol→Mock→SQLite，防止仅测Fake而漏掉上下文丢失。
 final class NetworkIntegrationTests: XCTestCase {
+    /// 从测试源码位置定位仓库资源，只用于主机集成测试。
     private func resources() -> DirectoryResources {
         var root = URL(fileURLWithPath: #filePath)
         for _ in 0..<6 { root.deleteLastPathComponent() }
         return DirectoryResources(root: root)
     }
+    /// 真实网络拦截链验证表单特殊字符、重复注册、登录及JS权限拒绝。
     func testRegistrationLoginAndNativeOnlyBoundary() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -30,6 +33,7 @@ final class NetworkIntegrationTests: XCTestCase {
         do { _ = try await client.execute(APIRequest(apiID: "auth.login", body: form), context: guest); XCTFail("JS must not invoke Native authentication API") }
         catch { XCTAssertEqual((error as? AppFailure)?.code, "ENDPOINT_NOT_ALLOWED") }
     }
+    /// 验证先取消后登记不会复活，签到写入可被后续查询读取。
     func testCancelBeforeRegistrationAndMockWritePersistence() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -50,11 +54,17 @@ final class NetworkIntegrationTests: XCTestCase {
         let again = try await client.execute(APIRequest(apiID: "checkin.status"), context: user)
         XCTAssertEqual((try JSON.object(again.data)["data"] as? JSONObject)?["checkedToday"] as? Bool, true)
     }
+    /// 网络集成测试的数据库适配器，不接触正式账号库。
     private final class Adapter: MockAccountStorage, DemoStatePort {
+        /// 测试专属数据库引用，不指向用户账号目录。
         let db: LocalDatabase
+        /// 保存当前用例创建的隔离数据库，不构建生产应用图。
         init(_ db: LocalDatabase) { self.db = db }
+        /// 读取本用例数据库内的合成账号校验值。
         func read(_ key: String) throws -> String? { try db.credential(key) }
+        /// 在本用例数据库中验证唯一账号创建。
         func create(key: String, verifier: String) throws -> Bool { try db.insertCredential(key: key, verifier: verifier) }
+        /// 测试用事务适配，直接操作隔离数据库；不承担生产会话校验。
         func transaction(context: RequestContext, write: Bool, transform: (JSONObject) throws -> (JSONObject, Any)) throws -> Any { try db.state(scope: context.scope, write: write, transform: transform) }
     }
 }

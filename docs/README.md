@@ -14,6 +14,7 @@
 
 - [工程 README](../README.md)、[RN README](../src/README.md)、[Android README](../android/README.md)、[iOS README](../ios/README.md)
 - [iOS 四页双模式与组件指南](development/ios-dashboard-modes.md)
+- [Xcode 使用与工程结构入门](development/iOS-Xcode使用与工程结构入门.md)
 - [iOS 基础与调试新手指南](development/iOS基础与调试新手指南.md)
 - [首页 UI 新手指引](development/首页UI新手指引.md)
 - [登录注册新手指南](development/登录注册功能新手指南.md)
